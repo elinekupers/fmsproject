@@ -74,8 +74,8 @@ end
 
 
 yscaleAB = [repmat([-8,-4,0,4,8],3,1);[-5,-2.5,0,2.5,5]];
-climsSL = [-25.6723,25.6723];
-climsBB = [-8.4445, 8.4445];
+climsSL = [-20, 20];
+climsBB = [-6, 6];
 
 % Subject 1 (wl_subj002)
 figure('position',[1,600,1400,800]); set(gcf, 'Name', 'Figure 2A, Example subject', 'NumberTitle', 'off');
@@ -88,7 +88,7 @@ subplot(1,2,2)
 set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
 
 if saveFigures
-    figurewrite(fullfile(figureDir,'Figure2_SLBB_average'),[],0,'.',1);
+    figurewrite(fullfile(figureDir,'Figure2_SLBB_one'),[],0,'.',1);
 end
 
 %% Plot mean of 6 subjects
@@ -106,7 +106,7 @@ figure('position',[1,600,1400,800]); set(gcf, 'Name', 'Figure 2B, Average across
 subplot(1,2,1)
 [~,ch] = megPlotMap(sl_snr,climsSL,gcf,'bipolar',[],data_hdr,cfg, 'isolines', 1); colormap(bipolar);
 set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
-subplot(2,2,2)
+subplot(1,2,2)
 [~,ch] = megPlotMap(bb_snr,climsBB,gcf,'bipolar',[],data_hdr,cfg,'isolines', 1); colormap(bipolar);
 set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
 
@@ -116,19 +116,21 @@ end
 
 %% Plot mean of 6 subjects with CI from contour lines
 
-bootData = {sl_snr,bb_snr};
-clims = {climsSL,climsBB};
+allData  = {squeeze(sl_all)',squeeze(bb_all)'};
+clims    = {climsSL,climsBB};
+nBoot    = 50;
+
+
+meshplotFigHandleFun = @(x) megPlotMap(x, [],[],bipolar,[],[],[],'isolines', 1);
+getContourStruct     = @(x) findobj(x.Children,'Type','Contour');
+getXYZData           = @(x) cat(3,x.XData,x.YData,x.ZData);
+
+ft_warning off
+
 for d = 1:2
     
-    
-    bootData = bootData{d};
-    nBoot    = 100;
-    
-    meshplotFigHandleFun = @(x) megPlotMap(x, [],[],bipolar,[],[],[],'isolines', 1);
-    getContourStruct     = @(x) findobj(x.Children,'Type','Contour');
-    getXYZData           = @(x) cat(3,x.XData,x.YData,x.ZData);
-    
-    bootstat = bootstrp(nBoot, @(x) nanmean(x,1), bootData);
+    bootData = allData{d};
+    bootstat = bootstrp(nBoot, @(x) mean(x,1), bootData);
     
     for ii = 1:nBoot
         close all;
@@ -137,16 +139,18 @@ for d = 1:2
         clear c
     end
     
+    
     figure('position',[1,600,1400,800]); set(gcf, 'Name', 'Figure 2B, Average across subject', 'NumberTitle', 'off');
-   
-    subplot(121); megPlotMap(bootData,clims{d},[],bipolar); hold all;
+    subplot(121); megPlotMap(mean(bootData,1),clims{d},[],bipolar); hold all;
     for ii = 1:nBoot
-        contour(squeeze(xyz(ii,:,:,1)),squeeze(xyz(ii,:,:,2)),squeeze(xyz(ii,:,:,3)),1, 'k-'); colorbar;
+        contour(squeeze(xyz(ii,:,:,1)),squeeze(xyz(ii,:,:,2)),squeeze(xyz(ii,:,:,3)),1, 'k-'); 
     end
-    set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
+%     set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
 
     figurewrite(fullfile(figureDir, sprintf('Figure2_dataCI_average%d',d)), [],0,'.',1);
     
 end
 
+ft_warning on
 
+return
