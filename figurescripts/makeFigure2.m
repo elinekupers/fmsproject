@@ -8,7 +8,7 @@ subject = {'wl_subj002','wl_subj004','wl_subj005','wl_subj006','wl_subj010','wl_
 
 % Set up paths
 figureDir       = fullfile(fmsRootPath, 'figures'); % Where to save images?
-dataDir         = fullfile(dfdRootPath, 'analysis', 'data');    % Where to save data?
+dataDir         = fullfile(fmsRootPath, 'data');    % Where to get data?
 saveFigures     = true;     % Save figures in the figure folder?
 threshold       = 0;        % Set threshold for colormap. If no threshold set value to 0
 cfg             = [];
@@ -37,7 +37,7 @@ for s = 1:length(subject)
         whichSubject = 5;
     end
     
-    data = prepareData(dataDir,whichSubject,5);
+    data = loadData(dataDir,whichSubject);
     bb = data{1}; sl = data{2}; clear data;
     
     % Get information, assuming this is the same for SL and BB data

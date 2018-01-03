@@ -99,16 +99,16 @@ for s = 1:length(subject)
 end
 
 % plot for subj 002
-fH1 = figure(1); clf; set(fH1, 'Position', [1 1 1600 513], 'Name', 'V1 model predictions');
+fH1 = figure(1); clf; set(fH1, 'Position', [1 1 1600 513], 'Name', 'Figure 3: V1 model predictions');
 rg = [-1 1]*10E-5;
 
 ch = subplot(221); 
 megPlotMap(abs(w1_stimsize(1,1:157)),rg,[],bipolar,[],[],[],'isolines', 1);
-set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
+set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12); title('Uniform phase S2')
 
 ch = subplot(222); 
 megPlotMap(abs(wComplexV1(1,1:157)),0.5*rg,[],bipolar,[],[],[],'isolines', 1)
-set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
+set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12); title('Random phase S2')
 
 %% Compute the mean across subjects
 % mnScrambledPhaseV123 = mean(wComplexV123,1);
@@ -124,13 +124,13 @@ mnUniformPhaseV1 = mean(w1_stimsize,1);
 
 ch = subplot(223); 
 megPlotMap(abs(mnUniformPhaseV1(1:157)),rg,[],bipolar,[],[],[],'isolines', 1)
-set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
-
+set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12); title('Uniform phase Average (n=6)')
 
 ch = subplot(224); 
 megPlotMap(abs(mnScrambledPhaseV1(1:157)),0.5*rg,[],bipolar,[],[],[],'isolines', 1)
-set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
+set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12); title('Random phase Average (n=6)')
 
 if saveFigures
-    figurewrite(fullfile(figureDir, ['predictionV1_oneVSaverage']), [],0,'.',1);
+    hgexport(gcf,fullfile(figureDir, ['Figure3_predictionV1_oneVSaverage.eps']));
+%     figurewrite(fullfile(figureDir, ['predictionV1_oneVSaverage']), [],0,'.',1);
 end

@@ -1,4 +1,4 @@
-function makeFigure4
+function makeFigure4()
 
 
 % % Add Fieldtrip and plotting function if not added yet.
@@ -13,13 +13,11 @@ function makeFigure4
 % Set up paths
 figureDir       = fullfile(fmsRootPath, 'figures'); % Where to save images?
 saveFigures     = true;     % Save figures in the figure folder?
-
 fH1 = figure(1); clf; set(fH1, 'Position', [1 1 1600 800], 'Name','Figure 4, Data against model predictions V1');
 
 rg = [-1 1]*10E-5;
 
-dataDir         = fullfile('~/matlab/git/denoiseproject/', 'analysis', 'data');    % Where to save data?
-
+meg_data_dir         = fullfile(fmsRootPath, 'data');    % Where to get data?
 
 contrasts = [1 0 0]; 
 contrasts = bsxfun(@rdivide, contrasts, sqrt(sum(contrasts.^2,2)));
@@ -43,16 +41,16 @@ for s = 1:length(subject)
     
     d = dir(fullfile(bs_db, project_name, 'data', subject{s}));
     if strcmp(subject{s},'wl_subj002')
-        data_dir = fullfile(bs_db, project_name, 'data', subject{s}, d(end-1).name);
+        bs_data_dir = fullfile(bs_db, project_name, 'data', subject{s}, d(end-1).name);
     else
-        data_dir = fullfile(bs_db, project_name, 'data', subject{s}, d(end).name);
+        bs_data_dir = fullfile(bs_db, project_name, 'data', subject{s}, d(end).name);
     end
     
     anat_dir = fullfile(bs_db, project_name, 'anat', subject{s});
     
     %% 1. Load relevant matrices
     % Load Gain matrix created by brainstorm
-    headmodel = load(fullfile(data_dir, 'headmodel_surf_os_meg.mat'));
+    headmodel = load(fullfile(bs_data_dir, 'headmodel_surf_os_meg.mat'));
     G = headmodel.Gain; % Gain matrix, [Nsensors x 3*Nvertices]
     G_constrained = bst_gain_orient(G, headmodel.GridOrient); % Contrained gain matrix [Nsensors x Nsources], equivalent to size pial cortex [1x15002]
     G_constrained = (G_constrained);
@@ -117,7 +115,7 @@ for s = 1:length(subject)
     end
     
     % Load denoised data of example subject
-    [data] = prepareData(dataDir,whichSubject,5);
+    data = loadData(meg_data_dir,whichSubject);
     bb = data{1};
     sl = data{2};
     
@@ -132,7 +130,7 @@ for s = 1:length(subject)
     
     
     %% Plotting
-    figure(1); clf;
+    figure(2); clf;
     ax1 =subplot(211);
     megPlotMap(abs(w1_stimsize(1:157)),rg,[],bipolar,[],[],[],'isolines', 3);
     c1 = findobj(ax1.Children,'Type','Contour');
@@ -143,7 +141,7 @@ for s = 1:length(subject)
     
     
     
-    figure(2);
+    figure(1);
     subplot(2,length(subject),s)
     [~,ch] = megPlotMap(sl_signal,climsSL,gcf,'bipolar');
     hold on; contour(c1.XData,c1.YData, c1.ZData,3, 'k-'); colormap(bipolar); 
@@ -159,5 +157,6 @@ end
 %% SAVING
 
 if saveFigures % use different function to save figures, since figurewrite crashes with many subplots containing many data points
+    hgexport(fH1, fullfile(figureDir, 'Figure4_predictionV1VsDataIndividuals.eps'))
 %     figurewrite(fullfile(figureDir, ['predictionV1VsDataIndividuals']), [],0,'.',1);
 end
