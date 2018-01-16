@@ -60,47 +60,72 @@ template.V1     = abs(areas.sub_bs_areas)==1;
 polarang.sub_bs_angle_rad = pi/180*(90-polarang.sub_bs_angle);
 
 % Limit to 11 degrees eccentricity
-template.V1StimEccen = template.V1.*(eccen.sub_bs_eccen<=11);
+template.V1StimEccenAmplitudes = template.V1.*(eccen.sub_bs_eccen<=11);
 
 %% 2. Get weights for every time point
 
 % Create a 12 Hz sine wave
-dt = .001;        % s
-t  = (0:dt:.999); % s
+dt = .01;        % s
+t  = 0:dt:.24; % s
 f  = 12;          % Hz
 
 sin12 = sin(2*pi*f*t);
-sin12 = reshape(sin12, [1 size(sin12)]);
+% sin12 = reshape(sin12, [1 size(sin12)]);
 
-template.V1StimEccenFullCycle = repmat(template.V1StimEccen, [1 1 length(sin12)]) .* sin12;
+phAmp2complex = @(r,th) r .* exp(1i*th);
 
-for t = 1:size(template.V1StimEccenFullCycle,3)    
-    w.V1(:,:,t) = G_constrained*template.V1StimEccenFullCycle(:,:,t)'; %  Nsensors x 1;    
+% Create sources with the same amplitude (value of 1), but either incoherent or coherent phase
+for ii = 1:length(t)
+    
+    % for coherent phase
+    thisPhase = template.V1StimEccenAmplitudes .* sin12(ii);
+    template.V1StimEccenPhaseC(:,:,ii) = phAmp2complex(template.V1StimEccenAmplitudes,thisPhase);
+    
+    % for incoherent phase
+    thisPhase = template.V1StimEccenAmplitudes .* (2*pi*rand(size(template.V1StimEccenAmplitudes)));
+    template.V1StimEccenPhaseI(:,:,ii) = phAmp2complex(template.V1StimEccenAmplitudes,thisPhase);
+end
+    
+% Get weights 
+for ii = 1:size(template.V1StimEccenPhaseC,3)    
+    w.V1c(:,ii) = squeeze(G_constrained*template.V1StimEccenPhaseC(:,:,ii)'); %  Nsensors x time point;
+    w.V1i(:,ii) = squeeze(G_constrained*template.V1StimEccenPhaseI(:,:,ii)'); %  Nsensors x time points;
 end
 
-% Squeeze (probably can be omitted when cleaning up code and creating w.V1 as a matrix)
-w.V1 = squeeze(w.V1);
+% Visualize
 
 % Get colorbar limits
-clims = [min(min(w.V1)), max(max(w.V1))];
+clims = [-1,1] .* abs(max(max(w.V1c)));
 
 % Visualize weights
-figure; clf;
-for ii = 1:size(w.V1,2)/100 % only show first 
-    megPlotMap(w.V1(1:157,ii),clims,[],bipolar,sprintf('Forward model for timepoint %d',ii));
+figure; 
+for ii = 1:length(t)
+    clf;
+    megPlotMap(abs(w.V1c(1:157,ii)),clims,[],bipolar,sprintf('Forward model for timepoint %d',ii));
     pause(.1);
 end
 
-figure; megPlotMap(mean(abs(w.V1(1:157,:)),2),clims,[],bipolar,'Mean weights across timepoints')
+figure; 
+for ii = 1:length(t)
+    clf;
+    megPlotMap(abs(w.V1i(1:157,ii)),clims,[],bipolar,sprintf('Forward model for timepoint %d',ii));
+    pause(.1);
+end
+
+figure; megPlotMap(mean(abs(w.V1c(1:157,:)),2),clims,[],bipolar,'Mean weights across timepoints: Coherent')
+figure; megPlotMap(mean(abs(w.V1i(1:157,:)),2),clims,[],bipolar,'Mean weights across timepoints: Incoherent')
+
 
 %% 3. Create SQD file (Only necessary once, after that it should be saved in Brainstorm DB) 
 
 % [~, meg_files] = meg_load_sqd_data('/Volumes/server/Projects/MEG/SSMEG/09_SSMEG_06_27_2014_wl_subj010/raw/','V1ForwardStimEccen_12HzCycle');
 % 
 % newFile = '~/Desktop/testV1Forward12Hz.sqd';
+% newFile = '~/Desktop/testV1ForwardRandom.sqd';
 % 
 % % new file needs to be imported into Brainstorm session
-% sqdwrite(fullfile(meg_files.folder,meg_files.name),newFile,squeeze(w.V1)');
+% sqdwrite(fullfile(meg_files.folder,meg_files.name),newFile,w.V1c');
+% sqdwrite(fullfile(meg_files.folder,meg_files.name),newFile,w.V1i');
 
 
 %% 4. Create inverse model
@@ -109,49 +134,61 @@ figure; megPlotMap(mean(abs(w.V1(1:157,:)),2),clims,[],bipolar,'Mean weights acr
 bs_pial_low = load(fullfile(anat_dir, 'tess_cortex_pial_low.mat'));
 
 % Load Brainstorm inverse model
-inverse  = load(fullfile(bs_db, project_name, 'data', subject, 'testV1Forward12Hz/results_MN_MEG_KERNEL_180116_1206.mat'));
+inverseC  = load(fullfile(bs_db, project_name, 'data', subject, 'testV1Forward12Hz/results_MN_MEG_KERNEL_180116_1832.mat'));
+inverseI  = load(fullfile(bs_db, project_name, 'data', subject, 'testV1ForwardRandom/results_MN_MEG_KERNEL_180116_1828.mat'));
 
 % Create source response for each timepoint
-for t = 1:size(template.V1StimEccenFullCycle,3)
-    s.V1(:,t) = inverse.ImagingKernel*w.V1(1:157,t);
+for ii = 1:size(w.V1c,2)
+    s.V1c(:,ii) = inverseC.ImagingKernel*w.V1c(1:157,ii);
+    s.V1i(:,ii) = inverseI.ImagingKernel*w.V1i(1:157,ii);
 end
 
-% Visualize: set up mesh
-figure; tH = trimesh(bs_pial_low.Faces,bs_pial_low.Vertices(:,1),bs_pial_low.Vertices(:,2),bs_pial_low.Vertices(:,3));
 
-% Visualize: set curvature colors
-colors = zeros(size(bs_pial_low.Vertices,1),1);
-colors(bs_pial_low.Curvature<0) = -1.5;
-colors(bs_pial_low.Curvature>=0) = -.5;
+s = struct2cell(s);
 
-% Define colors
-cmap = [gray(128); jet(128)];
-axis equal; hold on
-
-% Plot it
-for ii = 1:size(s.V1,2)
-    colors = s.V1(:,ii);
+for source = 1:size(s,1)
     
-    % set source pediction as colors
-    set(tH, 'LineStyle', 'none', 'FaceColor', 'interp', 'FaceVertexCData',colors);
-    drawnow;
-    colormap(cmap); set(gca, 'CLim',2*pi*[-.01 .01]); colorbar;
+    thisSource = s{source};
 
-    pos = [-.1 0 .1];
-    light('Position',pos,'Style','local')
-    lighting gouraud
-    material shiny; %dull
-    title(ii);
-    pause(.1);
+    % Visualize: set up mesh
+    figure; tH = trimesh(bs_pial_low.Faces,bs_pial_low.Vertices(:,1),bs_pial_low.Vertices(:,2),bs_pial_low.Vertices(:,3));
+    
+    % Visualize: set curvature colors
+    colors = zeros(size(bs_pial_low.Vertices,1),1);
+    colors(bs_pial_low.Curvature<0) = -1.5;
+    colors(bs_pial_low.Curvature>=0) = -.5;
+    
+    % Define colors
+    cmap = [gray(128); jet(128)];
+    axis equal; hold on
+    
+    % Plot it
+    for ii = 1:size(thisSource,2)
+        
+        colors = abs(thisSource(:,ii));
+        
+        % set source pediction as colors
+        set(tH, 'LineStyle', 'none', 'FaceColor', 'interp', 'FaceVertexCData',colors);
+        drawnow;
+        colormap(cmap); set(gca, 'CLim',2*pi*[-.01 .01]); colorbar;
+        
+        pos = [-.1 0 .1];
+        light('Position',pos,'Style','local')
+        lighting gouraud
+        material shiny; %dull
+        title(ii);
+        pause(.1);
+    end
+    
+    % Plot mean timeseries of V1 sources
+    timeseriesV1 = thisSource(logical(template.V1StimEccenAmplitudes'),:);
+    figure; plot(t,mean(abs(timeseriesV1),1))
+    
+    % Plot mean timeseries of non visual sources
+    nonVisualVertices = abs(areas.sub_bs_areas)==0;
+    figure; plot(t,mean(thisSource(nonVisualVertices,:),1));
+
 end
-
-% Plot mean timeseries of V1 sources
-timeseriesV1 = s.V1(logical(template.V1StimEccen'),:);
-figure; plot(mean(timeseriesV1))
-
-% Plot mean timeseries of non visual sources
-nonVisualVertices = abs(areas.sub_bs_areas)==0;
-figure; plot(mean(s.V1(nonVisualVertices,:),2));
 
 %% NOT READY YET: Save to FS space
 
