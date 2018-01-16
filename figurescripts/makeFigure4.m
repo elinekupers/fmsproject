@@ -1,25 +1,33 @@
 function makeFigure4()
 
+% This is a function to make Figure 4 from the manuscript about forward
+% modeling coherent and incoherent neural sources to MEG responses.
 
-% % Add Fieldtrip and plotting function if not added yet.
-% if ~exist('megPlotMap','file')
-%     addpath(genpath('~/matlab/git/denoiseproject'))
-% end
-%
-% if ~exist('ft_prepare_layout','file')
-%     tbUse('Fieldtrip')
-% end
+% This figure shows overlap between model and data by plotting the contour 
+% lines of the MEG forward model based on coherent and incoherent predictions 
+% coming from vertices located in V1, on top of the stimulus-locked data 
 
-% Set up paths
+% To runs this script, you need: 
+% (1) the data from the denoiseproject in the data folder of its FMS 
+%     code repository
+% (2) Access to the SSMEG folder in the brainstorm data base    
+% (3) MEG_utils and Fieldtrip toolbox added to the paths. For example:
+%     tbUse('ForwardModelSynchrony');
+%        or to only add the MEG_utils toolbox:
+%     addpath(genpath('~/matlab/git/toolboxes/meg_utils'))
+
+%% 0. Set up paths and define parameters
 figureDir       = fullfile(fmsRootPath, 'figures'); % Where to save images?
 saveFigures     = true;     % Save figures in the figure folder?
-fH1 = figure(1); clf; set(fH1, 'Position', [1 1 1600 800], 'Name','Figure 4, Data against model predictions V1');
+
+fH1 = figure(1); clf; set(fH1, 'Position', [1 1 1600 800], 'Name','Figure 4A, Data against model predictions V1 - matched');
+fH3 = figure(3); clf; set(fH3, 'Position', [1 1 1600 800], 'Name','Figure 4B, Data against model predictions V1 - opposite');
 
 rg = [-1 1]*10E-5;
 
 meg_data_dir         = fullfile(fmsRootPath, 'data');    % Where to get data?
 
-contrasts = [1 0 0]; 
+contrasts = [1 0 0];
 contrasts = bsxfun(@rdivide, contrasts, sqrt(sum(contrasts.^2,2)));
 climsSL = [-20,20];
 climsBB = [-6,6];
@@ -95,7 +103,7 @@ for s = 1:length(subject)
     w1_stimsize = G_constrained*V1templateStimEccen'; %  Nsensors x 1;
     
     
-
+    
     
     %% Data
     
@@ -144,19 +152,136 @@ for s = 1:length(subject)
     figure(1);
     subplot(2,length(subject),s)
     [~,ch] = megPlotMap(sl_signal,climsSL,gcf,'bipolar');
-    hold on; contour(c1.XData,c1.YData, c1.ZData,3, 'k-'); colormap(bipolar); 
+    hold on; contour(c1.XData,c1.YData, c1.ZData,3, 'k-'); colormap(bipolar);
     set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
     
     subplot(2,length(subject),s+length(subject))
     [~,ch] = megPlotMap(bb_signal,climsBB,gcf,'bipolar');
-    hold on; contour(c2.XData,c2.YData, c2.ZData,3, 'k-'); colormap(bipolar); 
+    hold on; contour(c2.XData,c2.YData, c2.ZData,3, 'k-'); colormap(bipolar);
     set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
     
+    figure(3);
+    subplot(2,length(subject),s)
+    [~,ch] = megPlotMap(sl_signal,climsSL,gcf,'bipolar');
+    hold on; contour(c2.XData,c2.YData, c2.ZData,3, 'k-'); colormap(bipolar);
+    set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
+    
+    subplot(2,length(subject),s+length(subject))
+    [~,ch] = megPlotMap(bb_signal,climsBB,gcf,'bipolar');
+    hold on; contour(c1.XData,c1.YData, c1.ZData,3, 'k-'); colormap(bipolar);
+    set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
+    
+    
+    %% Calculate COD
+    
+    absnorm = @(x, idx) abs(x) ./ norm(abs(x(idx)));
+    calcod = @(x, y, idx) 1 - sum((y(idx)-x(idx)).^2)./(sum(x(idx).^2));
+    
+    % Grab subject's data
+    idx_d = isfinite(sl_signal);
+    assert(isequal(idx_d, isfinite(bb_signal)));
+    
+    idx_p = isfinite(w1_stimsize(1:157));
+    assert(isequal(idx_p, isfinite(wComplexV1(1:157))));
+
+    
+    % Normalize data
+    allDataSL_norm(s,:) = sl_signal./norm(sl_signal(idx_d));
+    allDataBB_norm(s,:) = bb_signal./norm(bb_signal(idx_d));
+    
+    allPredictionUniform_norm(s,:) = absnorm(w1_stimsize(1:157), idx_p);
+    allPredictionRandom_norm(s,:) = absnorm(wComplexV1(1:157), idx_p);
+
+    
 end
+
 
 %% SAVING
 
 if saveFigures % use different function to save figures, since figurewrite crashes with many subplots containing many data points
-    hgexport(fH1, fullfile(figureDir, 'Figure4_predictionV1VsDataIndividuals.eps'))
-%     figurewrite(fullfile(figureDir, ['predictionV1VsDataIndividuals']), [],0,'.',1);
+    hgexport(fH1, fullfile(figureDir, 'Figure4A_predictionV1VsDataIndividuals_matched.eps'))
+    hgexport(fH3, fullfile(figureDir, 'Figure4B_predictionV1VsDataIndividuals_unmatched.eps'))
+    
+    %     figurewrite(fullfile(figureDir, ['predictionV1VsDataIndividuals']), [],0,'.',1);
 end
+
+close all;
+
+%% Calculate CoD
+    
+for d = 1:6
+    
+    thisDataSL = allDataSL_norm(d,:);
+    thisDataBB = allDataBB_norm(d,:);
+    
+    idx = isfinite(thisDataSL);
+
+    
+    for p = 1:6
+        
+        thisPredictionUniform = allPredictionUniform_norm(p,:);
+        thisPredictionRandom = allPredictionRandom_norm(p,:);
+                        
+        codSLUniform(d, p, :) =  calcod(thisDataSL, thisPredictionUniform, idx);
+        codSLRandom(d, p, :) =  calcod(thisDataSL, thisPredictionRandom, idx);
+        codBBUniform(d, p, :) =  calcod(thisDataBB, thisPredictionUniform, idx);
+        codBBRandom(d, p, :) =  calcod(thisDataBB, thisPredictionRandom, idx);
+
+        
+    end
+    
+end
+
+
+% Plot CoD 
+figure; imagesc(codSLUniform); colormap gray; axis square; xlabel('Data SL'); ylabel('Forward model V1 Uniform phase Prediction'); colorbar; makeprettyaxes(gca,9,9)
+title(sprintf('R squared - mean diag: %1.2f, mean off diag: %1.2f',mean(diag(codSLUniform)), mean(codSLUniform(~eye(6)))));
+range = get(gca,'CLim');
+
+printnice(gcf, [1 300], fullfile(figureDir),'Figure4C_CoD_SL_UniformPrediction');
+figurewrite(fullfile(figureDir, 'Figure4C_CoD_SL_UniformPrediction.eps'))
+
+figure; imagesc(codSLRandom); colormap gray; axis square; xlabel('Data SL'); ylabel('Forward model V1 Randorm phase Prediction'); colorbar; makeprettyaxes(gca,9,9)
+title(sprintf('R squared - mean diag: %1.2f, mean off diag: %1.2f',mean(diag(codSLRandom)), mean(codSLRandom(~eye(6)))))
+set(gca, 'CLim', range)
+
+printnice(gcf, [1 300], fullfile(figureDir),'Figure4D_CoD_SL_ScrambledPrediction');
+hgexport(gcf, fullfile(figureDir, 'Figure4D_CoD_SL_ScrambledPrediction.eps'))
+
+%%
+figure;
+plot(0.5*ones(length(diag(codSLUniform)),1),diag(codSLUniform), 'ko','MarkerSize',15); hold on
+plot([0.35 0.65],[mean(diag(codSLUniform)), mean(diag(codSLUniform))],'r', 'LineWidth',4);
+
+plot(ones(length(codSLUniform(~eye(6))),1),codSLUniform(~eye(6)), 'ko','MarkerSize',15); hold on
+plot([.85 1.15],[mean(codSLUniform(~eye(6))), mean(codSLUniform(~eye(6)))],'r', 'LineWidth',4);
+
+xlim([0 1.5]); ylim([0 1]); box off; set(gca, 'TickDir', 'out', 'XTick',[0.5 1], 'XTickLabel', {'on','off'}, 'TickLength',[0.015 0.015],'FontSize',20)
+ylabel('Coefficient of Determination','FontSize',20); title('SL data and Uniform prediction')
+
+hgexport(gcf, fullfile(figureDir, 'Figure4E_CoD_SL_UniformPrediction.eps'))
+
+
+figure;
+plot(0.5*ones(length(diag(codSLRandom)),1),diag(codSLRandom), 'ko','MarkerSize',15); hold on
+plot([0.35 0.65],[mean(diag(codSLRandom)), mean(diag(codSLRandom))],'r', 'LineWidth',4);
+
+plot(ones(length(codSLRandom(~eye(6))),1),codSLRandom(~eye(6)), 'ko','MarkerSize',15); hold on
+plot([.85 1.15],[mean(codSLRandom(~eye(6))), mean(codSLRandom(~eye(6)))],'r', 'LineWidth',4);
+
+xlim([0 1.5]); ylim([0 1]); box off; set(gca, 'TickDir', 'out', 'XTick',[0.5 1], 'XTickLabel', {'on','off'}, 'TickLength',[0.015 0.015],'FontSize',20)
+ylabel('Coefficient of Determination','FontSize',20); title('SL data and Random prediction')
+
+hgexport(gcf, fullfile(figureDir, 'Figure4F_CoD_SL_RandomPrediction.eps'))
+
+
+
+
+
+
+
+
+
+
+
+
