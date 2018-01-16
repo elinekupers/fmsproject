@@ -1,20 +1,25 @@
 function makeFigure3()
 
-% % Add Fieldtrip and plotting function if not added yet.
-% if ~exist('megPlotMap','file')
-%     addpath(genpath('~/matlab/git/denoiseproject'))
-% end
-% 
-% if ~exist('ft_prepare_layout','file')
-%     tbUse('Fieldtrip')
-% end
+% This is a function to make Figure 3 from the manuscript about forward
+% modeling coherent and incoherent neural sources to MEG responses.
+
+% This figure shows the MEG forward model based on coherent and incoherent
+% predictions coming from vertices located in V1.
+
+% To runs this script, you need:     
+% (1) Access to the SSMEG folder in the brainstorm data base
+% (2) MEG_utils and Fieldtrip toolbox added to the paths. For example:
+%     tbUse('ForwardModelSynchrony');
+%        or to only add the MEG_utils toolbox:
+%     addpath(genpath('~/matlab/git/toolboxes/meg_utils'))
+
 
 % Set up paths
 figureDir       = fullfile(fmsRootPath, 'figures'); % Where to save images?
 saveFigures     = true;     % Save figures in the figure folder?
 
 
-%% 0. Define paths
+%% 0. Set up paths and define parameters
 % Path to brainstorm database
 bs_db = '/Volumes/server/Projects/MEG/brainstorm_db/';
 
@@ -43,7 +48,6 @@ for s = 1:length(subject)
     headmodel = load(fullfile(data_dir, 'headmodel_surf_os_meg.mat'));
     G = headmodel.Gain; % Gain matrix, [Nsensors x 3*Nvertices]
     G_constrained = bst_gain_orient(G, headmodel.GridOrient); % Contrained gain matrix [Nsensors x Nsources], equivalent to size pial cortex [1x15002]
-    G_constrained = (G_constrained);
     
     % Load V1-3 template in downsampled brainstorm format (computed by interp_retinotopy.m)
     template = load(fullfile(anat_dir, 'areas_overlay.mat')); % [1xNsources] Every value between [-3,3] is inside V1-3, zeros refer to outside of visual cortex
@@ -100,15 +104,20 @@ end
 
 % plot for subj 002
 fH1 = figure(1); clf; set(fH1, 'Position', [1 1 1600 513], 'Name', 'Figure 3: V1 model predictions');
-rg = [-1 1]*10E-5;
+% rg = [-1 1]*10E-5;
+rg = 0.5*[-1 1];
+
+idx = isfinite(w1_stimsize(1,1:157));
+absnorm = @(x, idx) abs(x) ./ norm(abs(x(idx)));
+
 
 ch = subplot(221); 
-megPlotMap(abs(w1_stimsize(1,1:157)),rg,[],bipolar,[],[],[],'isolines', 1);
-set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12); title('Uniform phase S2')
+megPlotMap(absnorm(w1_stimsize(1,1:157),idx),rg,[],bipolar,[],[],[],'isolines', 1);
+set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12); title('Uniform phase S1')
 
 ch = subplot(222); 
-megPlotMap(abs(wComplexV1(1,1:157)),0.5*rg,[],bipolar,[],[],[],'isolines', 1)
-set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12); title('Random phase S2')
+megPlotMap(absnorm(wComplexV1(1,1:157),idx),rg,[],bipolar,[],[],[],'isolines', 1)
+set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12); title('Random phase S1')
 
 %% Compute the mean across subjects
 % mnScrambledPhaseV123 = mean(wComplexV123,1);
@@ -121,14 +130,15 @@ mnUniformPhaseV1 = mean(w1_stimsize,1);
 % mnUniformPhaseV2 = mean(w2_stimsize,1);
 % mnUniformPhaseV3 = mean(w3_stimsize,1);
 
+idx = isfinite(mnUniformPhaseV1(1:157));
 
 ch = subplot(223); 
-megPlotMap(abs(mnUniformPhaseV1(1:157)),rg,[],bipolar,[],[],[],'isolines', 1)
-set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12); title('Uniform phase Average (n=6)')
+megPlotMap(absnorm(mnUniformPhaseV1(1:157),idx),rg,[],bipolar,[],[],[],'isolines', 1)
+set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12); title('Uniform phase Average (S1-S6)')
 
 ch = subplot(224); 
-megPlotMap(abs(mnScrambledPhaseV1(1:157)),0.5*rg,[],bipolar,[],[],[],'isolines', 1)
-set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12); title('Random phase Average (n=6)')
+megPlotMap(absnorm(mnScrambledPhaseV1(1:157),idx),rg,[],bipolar,[],[],[],'isolines', 1)
+set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12); title('Random phase Average (S1-S6)')
 
 if saveFigures
     hgexport(gcf,fullfile(figureDir, ['Figure3_predictionV1_oneVSaverage.eps']));

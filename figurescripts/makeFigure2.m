@@ -1,7 +1,23 @@
 function makeFigure2()
 
-% addpath(genpath('~/matlab/git/denoiseproject'))
-% addpath(genpath('~/matlab/git/toolboxes/meg_utils'))
+% This is a function to make Figure 2 from the manuscript about forward
+% modeling coherent and incoherent neural sources to MEG responses.
+
+% This figure shows the empirical finding of two different spatial patterns
+% for a stimulus-locked response and an asynchronous broadband response to
+% a large field flickering (12 Hz) dartboard pattern.
+
+% To runs this script, you need: 
+% (1) the data from the denoiseproject in the data folder of its FMS 
+%     code repository
+%     
+% (2) MEG_utils toolbox added to the paths. For example:
+%     tbUse('ForwardModelSynchrony');
+%        or to only add the MEG_utils toolbox:
+%     addpath(genpath('~/matlab/git/toolboxes/meg_utils'))
+
+
+%% 0. Set up paths and define parameters
 
 % Which subjects to average?
 subject = {'wl_subj002','wl_subj004','wl_subj005','wl_subj006','wl_subj010','wl_subj011'};
@@ -15,26 +31,37 @@ cfg             = [];
 data_hdr        = [];
 
 % What stimulus, how to combine data across subjects
-contrastNames = {'Stim Full'}; %,'Stim Left','Stim Right','Left minus Right'
-contrasts = [1 0 0]; %[eye(3); 0 1 -1];
-contrasts = bsxfun(@rdivide, contrasts, sqrt(sum(contrasts.^2,2)));
+contrastNames = {'Stim Full'};
+contrasts     = [1 0 0];
+contrasts     = bsxfun(@rdivide, contrasts, sqrt(sum(contrasts.^2,2)));
 computeSNR    = @(x) nanmean(x,3) ./ nanstd(x, [], 3);
 
+% What plotting range
+climsSL = [-25.5, 25.5];
+climsBB = [-8, 8];
+
+% Predefine tickmark position for colorbar
+yscaleAB = [repmat([-8,-4,0,4,8],3,1);[-5,-2.5,0,2.5,5]];
+
+
+%% 1. Load subject's data
+
 for s = 1:length(subject)
-    %     whichSubject = s;
-    % Go from subject to session nr
-    if strcmp(subject{s},'wl_subj002')
-        whichSubject = 2;
-    elseif strcmp(subject{s},'wl_subj004')
-        whichSubject = 7;
-    elseif strcmp(subject{s},'wl_subj005')
-        whichSubject = 8;
-    elseif strcmp(subject{s},'wl_subj006')
-        whichSubject = 1;
-    elseif strcmp(subject{s},'wl_subj010')
-        whichSubject = 6;
-    elseif strcmp(subject{s},'wl_subj011')
-        whichSubject = 5;
+
+    switch subject{s}
+        % Go from subject to session nr
+        case 'wl_subj002'
+            whichSubject = 2;          
+        case 'wl_subj004'
+            whichSubject = 7;
+        case 'wl_subj005'
+            whichSubject = 8;
+        case 'wl_subj006'
+            whichSubject = 1;
+        case 'wl_subj010'
+            whichSubject = 6;
+        case 'wl_subj011'
+            whichSubject = 5;
     end
     
     data = loadData(dataDir,whichSubject);
@@ -70,14 +97,9 @@ for s = 1:length(subject)
 end
 
 
-%% Plot one subject
+%% 2. Plot one subject
 
-
-yscaleAB = [repmat([-8,-4,0,4,8],3,1);[-5,-2.5,0,2.5,5]];
-climsSL = [-20, 20];
-climsBB = [-6, 6];
-
-% Subject 1 (wl_subj002)
+% Plot subject 1 (wl_subj002)
 figure('position',[1,600,1400,800]); set(gcf, 'Name', 'Figure 2A, Example subject', 'NumberTitle', 'off');
 subplot(1,2,1)
 [~,ch] = megPlotMap(sl_all(:,:,1),climsSL,gcf,'bipolar',[],data_hdr,cfg,'isolines', 1); colormap(bipolar);
@@ -88,20 +110,20 @@ subplot(1,2,2)
 set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
 
 if saveFigures
-    figurewrite(fullfile(figureDir,'Figure2_SLBB_one'),[],0,'.',1);
+    figurewrite(fullfile(figureDir,'Figure2_SLBB_onesubject'),[],0,'.',1);
 end
 
-%% Plot mean of 6 subjects
+%% 2. Plot mean of 6 subjects
 
-
-% get stimulus-locked snr
+% Get stimulus-locked snr across subjects
 sl_snr = nanmean(sl_all,3);
-% get broadband snr for before and after denoising
+% Get broadband snr (after denoising) across subjects
 bb_snr = nanmean(bb_all,3);
 
 % Define nans
 idx = isfinite(sl_snr);
 
+% Plot average subject
 figure('position',[1,600,1400,800]); set(gcf, 'Name', 'Figure 2B, Average across subject', 'NumberTitle', 'off');
 subplot(1,2,1)
 [~,ch] = megPlotMap(sl_snr,climsSL,gcf,'bipolar',[],data_hdr,cfg, 'isolines', 1); colormap(bipolar);
@@ -114,43 +136,43 @@ if saveFigures
     figurewrite(fullfile(figureDir,'Figure2_SLBB_average'),[],0,'.',1);
 end
 
-%% Plot mean of 6 subjects with CI from contour lines
+%% (obsolete?) Plot mean of 6 subjects with CI from contour lines
 
-allData  = {squeeze(sl_all)',squeeze(bb_all)'};
-clims    = {climsSL,climsBB};
-nBoot    = 50;
-
-
-meshplotFigHandleFun = @(x) megPlotMap(x, [],[],bipolar,[],[],[],'isolines', 1);
-getContourStruct     = @(x) findobj(x.Children,'Type','Contour');
-getXYZData           = @(x) cat(3,x.XData,x.YData,x.ZData);
-
-ft_warning off
-
-for d = 1:2
-    
-    bootData = allData{d};
-    bootstat = bootstrp(nBoot, @(x) mean(x,1), bootData);
-    
-    for ii = 1:nBoot
-        close all;
-        c              = getContourStruct(meshplotFigHandleFun(bootstat(ii,:)));
-        xyz(ii,:,:,:)= getXYZData(c);
-        clear c
-    end
-    
-    
-    figure('position',[1,600,1400,800]); set(gcf, 'Name', 'Figure 2B, Average across subject', 'NumberTitle', 'off');
-    subplot(121); megPlotMap(mean(bootData,1),clims{d},[],bipolar); hold all;
-    for ii = 1:nBoot
-        contour(squeeze(xyz(ii,:,:,1)),squeeze(xyz(ii,:,:,2)),squeeze(xyz(ii,:,:,3)),1, 'k-'); 
-    end
-%     set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
-
-    figurewrite(fullfile(figureDir, sprintf('Figure2_dataCI_average%d',d)), [],0,'.',1);
-    
-end
-
-ft_warning on
+% allData  = {squeeze(sl_all)',squeeze(bb_all)'};
+% clims    = {climsSL,climsBB};
+% nBoot    = 50;
+% 
+% 
+% meshplotFigHandleFun = @(x) megPlotMap(x, [],[],bipolar,[],[],[],'isolines', 1);
+% getContourStruct     = @(x) findobj(x.Children,'Type','Contour');
+% getXYZData           = @(x) cat(3,x.XData,x.YData,x.ZData);
+% 
+% ft_warning off
+% 
+% for d = 1:2
+%     
+%     bootData = allData{d};
+%     bootstat = bootstrp(nBoot, @(x) mean(x,1), bootData);
+%     
+%     for ii = 1:nBoot
+%         close all;
+%         c              = getContourStruct(meshplotFigHandleFun(bootstat(ii,:)));
+%         xyz(ii,:,:,:)= getXYZData(c);
+%         clear c
+%     end
+%     
+%     
+%     figure('position',[1,600,1400,800]); set(gcf, 'Name', 'Figure 2B, Average across subject', 'NumberTitle', 'off');
+%     subplot(121); megPlotMap(mean(bootData,1),clims{d},[],bipolar); hold all;
+%     for ii = 1:nBoot
+%         contour(squeeze(xyz(ii,:,:,1)),squeeze(xyz(ii,:,:,2)),squeeze(xyz(ii,:,:,3)),1, 'k-'); 
+%     end
+% %     set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
+% 
+%     figurewrite(fullfile(figureDir, sprintf('Figure2_dataCI_average%d',d)), [],0,'.',1);
+%     
+% end
+% 
+% ft_warning on
 
 return
