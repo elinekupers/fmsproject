@@ -29,12 +29,12 @@ bs_db = '/Volumes/server/Projects/MEG/brainstorm_db/';
 
 % Define project name, subject and data/anatomy folders
 project_name = 'SSMEG';
-subject = 'wl_subj010'; % pick 02, 04, 05, 06, 10, 11
+subject = 'wl_subj002'; % pick 02, 04, 05, 06, 10, 11
 % iterations = 'phase_0'; % iterations for the phase scrambled predictioin (number stands for smoothing iterations - zero = no smoothing)
 
 d = dir(fullfile(bs_db, project_name, 'data', subject));
 if strcmp(subject,'wl_subj002')
-    data_dir = fullfile(bs_db, project_name, 'data', subject, d(6).name);
+    data_dir = fullfile(bs_db, project_name, 'data', subject, d(5).name);
 else
     data_dir = fullfile(bs_db, project_name, 'data', subject, d(5).name);
 end
@@ -42,13 +42,13 @@ end
 anat_dir = fullfile(bs_db, project_name, 'anat', subject);
 
 
-%% 1. Create weights of forwardmodel
+%% 1. Make predictions from forwardmodel
 
 % Load headmodel from Brainstorm
 headmodel = load(fullfile(data_dir, 'headmodel_surf_os_meg.mat'));
 
 % Get Gain matrix
-G = headmodel.Gain; % [Nsensors x 3*Nvertices]
+G = headmodel.Gain(1:157,:); % [Nsensors x 3*Nvertices]
 
 % Contrained gain matrix
 G_constrained = bst_gain_orient(G, headmodel.GridOrient); % [Nsensors x Nsources], equivalent to size BS pial cortex [1x15002]
@@ -61,43 +61,64 @@ polarang = load(fullfile(anat_dir, 'angle_overlay.mat')); % [1xNsources] Nonzero
 % Get only vertices in V1
 template.V1     = abs(areas.sub_bs_areas)==1;
 
-% Get radians instead of degrees
+% Get polar angle of each vertex in degrees
 polarang.sub_bs_angle_rad = pi/180*(90-polarang.sub_bs_angle);
 
 % Limit to 11 degrees eccentricity
 template.V1StimEccenAmplitudes = template.V1.*(eccen.sub_bs_eccen<=11);
 
-%% 2. Get weights for every time point
+%% Make source time series
 
-% Create a 12 Hz sine wave
-dt = .01;        % s
-t  = 0:dt:.24;   % s
-f  = 12;         % Hz
+% Create two cycles of a sine wave 
+n  = 24;        % number of time points
+t  = (1:n)/n;   % s
+f  = 2;         % frequency (Hz)
 
-sin12 = sin(2*pi*f*t);
 
-% Function to combine amplitude (real) and the phase (complex)
-phAmp2complex = @(r,th) r .* exp(1i*th);
 
-% Create sources with the same amplitude (value of 1), but either incoherent or coherent phase
-for ii = 1:length(t)
-    
-    % for coherent phase
-    thisPhase = template.V1StimEccenAmplitudes .* sin12(ii);
-    template.V1StimEccenPhaseC(:,:,ii) = phAmp2complex(template.V1StimEccenAmplitudes,thisPhase);
-    
-    % for incoherent phase
-    thisPhase = template.V1StimEccenAmplitudes .* (2*pi*rand(size(template.V1StimEccenAmplitudes)));
-    template.V1StimEccenPhaseI(:,:,ii) = phAmp2complex(template.V1StimEccenAmplitudes,thisPhase);
+% % Function to combine amplitude (real) and the phase (complex)
+% phAmp2complex = @(r,th) r .* exp(1i*th);
+
+template.V1StimEccenPhase = template.V1 * 0;
+
+signalCoherent = template.V1StimEccenAmplitudes' * sin(2*pi*f*t);
+
+signalIncoherent = zeros(size(signalCoherent));
+for ii = find(template.V1StimEccenAmplitudes)
+    signalIncoherent(ii,:) = sin(2*pi*f*t + rand*2*pi);
 end
+% 
+% % Create sources with the same amplitude (value of 1), but either incoherent or coherent phase
+% for ii = 1:length(t)
+%     
+%     % for coherent phase
+%     thisPhase = template.V1StimEccenAmplitudes .* signal(ii);
+%     template.V1StimEccenPhaseC(:,:,ii) = phAmp2complex(template.V1StimEccenAmplitudes,thisPhase);
+%     
+%     % for incoherent phase
+%     thisPhase = template.V1StimEccenAmplitudes .* (2*pi*rand(size(template.V1StimEccenAmplitudes)));
+%     template.V1StimEccenPhaseI(:,:,ii) = phAmp2complex(template.V1StimEccenAmplitudes,thisPhase);
+% end
     
-% Get weights 
-for ii = 1:size(template.V1StimEccenPhaseC,3)    
-    w.V1c(:,ii) = squeeze(G_constrained*template.V1StimEccenPhaseC(:,:,ii)'); %  Nsensors x time point;
-    w.V1i(:,ii) = squeeze(G_constrained*template.V1StimEccenPhaseI(:,:,ii)'); %  Nsensors x time points;
-end
+%% Predicted sensor time series
+w.V1c = G_constrained*signalCoherent;   
+w.V1i = G_constrained*signalIncoherent; 
+
+%% Convert sensor time series to amplitudes
+tmp = abs(fft(w.V1c, [], 2)); 
+w.V1cAmp = tmp(:, f+1);
+
+tmp = abs(fft(w.V1i, [], 2)); 
+w.V1iAmp = tmp(:, f+1);
+
 
 %% Visualize
+figure(1), 
+clims = max([w.V1cAmp; w.V1iAmp]) * [-1 1];
+subplot(1,2,1); megPlotMap(w.V1cAmp, clims, [], 'bipolar', [], [], [], 'isolines', 1);
+subplot(1,2,2); megPlotMap(w.V1iAmp, clims, [], 'bipolar', [], [], [], 'isolines', 1);
+
+return
 
 % Get colorbar limits
 clims = [-1,1] .* abs(max(max(w.V1c)));
