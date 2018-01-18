@@ -37,11 +37,15 @@ contrasts     = bsxfun(@rdivide, contrasts, sqrt(sum(contrasts.^2,2)));
 computeSNR    = @(x) nanmean(x,3) ./ nanstd(x, [], 3);
 
 % What plotting range
-climsSL = [-25.5, 25.5];
-climsBB = [-8, 8];
+climsSLone = [-1 1] * 20;
+climsBBone = [-1 1] * 5;
+
+climsSLave = [-1 1] * 15;
+climsBBave = [-1 1] * 2;
+
 
 % Predefine tickmark position for colorbar
-yscaleAB = [repmat([-8,-4,0,4,8],3,1);[-5,-2.5,0,2.5,5]];
+yscaleAB = [-6,-3,0,3,6];
 
 
 %% 1. Load subject's data
@@ -102,18 +106,18 @@ end
 % Plot subject 1 (wl_subj002)
 figure('position',[1,600,1400,800]); set(gcf, 'Name', 'Figure 2A, Example subject', 'NumberTitle', 'off');
 subplot(1,2,1)
-[~,ch] = megPlotMap(sl_all(:,:,1),climsSL,gcf,'bipolar',[],data_hdr,cfg,'isolines', 1); colormap(bipolar);
+[~,ch] = megPlotMap(sl_all(:,:,1),climsSLone,gcf,'bipolar',[],data_hdr,cfg,'isolines', 0.64*max(climsSLone)*[1 1]); colormap(bipolar);
 set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
 
 subplot(1,2,2)
-[~,ch] = megPlotMap(bb_all(:,:,1),climsBB,gcf,'bipolar',[],data_hdr,cfg,'isolines', 1); colormap(bipolar);
+[~,ch] = megPlotMap(bb_all(:,:,1),climsBBone,gcf,'bipolar',[],data_hdr,cfg,'isolines', 0.64*max(climsBBone)*[1 1]); colormap(bipolar);
 set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
 
 if saveFigures
     figurewrite(fullfile(figureDir,'Figure2_SLBB_onesubject'),[],0,'.',1);
 end
 
-%% 2. Plot mean of 6 subjects
+%% 3. Plot mean of 6 subjects
 
 % Get stimulus-locked snr across subjects
 sl_snr = nanmean(sl_all,3);
@@ -126,10 +130,10 @@ idx = isfinite(sl_snr);
 % Plot average subject
 figure('position',[1,600,1400,800]); set(gcf, 'Name', 'Figure 2B, Average across subject', 'NumberTitle', 'off');
 subplot(1,2,1)
-[~,ch] = megPlotMap(sl_snr,climsSL,gcf,'bipolar',[],data_hdr,cfg, 'isolines', 1); colormap(bipolar);
+[~,ch] = megPlotMap(sl_snr,climsSLave,gcf,'bipolar',[],data_hdr,cfg, 'isolines', 0.64*max(climsSLave)*[1 1]); colormap(bipolar);
 set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
 subplot(1,2,2)
-[~,ch] = megPlotMap(bb_snr,climsBB,gcf,'bipolar',[],data_hdr,cfg,'isolines', 1); colormap(bipolar);
+[~,ch] = megPlotMap(bb_snr,climsBBave,gcf,'bipolar',[],data_hdr,cfg,'isolines', 0.64*max(climsBBave)*[1 1]); colormap(bipolar);
 set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
 
 if saveFigures
