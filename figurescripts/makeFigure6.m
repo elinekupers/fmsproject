@@ -29,25 +29,26 @@ bs_db = '/Volumes/server/Projects/MEG/brainstorm_db/';
 
 % Define project name, subject and data/anatomy folders
 project_name = 'SSMEG';
-subject = 'wl_subj002'; % pick 02, 04, 05, 06, 10, 11
+subject = 'wl_subj010'; % pick 02, 04, 05, 06, 10, 11
 % iterations = 'phase_0'; % iterations for the phase scrambled predictioin (number stands for smoothing iterations - zero = no smoothing)
 
-d = dir(fullfile(bs_db, project_name, 'data', subject));
-if strcmp(subject,'wl_subj002')
-    data_dir = fullfile(bs_db, project_name, 'data', subject, d(5).name);
-else
-    data_dir = fullfile(bs_db, project_name, 'data', subject, d(5).name);
-end
+d = dir(fullfile(bs_db, project_name, 'data', subject, 'R*'));
 
+data_dir = fullfile(d(1).folder, d(1).name);
 anat_dir = fullfile(bs_db, project_name, 'anat', subject);
 
+% How many epochs?
+nrEpochs = 1000;
+
+% Save forwardmodel into a sqd file:
+saveSQD = false;
 
 %% 1. Make predictions from forwardmodel
 
 % Load headmodel from Brainstorm
 headmodel = load(fullfile(data_dir, 'headmodel_surf_os_meg.mat'));
 
-% Get Gain matrix
+% Get Gain matrix and truncate to first 157 sensors
 G = headmodel.Gain(1:157,:); % [Nsensors x 3*Nvertices]
 
 % Contrained gain matrix
@@ -74,123 +75,129 @@ n  = 24;        % number of time points
 t  = (1:n)/n;   % s
 f  = 2;         % frequency (Hz)
 
-
-
-% % Function to combine amplitude (real) and the phase (complex)
-% phAmp2complex = @(r,th) r .* exp(1i*th);
-
-template.V1StimEccenPhase = template.V1 * 0;
-
-signalCoherent = template.V1StimEccenAmplitudes' * sin(2*pi*f*t);
-
+signalCoherent = zeros([size(template.V1StimEccenAmplitudes,2), n, nrEpochs]);
 signalIncoherent = zeros(size(signalCoherent));
-for ii = find(template.V1StimEccenAmplitudes)
-    signalIncoherent(ii,:) = sin(2*pi*f*t + rand*2*pi);
-end
-% 
-% % Create sources with the same amplitude (value of 1), but either incoherent or coherent phase
-% for ii = 1:length(t)
-%     
-%     % for coherent phase
-%     thisPhase = template.V1StimEccenAmplitudes .* signal(ii);
-%     template.V1StimEccenPhaseC(:,:,ii) = phAmp2complex(template.V1StimEccenAmplitudes,thisPhase);
-%     
-%     % for incoherent phase
-%     thisPhase = template.V1StimEccenAmplitudes .* (2*pi*rand(size(template.V1StimEccenAmplitudes)));
-%     template.V1StimEccenPhaseI(:,:,ii) = phAmp2complex(template.V1StimEccenAmplitudes,thisPhase);
-% end
-    
-%% Predicted sensor time series
-w.V1c = G_constrained*signalCoherent;   
-w.V1i = G_constrained*signalIncoherent; 
 
-%% Convert sensor time series to amplitudes
+for epoch = 1:nrEpochs
+
+    % Coherent signal gets a fixed phase for each vertex, in one epoch (but
+    % different across epochs)
+    thisEpochCoherentPhase = rand*2*pi;
+    signalCoherent(:,:,epoch) = template.V1StimEccenAmplitudes' * sin(2*pi*f*t + thisEpochCoherentPhase);
+
+    % Incoherent signal gets a random phase every vertex and every epoch
+    for ii = find(template.V1StimEccenAmplitudes)
+        signalIncoherent(ii,:,epoch) = sin(2*pi*f*t + rand*2*pi);
+    end
+
+    %% Predicted sensor time series
+    w.V1c(:,:,epoch) = G_constrained*signalCoherent(:,:,epoch);   
+    w.V1i(:,:,epoch) = G_constrained*signalIncoherent(:,:,epoch); 
+    
+end
+    
+
+
+%% Summarize by convering sensor time series to amplitudes
 tmp = abs(fft(w.V1c, [], 2)); 
-w.V1cAmp = tmp(:, f+1);
+w.V1cAmp = tmp(:, f+1, :);
 
 tmp = abs(fft(w.V1i, [], 2)); 
-w.V1iAmp = tmp(:, f+1);
+w.V1iAmp = tmp(:, f+1, :);
 
+% Take mean across epochs
+w.V1iAmp_mn = mean(w.V1iAmp,3);
+w.V1cAmp_mn = mean(w.V1cAmp,3);
 
 %% Visualize
 figure(1), 
-clims = max([w.V1cAmp; w.V1iAmp]) * [-1 1];
-subplot(1,2,1); megPlotMap(w.V1cAmp, clims, [], 'bipolar', [], [], [], 'isolines', 1);
-subplot(1,2,2); megPlotMap(w.V1iAmp, clims, [], 'bipolar', [], [], [], 'isolines', 1);
+clims = max([w.V1cAmp_mn; w.V1iAmp_mn]) * [-1 1];
+subplot(1,2,1); megPlotMap(w.V1cAmp_mn, clims, [], 'bipolar', 'Coherent phase', [], [], 'isolines', 0.4*max(clims) * [1 1]);
+subplot(1,2,2); megPlotMap(w.V1iAmp_mn, clims, [], 'bipolar', 'Incoherent phase', [], [], 'isolines', 0.2*max(clims) * [1 1]);
 
-return
 
-% Get colorbar limits
-clims = [-1,1] .* abs(max(max(w.V1c)));
-
-% Visualize weights
-figure; 
-for ii = 1:length(t)
-    clf;
-    megPlotMap(abs(w.V1c(1:157,ii)),clims,[],bipolar,sprintf('Forward model with 12 Hz sinewave for timepoint %d',ii));
-    pause(.1);
-end
-
-figure; 
-for ii = 1:length(t)
-    clf;
-    megPlotMap(abs(w.V1i(1:157,ii)),clims,[],bipolar,sprintf('Forward model with random phase for timepoint %d',ii));
-    pause(.1);
-end
-
-figure; megPlotMap(mean(abs(w.V1c(1:157,:)),2),clims,[],bipolar,'Mean weights across timepoints: 12 Hz')
-figure; megPlotMap(mean(abs(w.V1i(1:157,:)),2),clims,[],bipolar,'Mean weights across timepoints: Random phase')
 
 
 %% 3. Create SQD file (Only necessary once, after that it should be saved in Brainstorm DB) 
 
-% Get example meg sqd file (TODO: Make an example sqd file that is small
-% and easy to download)
-% [~, meg_files] = meg_load_sqd_data('/Volumes/server/Projects/MEG/SSMEG/09_SSMEG_06_27_2014_wl_subj010/raw/','V1ForwardStimEccen_12HzCycle');
-% 
-% if ~exist(fullfile(fmsRootPath, 'data', subject),'dir');
-%   mkdir(fullfile(fmsRootPath, 'data', subject));
-% end
-%
+% We create a new SQD file with the prediction from the forward model. 
+% This new sqd file needs to be imported into Brainstorm session under the
+% same subject in data tab to complete the inverse model step (4)
 
-% For coherent phase (12 Hz)
-% newFile = fullfile(fmsRootPath, 'data', subject, 'testV1Forward12Hz.sqd'); 
-% sqdwrite(fullfile(meg_files.folder,meg_files.name),newFile,w.V1c');
+if saveSQD
 
-% For incoherent phase (random)
-% newFile = fullfile(fmsRootPath, 'data', subject, 'testV1ForwardRandom.sqd';
-% sqdwrite(fullfile(meg_files.folder,meg_files.name),newFile,w.V1i');
-% 
-% NOTE: new sqd file needs to be imported into Brainstorm session under the
-% same subject in data tab
+    % Get example meg sqd file (TODO: Make an example sqd file that is small
+    % and easy to download)
+    [~, meg_files] = meg_load_sqd_data('/Volumes/server/Projects/MEG/SSMEG/09_SSMEG_06_27_2014_wl_subj010/raw/','V1ForwardStimEccen_12HzCycle');
 
+    if ~exist(fullfile(fmsRootPath, 'data', subject),'dir')
+      mkdir(fullfile(fmsRootPath, 'data', subject));
+    end
+
+    % Add additional NaNs to pad the sensor space to 192 
+    dataToSave = reshape(w.V1c, size(w.V1c,1), []);
+    dataToSave = [dataToSave; NaN(192-size(dataToSave,1),size(dataToSave,2))];
+
+    % For coherent phase (12 Hz)
+    newFile = fullfile(fmsRootPath, 'data', subject, 'V1ForwardCoherent.sqd'); 
+    sqdwrite(fullfile(meg_files.folder,meg_files.name),newFile, dataToSave');
+    
+    % Add additional NaNs to pad the sensor space to 192 
+    dataToSave = reshape(w.V1i, size(w.V1i,1), []);
+    dataToSave = [dataToSave; NaN(192-size(dataToSave,1),size(dataToSave,2))];
+
+    % For incoherent phase (random)
+    newFile = fullfile(fmsRootPath, 'data', subject, 'V1ForwardIncoherent.sqd');
+    sqdwrite(fullfile(meg_files.folder,meg_files.name),newFile,dataToSave');
+    
+end
 
 %% 4. Create inverse model
 
 % Load Brainstorm downsampled pial surface
 bs_pial_low = load(fullfile(anat_dir, 'tess_cortex_pial_low.mat'));
 
-d_inverse_c = dir(fullfile(bs_db, project_name, 'data', subject, '*12Hz*', 'results_MN_MEG_KERNEL*'));
-d_inverse_i = dir(fullfile(bs_db, project_name, 'data', subject, '*Random*', 'results_MN_MEG_KERNEL*'));
+d_inverse_c = dir(fullfile(bs_db, project_name, 'data', subject, '*Coherent*', 'results_MN_MEG_KERNEL*'));
+d_inverse_i = dir(fullfile(bs_db, project_name, 'data', subject, '*Incoherent*', 'results_MN_MEG_KERNEL*'));
 
-% Load Brainstorm inverse model (TODO: Make this a general dir() command)
+% Load Brainstorm inverse model
 inverseC  = load(fullfile(d_inverse_c.folder, d_inverse_c.name));
 inverseI  = load(fullfile(d_inverse_i.folder, d_inverse_i.name));
 
+w.V1c_timeseries = reshape(w.V1c, size(w.V1c,1), []);
+w.V1i_timeseries = reshape(w.V1i, size(w.V1i,1), []);
+
+
 % Create source response for each timepoint
-for ii = 1:size(w.V1c,2)
-    s.V1c(:,ii) = inverseC.ImagingKernel*w.V1c(1:157,ii);
-    s.V1i(:,ii) = inverseI.ImagingKernel*w.V1i(1:157,ii);
+for ii = 1:size(w.V1c_timeseries,2)
+    s.V1c_timeseries(:,ii) = inverseC.ImagingKernel*w.V1c_timeseries(:,ii);
+    s.V1i_timeseries(:,ii) = inverseI.ImagingKernel*w.V1i(1:157,ii);
 end
 
+% Reshape back into epoched source time series
+s.V1c = reshape(s.V1c_timeseries, [size(s.V1c_timeseries,1), size(w.V1c,2), size(w.V1c,3)]);
+s.V1i = reshape(s.V1i_timeseries, [size(s.V1i_timeseries,1), size(w.V1i,2), size(w.V1i,3)]);
+
+
+%% Summarize predicted source amplitudes
+
+tmp = abs(fft(s.V1c, [], 2)); 
+s.V1cAmp = tmp(:, f+1, :);
+
+tmp = abs(fft(s.V1i, [], 2)); 
+s.V1iAmp = tmp(:, f+1, :);
 
 %% Visualize
-s = struct2cell(s);
+s_all = struct2cell(s);
 
-for source = 1:size(s,1) % 1 is coherent (all vertices have the same phase of a 12 Hz sine), 2 is incoherent (all vertices have a random phase)
+labels = {'Coherent', 'Incoherent'};
+
+for source = [1,2] % 1 is coherent (all vertices have the same phase of a 12 Hz sine), 2 is incoherent (all vertices have a random phase)
     
-    thisSource = s{source};
- 
+    thisSource = s_all{source};
+
+    %% Show sources for each time point
+
     % Visualize: set up curvature colors
     colors = zeros(size(bs_pial_low.Vertices,1),1);
     colors(bs_pial_low.Curvature<0) = -1.5;
@@ -203,8 +210,8 @@ for source = 1:size(s,1) % 1 is coherent (all vertices have the same phase of a 
     figure; tH = trimesh(bs_pial_low.Faces,bs_pial_low.Vertices(:,1),bs_pial_low.Vertices(:,2),bs_pial_low.Vertices(:,3));
     axis equal; hold on
     
-    % Plot it
-    for ii = 1:size(thisSource,2)
+    % Plot a subset of timepoints 
+    for ii = 1:(size(thisSource,2)/nrEpochs)*5
         
         % Define colors as the absolute values of the source model 
         colors = abs(thisSource(:,ii));
@@ -215,22 +222,79 @@ for source = 1:size(s,1) % 1 is coherent (all vertices have the same phase of a 
         colormap(cmap); set(gca, 'CLim',2*pi*[-.01 .01]); colorbar;
         
         pos = [-.1 0 .1];
-        light('Position',pos,'Style','local')
+%         light('Position',pos,'Style','local')
         lighting gouraud
         material shiny; %dull
         title(ii);
         pause(.1);
     end
+   
     
-    % Plot mean timeseries of V1 sources
-    timeseriesV1 = thisSource(logical(template.V1StimEccenAmplitudes'),:);
-    figure; plot(t,mean(abs(timeseriesV1),1))
+    %% Show mean timeseries
+    
+    %Plot mean timeseries of V1 sources
+    figure; subplot(2,1,1); 
+    plot(t, mean(s_all{2+source}(logical(template.V1StimEccenAmplitudes'),:,:),3)); hold on;
+    plot(t, mean(mean(s_all{2+source}(logical(template.V1StimEccenAmplitudes'),:,:),3)), 'k-', 'LineWidth', 4)
+    xlabel('Time (s)'); ylabel('Source amplitude (??)'); box off; set(gca,'TickDir', 'out')
+    title(sprintf('%s: Mean timeseries of V1 sources', labels{source}))
     
     % Plot mean timeseries of non visual sources
     nonVisualVertices = abs(areas.sub_bs_areas)==0;
-    figure; plot(t,mean(thisSource(nonVisualVertices,:),1));
+    subplot(2,1,2); 
+    plot(t,mean(s_all{2+source}(nonVisualVertices,:,:),3)); hold on;
+    plot(t, mean(mean(s_all{2+source}(nonVisualVertices,:,:),3)), 'k-', 'LineWidth', 4)
+    xlabel('Time (s)'); ylabel('Source amplitude (??)'); box off; set(gca,'TickDir', 'out')
+    title(sprintf('%s: Mean timeseries of non V1 sources', labels{source}))
 
 end
+
+%% Show mean amplitudes
+
+thresh = 0.01;
+
+% Plot mean amplitude across epochs
+figure; set(gcf, 'Color', 'w', 'Position', [1 484 2407 554])
+
+% ----- Coherent ----
+subplot(1,2,1);
+tH = trimesh(bs_pial_low.Faces,bs_pial_low.Vertices(:,1),bs_pial_low.Vertices(:,2),bs_pial_low.Vertices(:,3));
+axis equal; hold on
+
+% Define colors as the absolute values of the source model
+colors = abs(mean(s.V1cAmp,3));
+colors(colors<=thresh) = -.01;
+
+% set source pediction as colors
+set(tH, 'LineStyle', 'none', 'FaceColor', 'interp', 'FaceVertexCData',colors);
+drawnow;
+colormap(cmap); set(gca, 'CLim',2*pi*[-.01 .01]); colorbar;
+
+pos = [-.1 0 .1];
+light('Position',pos,'Style','local')
+lighting gouraud
+material shiny; %dull
+title('Mean 2Hz amplitude: Coherent');
+
+% ----- Incoherent ----
+subplot(1,2,2); 
+tH = trimesh(bs_pial_low.Faces,bs_pial_low.Vertices(:,1),bs_pial_low.Vertices(:,2),bs_pial_low.Vertices(:,3));
+axis equal; hold on
+
+% Define colors as the absolute values of the source model
+colors = abs(mean(s.V1iAmp,3));
+colors(colors<=thresh) = -.01;
+
+% set source pediction as colors
+set(tH, 'LineStyle', 'none', 'FaceColor', 'interp', 'FaceVertexCData',colors);
+drawnow;
+colormap(cmap); set(gca, 'CLim',2*pi*[-.01 .01]); colorbar;
+
+pos = [-.1 0 .1];
+light('Position',pos,'Style','local')
+lighting gouraud
+material shiny; %dull
+title('Mean 2Hz amplitude: Incoherent');
 
 %% 5. NOT READY YET: Save to FS space
 
