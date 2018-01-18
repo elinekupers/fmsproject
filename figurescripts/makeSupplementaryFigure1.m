@@ -1,20 +1,26 @@
 function makeSupplementaryFigure1()
 
+% This is a function to make Supplementary Figure 1 from the manuscript about forward
+% modeling coherent and incoherent neural sources to MEG responses.
 
-% % Add Fieldtrip and plotting function if not added yet.
-% if ~exist('megPlotMap','file')
-%     addpath(genpath('~/matlab/git/denoiseproject'))
-% end
-%
-% if ~exist('ft_prepare_layout','file')
-%     tbUse('Fieldtrip')
-% end
+% This figure shows overlap between model and data by plotting the contour 
+% lines of the MEG forward model based on coherent and incoherent predictions 
+% coming from vertices located in V1, on top of the stimulus-locked data 
+
+% To runs this script, you need: 
+% (1) the data from the denoiseproject in the data folder of its FMS 
+%     code repository
+% (2) Access to the SSMEG folder in the brainstorm data base    
+% (3) MEG_utils and Fieldtrip toolbox added to the paths. For example:
+%     tbUse('ForwardModelSynchrony');
+%        or to only add the MEG_utils toolbox:
+%     addpath(genpath('~/matlab/git/toolboxes/meg_utils'))
 
 % Set up paths
 figureDir       = fullfile(fmsRootPath, 'figures'); % Where to save images?
 saveFigures     = true;     % Save figures in the figure folder?
-fH1 = figure(1); clf; set(fH1, 'Position', [1 1 1600 800], 'Name','Figure 4A, Data against model predictions V1 - matched');
-fH3 = figure(3); clf; set(fH3, 'Position', [1 1 1600 800], 'Name','Figure 4B, Data against model predictions V1 - opposite');
+fH1 = figure(1); clf; set(fH1, 'Position', [1 1 1600 800], 'Name','Supl Figure 1A, Data against model predictions V1 - matched');
+fH3 = figure(3); clf; set(fH3, 'Position', [1 1 1600 800], 'Name','Supl Figure 1B, Data against model predictions V1 - unmatched');
 
 rg = [-1 1]*10E-5;
 
@@ -40,13 +46,10 @@ subject = {'wl_subj002','wl_subj004','wl_subj005','wl_subj006','wl_subj010','wl_
 
 for s = 1:length(subject)
     
-    d = dir(fullfile(bs_db, project_name, 'data', subject{s}));
-    if strcmp(subject{s},'wl_subj002')
-        bs_data_dir = fullfile(bs_db, project_name, 'data', subject{s}, d(end-1).name);
-    else
-        bs_data_dir = fullfile(bs_db, project_name, 'data', subject{s}, d(end).name);
-    end
-    
+    % find data directories
+    d = dir(fullfile(bs_db, project_name, 'data', subject, 'R*'));
+
+    bs_data_dir = fullfile(d(1).folder, d(1).name);
     anat_dir = fullfile(bs_db, project_name, 'anat', subject{s});
     
     %% 1. Load relevant matrices
@@ -86,24 +89,24 @@ for s = 1:length(subject)
     % Compute sensor weights for restricted by stimulus eccentricity
     w123_stimsize = G_constrained*V123templateStimEccen'; %  Nsensors x 1;
     
-    
-    
-    
+
     %% Data
     
     % Get stimulus locked and broadband response
-    if strcmp(subject{s},'wl_subj002')
-        whichSubject = 2;
-    elseif strcmp(subject{s},'wl_subj004')
-        whichSubject = 7;
-    elseif strcmp(subject{s},'wl_subj005')
-        whichSubject = 8;
-    elseif strcmp(subject{s},'wl_subj006')
-        whichSubject = 1;
-    elseif strcmp(subject{s},'wl_subj010')
-        whichSubject = 6;
-    elseif strcmp(subject{s},'wl_subj011')
-        whichSubject = 5;
+    switch subject{s}
+        % Go from subject to session nr
+        case 'wl_subj002'
+            whichSubject = 2;          
+        case 'wl_subj004'
+            whichSubject = 7;
+        case 'wl_subj005'
+            whichSubject = 8;
+        case 'wl_subj006'
+            whichSubject = 1;
+        case 'wl_subj010'
+            whichSubject = 6;
+        case 'wl_subj011'
+            whichSubject = 5;
     end
     
     % Load denoised data of example subject
@@ -217,50 +220,27 @@ for d = 1:6
 end
 
 
-
-figure; imagesc(codSLUniform); colormap gray; axis square; xlabel('Data SL'); ylabel('Forward model V1 Uniform phase Prediction'); colorbar; makeprettyaxes(gca,9,9)
-title(sprintf('R squared - mean diag: %1.2f, mean off diag: %1.2f',mean(diag(codSLUniform)), mean(codSLUniform(~eye(6)))));
-range = get(gca,'CLim');
-
-printnice(gcf, [1 300], fullfile(figureDir),'SupFigure1C_CoD_SL_UniformPrediction');
-figurewrite(fullfile(figureDir, 'SupFigure1C_CoD_SL_UniformPrediction.eps'))
-
-figure; imagesc(codSLRandom); colormap gray; axis square; xlabel('Data SL'); ylabel('Forward model V1 Randorm phase Prediction'); colorbar; makeprettyaxes(gca,9,9)
-title(sprintf('R squared - mean diag: %1.2f, mean off diag: %1.2f',mean(diag(codSLRandom)), mean(codSLRandom(~eye(6)))))
-set(gca, 'CLim', range)
-
-printnice(gcf, [1 300], fullfile(figureDir),'SupFigure1D_CoD_SL_ScrambledPrediction');
-hgexport(gcf, fullfile(figureDir, 'SupFigure1D_CoD_SL_ScrambledPrediction.eps'))
-
 %%
+
+slDataPredMatched = diag(codSLUniform);
+slDataPredNotMatched = mean(reshape(codSLUniform(~eye(6)),[5,6]))';
+bbDataPredMatched = diag(codSLRandom);
+
+allData = cat(2, slDataPredMatched, bbDataPredMatched, slDataPredNotMatched);
+labels = {'Matched Coherent Prediction', ...
+          'Matched Incoherent Prediction', ...
+          'Unmatched Coherent Prediction'};
+          
+colors = [0 0 0];
+
 figure;
-plot(0.5*ones(length(diag(codSLUniform)),1),diag(codSLUniform), 'ko','MarkerSize',15); hold on
-plot([0.35 0.65],[mean(diag(codSLUniform)), mean(diag(codSLUniform))],'r', 'LineWidth',4);
+boxplot(allData, 'Colors', colors, 'BoxStyle','outline', 'Widths',0.2); hold on
 
-plot(ones(length(codSLUniform(~eye(6))),1),codSLUniform(~eye(6)), 'ko','MarkerSize',15); hold on
-plot([.85 1.15],[mean(codSLUniform(~eye(6))), mean(codSLUniform(~eye(6)))],'r', 'LineWidth',4);
+ylim([0 1]); box off; set(gca, 'TickDir', 'out', 'XTick',[1:3], 'XTickLabel', {'on','off'}, 'TickLength',[0.015 0.015],'FontSize',20)
+ylabel('Coefficient of Determination','FontSize',20); 
+set(gca,'XTickLabel',labels); set(gca,'XTickLabelRotation',45);
 
-xlim([0 1.5]); ylim([0 1]); box off; set(gca, 'TickDir', 'out', 'XTick',[0.5 1], 'XTickLabel', {'on','off'}, 'TickLength',[0.015 0.015],'FontSize',20)
-ylabel('Coefficient of Determination','FontSize',20); title('SL data and Uniform prediction')
-
-hgexport(gcf, fullfile(figureDir, 'SupFigure1E_CoD_SL_UniformPrediction.eps'))
-
-
-figure;
-plot(0.5*ones(length(diag(codSLRandom)),1),diag(codSLRandom), 'ko','MarkerSize',15); hold on
-plot([0.35 0.65],[mean(diag(codSLRandom)), mean(diag(codSLRandom))],'r', 'LineWidth',4);
-
-plot(ones(length(codSLRandom(~eye(6))),1),codSLRandom(~eye(6)), 'ko','MarkerSize',15); hold on
-plot([.85 1.15],[mean(codSLRandom(~eye(6))), mean(codSLRandom(~eye(6)))],'r', 'LineWidth',4);
-
-xlim([0 1.5]); ylim([0 1]); box off; set(gca, 'TickDir', 'out', 'XTick',[0.5 1], 'XTickLabel', {'on','off'}, 'TickLength',[0.015 0.015],'FontSize',20)
-ylabel('Coefficient of Determination','FontSize',20); title('SL data and Random prediction')
-
-hgexport(gcf, fullfile(figureDir, 'SupFigure1F_CoD_SL_RandomPrediction.eps'))
-
-
-
-
+hgexport(gcf, fullfile(figureDir, 'SupFigure1C_CoD_SL_UniformPrediction.eps'))
 
 
 
