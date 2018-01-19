@@ -165,7 +165,7 @@ for s = 1:length(subject)
     
     %% Calculate COD
     
-    absnorm = @(x, idx) abs(x) ./ norm(abs(x(idx)));
+    absnorm = @(x, y, idx) abs(x) ./ norm([abs(x(idx)), abs(y(idx))]);
     calcod = @(x, y, idx) 1 - sum((y(idx)-x(idx)).^2)./(sum(x(idx).^2));
     
     % Grab subject's data
@@ -179,8 +179,8 @@ for s = 1:length(subject)
     allDataSL_norm(s,:) = sl_signal./norm(sl_signal(idx_d));
     allDataBB_norm(s,:) = bb_signal./norm(bb_signal(idx_d));
     
-    allPredictionUniform_norm(s,:) = absnorm(w.V1c(s,1:157), idx_p);
-    allPredictionRandom_norm(s,:) = absnorm(w.V1c(s,1:157), idx_p);
+    allPredictionCoherent_norm(s,:) = absnorm(w.V1c(s,1:157), w.V1i(s,1:157), idx_p);
+    allPredictionIncoherent_norm(s,:) = absnorm(w.V1i(s,1:157), w.V1c(s,1:157), idx_p);
 
     
 end
@@ -209,13 +209,13 @@ for d = 1:6
     
     for p = 1:6
         
-        thisPredictionUniform = allPredictionUniform_norm(p,:);
-        thisPredictionRandom = allPredictionRandom_norm(p,:);
+        thisPredictionCoherent = allPredictionCoherent_norm(p,:);
+        thisPredictionIncoherent = allPredictionIncoherent_norm(p,:);
                         
-        codSLUniform(d, p, :) =  calcod(thisDataSL, thisPredictionUniform, idx);
-        codSLRandom(d, p, :) =  calcod(thisDataSL, thisPredictionRandom, idx);
-        codBBUniform(d, p, :) =  calcod(thisDataBB, thisPredictionUniform, idx);
-        codBBRandom(d, p, :) =  calcod(thisDataBB, thisPredictionRandom, idx);
+        codSLCoherent(d, p, :) =  calcod(thisDataSL, thisPredictionCoherent, idx);
+        codSLIncoherent(d, p, :) =  calcod(thisDataSL, thisPredictionIncoherent, idx);
+        codBBCoherent(d, p, :) =  calcod(thisDataBB, thisPredictionCoherent, idx);
+        codBBIncoherent(d, p, :) =  calcod(thisDataBB, thisPredictionIncoherent, idx);
 
         
     end
@@ -225,22 +225,22 @@ end
 
 %%
 
-slDataUniformPred_subjectsMatched = diag(codSLUniform);
-slDataUniformPred_subjectsNotMatched = mean(reshape(codSLUniform(~eye(6)),[5,6]))';
+slDataCoherentPred_subjectsMatched = diag(codSLCoherent);
+slDataCoherentPred_subjectsNotMatched = mean(reshape(codSLCoherent(~eye(6)),[5,6]))';
 
-bbDataRandomPred_subjectMatched = diag(codBBRandom);
-bbDataRandomPred_subjectNotMatched = mean(reshape(codBBRandom(~eye(6)),[5,6]))';
+bbDataIncoherentPred_subjectMatched = diag(codBBIncoherent);
+bbDataIncoherentPred_subjectNotMatched = mean(reshape(codBBIncoherent(~eye(6)),[5,6]))';
 
-slDataRandomPred_subjectsMatched = diag(codSLRandom);
-bbDataUniformPred_subjectsMatched = diag(codBBUniform);
+slDataIncoherentPred_subjectsMatched = diag(codSLIncoherent);
+bbDataCoherentPred_subjectsMatched = diag(codBBCoherent);
 
 
-allData = cat(2, slDataUniformPred_subjectsMatched, ...
-                 slDataUniformPred_subjectsNotMatched, ...                 
-                 bbDataRandomPred_subjectMatched, ...
-                 bbDataRandomPred_subjectNotMatched, ...                 
-                 slDataRandomPred_subjectsMatched, ...
-                 bbDataUniformPred_subjectsMatched);
+allData = cat(2, slDataCoherentPred_subjectsMatched, ...
+                 slDataCoherentPred_subjectsNotMatched, ...                 
+                 bbDataIncoherentPred_subjectMatched, ...
+                 bbDataIncoherentPred_subjectNotMatched, ...                 
+                 slDataIncoherentPred_subjectsMatched, ...
+                 bbDataCoherentPred_subjectsMatched);
                  
 labels = {'Same subject data & pred - SL & Coherent', ...
           'Diff subject data & pred - SL & Coherent', ... 
@@ -252,7 +252,7 @@ labels = {'Same subject data & pred - SL & Coherent', ...
 colors = [0 0 0];
 
 figure; set(gcf, 'Color', 'w', 'Position', [1000, 345, 1144, 993])
-boxplot(allData, 'Colors', colors, 'BoxStyle','outline', 'Widths',0.2); hold on
+boxplot(allData, 'Colors', colors, 'BoxStyle','outline', 'Widths',0.2, 'PlotStyle', 'traditional', 'jitter',1); hold on
 
 ylim([-1 1]); box off; set(gca, 'TickDir', 'out', 'TickLength',[0.015 0.015],'FontSize',20)
 ylabel('Coefficient of Determination','FontSize',20); 
