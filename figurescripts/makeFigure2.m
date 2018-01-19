@@ -110,11 +110,13 @@ subplot(1,2,1)
 set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
 
 subplot(1,2,2)
-[~,ch] = megPlotMap(bb_all(:,:,1),climsBBone,gcf,'bipolar',[],data_hdr,cfg,'isolines', 0.64*max(climsBBone)*[1 1]); colormap(bipolar);
+[~,ch] = megPlotMap(bb_all(:,:,1),climsBBone,gcf,'bipolar',[],data_hdr,cfg,'isolines', 0.32*max(climsBBone)*[1 1]); colormap(bipolar);
 set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
 
 if saveFigures
-    figurewrite(fullfile(figureDir,'Figure2_SLBB_onesubject'),[],0,'.',1);
+%     figurewrite(fullfile(figureDir,'Figure2_SLBB_onesubject'),[],0,'.',1);
+        hgexport(gcf,fullfile(figureDir,'Figure2_SLBB_onesubject_2'))
+
 end
 
 %% 3. Plot mean of 6 subjects
@@ -133,11 +135,12 @@ subplot(1,2,1)
 [~,ch] = megPlotMap(sl_snr,climsSLave,gcf,'bipolar',[],data_hdr,cfg, 'isolines', 0.64*max(climsSLave)*[1 1]); colormap(bipolar);
 set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
 subplot(1,2,2)
-[~,ch] = megPlotMap(bb_snr,climsBBave,gcf,'bipolar',[],data_hdr,cfg,'isolines', 0.64*max(climsBBave)*[1 1]); colormap(bipolar);
+[~,ch] = megPlotMap(bb_snr,climsBBave,gcf,'bipolar',[],data_hdr,cfg,'isolines', 0.30*max(climsBBave)*[1 1]); colormap(bipolar);
 set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
 
 if saveFigures
-    figurewrite(fullfile(figureDir,'Figure2_SLBB_average'),[],0,'.',1);
+%     figurewrite(fullfile(figureDir,'Figure2_SLBB_average'),[],0,'.',1);
+    hgexport(gcf,fullfile(figureDir,'Figure2_SLBB_average_2'))
 end
 
 %% (obsolete?) Plot mean of 6 subjects with CI from contour lines

@@ -25,7 +25,10 @@ function makeFigure5()
 %% 0. Set up paths and define parameters
 
 % Brainstorm Database path
-bs_db = '/Volumes/server/Projects/MEG/brainstorm_db/';
+bs_db  = '/Volumes/server/Projects/MEG/brainstorm_db/';
+
+% Freesurfer subject path
+fs_dir = '/Volumes/server/Freesurfer_subjects/';
 
 % Define project name, subject and data/anatomy folders
 project_name = 'SSMEG';
@@ -42,6 +45,9 @@ nrEpochs = 1000;
 
 % Save forwardmodel into a sqd file?
 saveSQD = false;
+
+% Save inverse solution as FS mesh?
+saveAsFS = false;
 
 figureDir       = fullfile(fmsRootPath, 'figures'); % Where to save images?
 saveFigures     = true;     % Save figures in the figure folder?
@@ -112,14 +118,16 @@ w.V1iAmp = tmp(:, f+1, :);
 w.V1iAmp_mn = mean(w.V1iAmp,3);
 w.V1cAmp_mn = mean(w.V1cAmp,3);
 
+
+
 %% Visualize
 figure(1),
 clims = max([w.V1cAmp_mn; w.V1iAmp_mn]) * [-1 1];
-subplot(1,2,1); megPlotMap(w.V1cAmp_mn, clims, [], 'bipolar', 'Coherent phase', [], [], 'isolines', 0.4*max(clims) * [1 1]);
-subplot(1,2,2); megPlotMap(w.V1iAmp_mn, clims, [], 'bipolar', 'Incoherent phase', [], [], 'isolines', 0.2*max(clims) * [1 1]);
+subplot(1,2,1); megPlotMap(w.V1cAmp_mn, clims, [], 'bipolar', 'Coherent phase', [], [], 'isolines', 0.3*max(clims) * [1 1]);
+subplot(1,2,2); megPlotMap(w.V1iAmp_mn, clims, [], 'bipolar', 'Incoherent phase', [], [], 'isolines', 0.15*max(clims) * [1 1]);
 
 if saveFigures
-    hgexport(gcf, fullfile(figureDir, 'Figure5A_predictionForwardModelV1wtimeseries.eps'))
+    hgexport(gcf, fullfile(figureDir, sprintf('Figure5A_predictionForwardModelV1wtimeseries_%s.eps',subject)))
 end
 
 %% 3. Create SQD file (Only necessary once, after that it should be saved in Brainstorm DB)
@@ -158,15 +166,11 @@ end
 
 %% 4. Create inverse model
 
-% Load Brainstorm downsampled pial surface
-bs_pial_low = load(fullfile(anat_dir, 'tess_cortex_pial_low.mat'));
-
-d_inverse_c = dir(fullfile(bs_db, project_name, 'data', subject, '*Coherent*', 'results_MN_MEG_KERNEL*'));
-d_inverse_i = dir(fullfile(bs_db, project_name, 'data', subject, '*Incoherent*', 'results_MN_MEG_KERNEL*'));
+d_inverse = dir(fullfile(data_dir, 'results_MN_MEG_KERNEL*18*'));
 
 % Load Brainstorm inverse model
-inverseC  = load(fullfile(d_inverse_c.folder, d_inverse_c.name));
-inverseI  = load(fullfile(d_inverse_i.folder, d_inverse_i.name));
+inverseC  = load(fullfile(d_inverse(1).folder, d_inverse(1).name));
+inverseI  = load(fullfile(d_inverse(2).folder, d_inverse(2).name));
 
 w.V1c_timeseries = reshape(w.V1c, size(w.V1c,1), []);
 w.V1i_timeseries = reshape(w.V1i, size(w.V1i,1), []);
@@ -194,7 +198,13 @@ s.V1iAmp = tmp(:, f+1, :);
 %% Visualize
 s_all = struct2cell(s);
 
+% Load Brainstorm downsampled smooth surface
+bs_pial_low = load(fullfile(anat_dir, 'tess_cortex_pial_low_fig.mat'));
+
 labels = {'Coherent', 'Incoherent'};
+    
+% Define colorbar colors
+cmap = [gray(128); jet(128)];
 
 for source = [1,2] % 1 is coherent (all vertices have the same phase of a 12 Hz sine), 2 is incoherent (all vertices have a random phase)
     
@@ -206,16 +216,13 @@ for source = [1,2] % 1 is coherent (all vertices have the same phase of a 12 Hz 
     colors = zeros(size(bs_pial_low.Vertices,1),1);
     colors(bs_pial_low.Curvature<0) = -1.5;
     colors(bs_pial_low.Curvature>=0) = -.5;
-    
-    % Visualize: define colorbar colors
-    cmap = [gray(128); jet(128)];
-    
+
     % Visualize: set up mesh
     figure; tH = trimesh(bs_pial_low.Faces,bs_pial_low.Vertices(:,1),bs_pial_low.Vertices(:,2),bs_pial_low.Vertices(:,3));
     axis equal; hold on
     
     % Plot a subset of timepoints
-    for ii = 1:(size(thisSource,2)/nrEpochs)*5
+    for ii = 1:(size(thisSource,2)/nrEpochs)*2
         
         % Define colors as the absolute values of the source model
         colors = abs(thisSource(:,ii));
@@ -236,30 +243,30 @@ for source = [1,2] % 1 is coherent (all vertices have the same phase of a 12 Hz 
     
     %% Show mean timeseries
     
-    %Plot mean timeseries of V1 sources
-    figure; subplot(2,1,1);
-    plot(t, mean(s_all{2+source}(logical(template.V1StimEccenAmplitudes'),:,:),3)); hold on;
-    plot(t, mean(mean(s_all{2+source}(logical(template.V1StimEccenAmplitudes'),:,:),3)), 'k-', 'LineWidth', 4)
-    xlabel('Time (s)'); ylabel('Source amplitude (??)'); box off; set(gca,'TickDir', 'out')
-    title(sprintf('%s: Mean timeseries of V1 sources', labels{source}))
-    
-    % Plot mean timeseries of non visual sources
-    nonVisualVertices = abs(areas.sub_bs_areas)==0;
-    subplot(2,1,2);
-    plot(t,mean(s_all{2+source}(nonVisualVertices,:,:),3)); hold on;
-    plot(t, mean(mean(s_all{2+source}(nonVisualVertices,:,:),3)), 'k-', 'LineWidth', 4)
-    xlabel('Time (s)'); ylabel('Source amplitude (??)'); box off; set(gca,'TickDir', 'out')
-    title(sprintf('%s: Mean timeseries of non V1 sources', labels{source}))
-    
-    if saveFigures
-        hgexport(gcf, fullfile(figureDir, sprintf('Figure5B_sourcetimeseriesV1_%s.eps', labels{source})))
-    end
+%     %Plot mean timeseries of V1 sources
+%     figure; subplot(2,1,1);
+%     plot(t, mean(s_all{2+source}(logical(template.V1StimEccenAmplitudes'),:,:),3)); hold on;
+%     plot(t, mean(mean(s_all{2+source}(logical(template.V1StimEccenAmplitudes'),:,:),3)), 'k-', 'LineWidth', 4)
+%     xlabel('Time (s)'); ylabel('Source amplitude (??)'); box off; set(gca,'TickDir', 'out')
+%     title(sprintf('%s: Mean timeseries of V1 sources', labels{source}))
+%     
+%     % Plot mean timeseries of non visual sources
+%     nonVisualVertices = abs(areas.sub_bs_areas)==0;
+%     subplot(2,1,2);
+%     plot(t,mean(s_all{2+source}(nonVisualVertices,:,:),3)); hold on;
+%     plot(t, mean(mean(s_all{2+source}(nonVisualVertices,:,:),3)), 'k-', 'LineWidth', 4)
+%     xlabel('Time (s)'); ylabel('Source amplitude (??)'); box off; set(gca,'TickDir', 'out')
+%     title(sprintf('%s: Mean timeseries of non V1 sources', labels{source}))
+%     
+%     if saveFigures
+%         hgexport(gcf, fullfile(figureDir, sprintf('Figure5B_sourcetimeseriesV1_%s_%s.eps', labels{source}, subject)))
+%     end
     
 end
 
 %% Show mean amplitudes
 
-thresh = 0.01;
+thresh = 0.03;
 
 % Plot mean amplitude across epochs
 figure; set(gcf, 'Color', 'w', 'Position', [1 484 2407 554])
@@ -267,65 +274,79 @@ figure; set(gcf, 'Color', 'w', 'Position', [1 484 2407 554])
 % ----- Coherent ----
 subplot(1,2,1);
 tH = trimesh(bs_pial_low.Faces,bs_pial_low.Vertices(:,1),bs_pial_low.Vertices(:,2),bs_pial_low.Vertices(:,3));
+
 axis equal; hold on
 
-% Define colors as the absolute values of the source model
-colors = abs(mean(s.V1cAmp,3));
-colors(colors<=thresh) = -.01;
+% Define colors as the mean amplitudes across epochs of the source model
+clims = [-1 1]* max([mean(s.V1cAmp,3); mean(s.V1iAmp,3)]);
+
+colors = mean(s.V1cAmp,3);
+curv = bs_pial_low.Curvature - max(bs_pial_low.Curvature);
+colors(colors<=thresh) = curv(colors<=thresh);
+
 
 % set source pediction as colors
 set(tH, 'LineStyle', 'none', 'FaceColor', 'interp', 'FaceVertexCData',colors);
 drawnow;
-colormap(cmap); set(gca, 'CLim',2*pi*[-.01 .01]); colorbar;
+colormap(cmap); colorbar; set(gca, 'CLim',clims);
 
 pos = [-.1 0 .1];
 light('Position',pos,'Style','local')
 lighting gouraud
 material shiny; %dull
-title('Mean 2Hz amplitude: Coherent');
+title(sprintf('Mean 2Hz amplitude: Coherent, threshold: %1.2f', thresh));
 
 % ----- Incoherent ----
 subplot(1,2,2);
 tH = trimesh(bs_pial_low.Faces,bs_pial_low.Vertices(:,1),bs_pial_low.Vertices(:,2),bs_pial_low.Vertices(:,3));
 axis equal; hold on
 
-% Define colors as the absolute values of the source model
-colors = abs(mean(s.V1iAmp,3));
-colors(colors<=thresh) = -.01;
+% Define colors as the mean amplitudes across epochs of the source model
+colors = mean(s.V1iAmp,3);
+colors(colors<=thresh) = -0.01;
 
 % set source pediction as colors
 set(tH, 'LineStyle', 'none', 'FaceColor', 'interp', 'FaceVertexCData',colors);
 drawnow;
-colormap(cmap); set(gca, 'CLim',2*pi*[-.01 .01]); colorbar;
+colormap(cmap); colorbar; set(gca, 'CLim',[0.5]*clims); 
 
 pos = [-.1 0 .1];
 light('Position',pos,'Style','local')
 lighting gouraud
 material shiny; %dull
-title('Mean 2Hz amplitude: Incoherent');
+title(sprintf('Mean 2Hz amplitude: Incoherent, threshold: %1.2f', thresh));
 
 if saveFigures
-    hgexport(gcf, fullfile(figureDir, 'Figure5C_InverseSolutionForV1.eps'))
+    hgexport(gcf, fullfile(figureDir, sprintf('Figure5C_InverseSolutionForV1_%s.eps',subject)))
+end
+
+
+%% 5. If requested: Save BS mesh to FS space
+
+if saveAsFS
+    
+    % NB: BRAINSTORM GUI HAS TO BE OPEN FOR THIS STEP
+    
+    if ~exist('MRIwrite')
+        addpath(genpath('/Applications/freesurfer/matlab'));
+        addpath(genpath('/Applications/freesurfer/fsfast/toolbox'));
+    end
+    
+    % Set Brainstorm mesh back to FS mesh
+    
+    % Coherent
+    [fs_lh_overlay, fs_rh_overlay] = tess_bst2fs(subject, fullfile(fs_dir, subject), mean(s.V1cAmp,3));
+    
+    MRIwrite(struct('vol', fs_lh_overlay), fullfile(fs_dir, subject,'surf','lh.inverse_V1_coherent.mgz'));
+    MRIwrite(struct('vol', fs_rh_overlay), fullfile(fs_dir, subject,'surf','rh.inverse_V1_coherent.mgz'));
+    
+    % Incoherent
+    [fs_lh_overlay, fs_rh_overlay] = tess_bst2fs(subject, fullfile(fs_dir, subject), mean(s.V1iAmp,3));
+    
+    MRIwrite(struct('vol', fs_lh_overlay), fullfile(fs_dir, subject,'surf','lh.inverse_V1_incoherent.mgz'));
+    MRIwrite(struct('vol', fs_rh_overlay), fullfile(fs_dir, subject,'surf','rh.inverse_V1_incoherent.mgz'));
+
 end
 
 return
-%% 5. NOT READY YET: Save to FS space
-
-% NB: BRAINSTORM GUI HAS TO BE OPEN FOR THIS STEP
-
-% if ~exist('MRIwrite')
-%     addpath(genpath('/Applications/freesurfer/matlab'));
-%     addpath(genpath('/Applications/freesurfer/fsfast/toolbox'));
-% end
-%
-%
-% % Where are the FS subjects?
-% fs_dir = '/Volumes/server/Freesurfer_subjects/';
-%
-% % Set Brainstorm mesh back to FS mesh
-% [fs_lh_overlay fs_rh_overlay] = tess_bst2fs(subject, fullfile(fs_dir, subject), s.V1c);
-%
-%
-% MRIwrite(struct('vol', fs_lh_overlay), fullfile(fs_dir, subject,'surf','lh.inverse_V1_coherent.mgz'));
-% MRIwrite(struct('vol', fs_rh_overlay), fullfile(fs_dir, subject,'surf','rh.inverse_V1_coherent.mgz'));
 
