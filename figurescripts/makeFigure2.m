@@ -26,23 +26,20 @@ subject = {'wl_subj002','wl_subj004','wl_subj005','wl_subj006','wl_subj010','wl_
 figureDir       = fullfile(fmsRootPath, 'figures'); % Where to save images?
 dataDir         = fullfile(fmsRootPath, 'data');    % Where to get data?
 saveFigures     = true;     % Save figures in the figure folder?
-threshold       = 0;        % Set threshold for colormap. If no threshold set value to 0
 cfg             = [];
 data_hdr        = [];
 
-% What stimulus, how to combine data across subjects
-contrastNames = {'Stim Full'};
+% Use first stimulus (full field), define how to combine data across subjects
 contrasts     = [1 0 0];
 contrasts     = bsxfun(@rdivide, contrasts, sqrt(sum(contrasts.^2,2)));
 computeSNR    = @(x) nanmean(x,3) ./ nanstd(x, [], 3);
 
-% What plotting range
+% What plotting range for individual example and average 
 climsSLone = [-1 1] * 20;
 climsBBone = [-1 1] * 5;
 
 climsSLave = [-1 1] * 15;
 climsBBave = [-1 1] * 2;
-
 
 % Predefine tickmark position for colorbar
 yscaleAB = [-6,-3,0,3,6];
