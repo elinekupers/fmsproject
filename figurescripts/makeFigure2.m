@@ -111,7 +111,7 @@ subplot(1,2,2)
 set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
 
 if saveFigures
-%     figurewrite(fullfile(figureDir,'Figure2_SLBB_onesubject'),[],0,'.',1);
+     figurewrite(fullfile(figureDir,'Figure2_SLBB_onesubject'),[],0,'.',1);
         hgexport(gcf,fullfile(figureDir,'Figure2_SLBB_onesubject_2'))
 
 end
@@ -133,10 +133,10 @@ subplot(1,2,1)
 set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
 subplot(1,2,2)
 [~,ch] = megPlotMap(bb_snr,climsBBave,gcf,'bipolar',[],data_hdr,cfg,'isolines', 0.30*max(climsBBave)*[1 1]); colormap(bipolar);
-set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
+set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);x
 
 if saveFigures
-%     figurewrite(fullfile(figureDir,'Figure2_SLBB_average'),[],0,'.',1);
+     figurewrite(fullfile(figureDir,'Figure2_SLBB_average'),[],0,'.',1);
     hgexport(gcf,fullfile(figureDir,'Figure2_SLBB_average_2'))
 end
 

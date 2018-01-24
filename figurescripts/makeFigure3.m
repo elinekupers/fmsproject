@@ -19,7 +19,7 @@ function makeFigure3()
 % Path to brainstorm database
 bsDB            = '/Volumes/server/Projects/MEG/brainstorm_db/';
 figureDir       = fullfile(fmsRootPath, 'figures'); % Where to save images?
-saveFigures     = true;     % Save figures in the figure folder?
+saveFigures     = false;     % Save figures in the figure folder?
 
 % Define project name, subject and data/anatomy folders
 projectName    = 'SSMEG';
@@ -34,8 +34,8 @@ climsAve = [-.5 .5]*1E-4;
 
 % Number of iterations for the random coherence prediction of the forward
 % model
-n        = 1000;     % number of timepoints (ms)
-nrEpochs = 1;        % number of epochs
+n        = 10;         % number of timepoints (ms)
+nrEpochs = 100;        % number of epochs
 
 % Define vector that can truncate number of sensors 
 keep_sensors = logical([ones(157,1); zeros(192-157,1)]); % Note: Figure out a more generic way to define keep_sensors
@@ -58,23 +58,27 @@ for s = 1:length(subject)
     % predictions from forward model (w)
     tmp = getForwardModelPredictions(G_constrained, template.V1StimEccen, [], n, nrEpochs);
    
-    % Take mean across epochs
-    w.V1c(s,:) = mean(abs(tmp.c),2);
-    w.V1i(s,:) = mean(abs(tmp.i),2);
+    % Take mean amplitude across epochs
+    amps.c = abs(fft(tmp.c,[],2));
+    amps.i = abs(fft(tmp.i,[],2));
+    
+    w.V1c(s,:) = mean(amps.c(:,2,:),3);
+    w.V1i(s,:) = mean(amps.i(:,2,:),3);
     
 end
 
 %% 3. Visualize predictions from forward model
-
+cLims = [-1 1]*prctile(w.V1c(1,:), 95);
 % plot for subj 002
 fH1 = figure(1); clf; set(fH1, 'Position', [1 1 1600 513], 'Name', 'Figure 3: V1 model predictions');
 
 ch = subplot(221); 
-megPlotMap(abs(w.V1c(1,:)),climsOne,[],bipolar,[],[],[],'isolines', 0.75*max(climsOne) * [1 1]);
+megPlotMap(abs(w.V1c(1,:)),cLims,[],bipolar,[],[],[],'isolines', 0.75*max(cLims) * [1 1]);
 set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12); title('Coherent phase S1')
 
+cLims = [-1 1]*prctile(w.V1i(1,:), 95);
 ch = subplot(222); 
-megPlotMap(abs(w.V1i(1,:)),climsOne,[],bipolar,[],[],[],'isolines',  0.75*max(climsOne) * [1 1])
+megPlotMap(abs(w.V1i(1,:)),cLims,[],bipolar,[],[],[],'isolines',  0.75*max(cLims) * [1 1])
 set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12); title('Incoherent phase S1')
 
 %% Compute the mean across subjects
@@ -82,12 +86,16 @@ set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12); t
 w.V1c_mn = mean(w.V1c,1);
 w.V1i_mn = mean(w.V1i,1);
 
+cLims = [-1 1]*prctile(w.V1c_mn, 95);
+
 ch = subplot(223); 
-megPlotMap(abs(w.V1c_mn),climsAve,[],bipolar,[],[],[],'isolines', 0.75*max(climsAve) * [1 1])
+megPlotMap(abs(w.V1c_mn),cLims,[],bipolar,[],[],[],'isolines', 0.75*max(cLims) * [1 1])
 set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12); title('Coherent phase Average (S1-S6)')
 
+cLims = [-1 1]*prctile(w.V1i_mn, 95);
+
 ch = subplot(224); 
-megPlotMap(abs(w.V1i_mn),climsAve,[],bipolar,[],[],[],'isolines',  0.75*max(climsAve) * [1 1])
+megPlotMap(abs(w.V1i_mn),cLims,[],bipolar,[],[],[],'isolines',  0.75*max(cLims) * [1 1])
 set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12); title('Incoherent phase Average (S1-S6)')
 
 if saveFigures
