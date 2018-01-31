@@ -19,9 +19,9 @@ function [fs_lh_overlay fs_rh_overlay] = tess_bst2fs(bst_subject, fs_subject, bs
 % Author: Noah C. Benson <nben@nyu.edu>, 2017
 
 % Example:
-% V1sources = rand(15002,1);
+% bs_dir = '/Volumes/server/MEG/brainstorm_db/';
 % fs_dir = '/Volumes/server/Freesurfer_subjects/';
-% [fs_lh_overlay fs_rh_overlay] = tess_bst2fs('wl_subj010', fullfile(fs_dir,'wl_subj010'), V1sources);
+% [fs_lh_overlay fs_rh_overlay] = tess_bst2fs('wl_subj010', fullfile(fs_dir,'wl_subj010'), V1sources_coherent);
 
 % Get the BrainStorm subject:
 sub = bst_get('Subject', bst_subject);
@@ -47,9 +47,9 @@ else
     warn('Anatomy field of subject not found; operating without MRI structure');
 end
 
-% Read in the white matter surface
-lh_tess_file = fullfile(fs_subject, 'surf', 'lh.white');
-rh_tess_file = fullfile(fs_subject, 'surf', 'rh.white');
+% Read in the pial matter surface
+lh_tess_file = fullfile(fs_subject, 'surf', 'lh.pial');
+rh_tess_file = fullfile(fs_subject, 'surf', 'rh.pial');
 [lvertices, ~] = mne_read_surface(lh_tess_file);
 [rvertices, ~] = mne_read_surface(rh_tess_file);
 if size(lvertices, 1) == 3 && size(lvertices, 2) ~= 3, lvertices = lvertices'; end
@@ -62,11 +62,11 @@ fs_vertices = bst_bsxfun(@plus, fs_vertices, [128 129 128] / 1000);
 fs_vertices = cs_convert(sMri, 'mri', 'scs', fs_vertices);
 % Okay, the FreeSurfervertices should now be oriented correctly!
 
-% Next step: get the brainstorm white surface
+% Next step: get the brainstorm pial surface
 % First, find the white matter surface:
 wm_surf_id = -1;
 if nargin > 4
-    % white matter surface was provided
+    % pial surface was provided
     wm_surf_name = varargin{5};
     for i = 1:numel(sub.Surface)
         if strcmp(sub.Surface(i).Comment, wm_surf_name)
@@ -79,7 +79,7 @@ else
     n = 10^10;
     for i = 1:numel(sub.Surface)
         if ~strcmp(sub.Surface(i).SurfaceType, 'Cortex'), continue; end
-        nn = sscanf(sub.Surface(i).Comment, 'white_%dV');
+        nn = sscanf(sub.Surface(i).Comment, 'pial_%dV');
         if isempty(nn), continue; end
         if nn < n
             n = nn;
@@ -87,12 +87,12 @@ else
         end
     end
 end
-if wm_surf_id < 0, error('No white surface found for subject!'); end
+if wm_surf_id < 0, error('No pial surface found for subject!'); end
 % Next, get the surface data itself:
 anat_dir = proto.SUBJECTS;
-white_path = fullfile(anat_dir, sub.Surface(wm_surf_id).FileName);
-white_surf = load(white_path);
-bst_vertices = white_surf.Vertices;
+pial_path = fullfile(anat_dir, sub.Surface(wm_surf_id).FileName);
+pial_surf = load(pial_path);
+bst_vertices = pial_surf.Vertices;
 
 % Next step: find the mapping between BrainStorm vertices and FreeSurfer vertices
 idcs = dsearchn(bst_vertices, fs_vertices);
