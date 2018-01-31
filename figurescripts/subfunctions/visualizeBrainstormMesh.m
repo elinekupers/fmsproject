@@ -38,7 +38,7 @@ colors(colors<=thresh) = curv(colors<=thresh);
 for tt = 1:size(colors,2)
 
     % set source pediction as colors
-    set(tH, 'LineStyle', 'none', 'FaceColor', 'interp', 'FaceVertexCData',colors(:,tt));
+    set(tH, 'LineStyle', 'none', 'FaceColor', 'interp', 'FaceVertexCData',double(colors(:,tt)));
 
     colormap(cmap); colorbar; set(gca, 'CLim',clims);
 
