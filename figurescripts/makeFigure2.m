@@ -25,9 +25,12 @@ subject = {'wl_subj002','wl_subj004','wl_subj005','wl_subj006','wl_subj010','wl_
 % Which example subject to show?
 exampleSubject = 1;
 
-contourLim      = 0.75; % draw contour line at what fraction of the colormap?
-colorbarLim     = 97.5; % percentile of data to use for max/min limits of colorbar
+% What's the plotting range for individual example and average across
+% subjects?
+contourmapPercentile   = 93.6; % draw contour line at what fraction of the colormap?
+colormapPercentile     = 97.5; % percentile of data to use for max/min limits of colorbar
 
+middleSensors = [13 23, 2, 20, 25, 43];
 % Set up paths
 figureDir       = fullfile(fmsRootPath, 'figures'); % Where to save images?
 dataDir         = fullfile(fmsRootPath, 'data');    % Where to get data?
@@ -106,33 +109,42 @@ bb_snr = nanmean(bb_all,3);
 
 dataAll      = {sl_all(:,:,exampleSubject), bb_all(:,:,exampleSubject), sl_snr, bb_snr};
 colorMarkers = {'r','b', 'r', 'b'};
+ttl          = {'Stimulus Locked S1', ...
+                'Broadband S2', ...
+                'Stimulus Locked S1-S6', ...
+                'Broadband S1-S6'};
 
-fH1 = figure(1); clf; set(fH1,'position',[1,600,1400,800], 'Name', 'Figure 2A, Example subject', 'NumberTitle', 'off');
-fH2 = figure(2); clf; megPlotMap(zeros(1,157)); colormap([1 1 1]);
-fH3 = figure(3); clf; set(fH3,'position',[1,600,1400,800], 'Name', 'Figure 2B, Average across subjects', 'NumberTitle', 'off');
-fH4 = figure(4); clf; megPlotMap(zeros(1,157)); colormap([1 1 1]);
+fH1 = figure; clf; set(fH1,'position',[1,600,1400,800], 'Name', 'Figure 2,  Data', 'NumberTitle', 'off');
+fH2 = figure; clf; set(fH2,'position',[1400,600,700,800], 'Name', 'Figure 2,  Sl and Broadand Compared', 'NumberTitle', 'off');
+                   subplot(2,1,1); megPlotMap(zeros(1,157)); colormap([1 1 1]);
+                   subplot(2,1,2); megPlotMap(zeros(1,157)); colormap([1 1 1]);
 
-
+markerType = '.'; '*';
 for ii = 1:length(dataAll)
     
     dataToPlot = dataAll{ii};
-    cLims = [-1 1]*prctile(dataToPlot, colorbarLim);
-    
-    set(0, 'currentfigure', ii-mod(ii-1,2));
-    subplot(1,2,mod(ii-1,2)+1);
-    [~,ch] = megPlotMap(dataToPlot,cLims,fH1,'bipolar',[],data_hdr,cfg, ...
-        'isolines', contourLim*max(cLims)*[1 1], ...
-        'chanindx', dataToPlot > contourLim*max(cLims), ...
-        'pointsymbol', '*', ...
+    colormapLims =  [-1 1]*prctile(dataToPlot, colormapPercentile);
+    contourmapLims = [1 1]*prctile(dataToPlot, contourmapPercentile);
+
+    % Plot predictions
+    figure(fH1);
+    subplot(2,2,ii);
+    [~,ch] = megPlotMap(dataToPlot,colormapLims,fH1,'bipolar',[],[],[], ...
+        'isolines', contourmapLims, ...
+    ...    'chanindx', dataToPlot > max(contourmapLims), ...
+        'pointsymbol', markerType, ... '*'
         'pointsize', 10);
     
     c = findobj(gca,'Type','Contour'); c.LineWidth = 4;
-    pp = findobj(gca,'Marker','*');
-    set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
+    pp = findobj(gca,'Marker',markerType);
+    set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12); title(ttl{ii})
     
-    set(0, 'currentfigure', ii-mod(ii-1,2)+1); hold all;
-    contour(c.XData, c.YData, c.ZData, contourLim*max(cLims)*[1 1], 'LineColor',colorMarkers{ii}, 'LineWidth',4);
-    scatter(pp(1).XData,pp(1).YData, 150, colorMarkers{ii},'*'); colorbar off;
+    % Plot overlap
+    figure(fH2);
+    subplot(2,1,ceil(ii/2)); hold all;   
+    contour(c.XData, c.YData, c.ZData, contourmapLims, 'LineColor',colorMarkers{ii}, 'LineWidth',4);
+    %%scatter(pp(1).XData,pp(1).YData, 150, colorMarkers{ii},'*'); 
+    colorbar off;
     
 end
 
