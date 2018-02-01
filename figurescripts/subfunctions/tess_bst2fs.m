@@ -64,13 +64,13 @@ fs_vertices = cs_convert(sMri, 'mri', 'scs', fs_vertices);
 
 % Next step: get the brainstorm pial surface
 % First, find the white matter surface:
-wm_surf_id = -1;
+pial_surf_id = -1;
 if nargin > 4
     % pial surface was provided
     wm_surf_name = varargin{5};
     for i = 1:numel(sub.Surface)
         if strcmp(sub.Surface(i).Comment, wm_surf_name)
-            wm_surf_id = i;
+            pial_surf_id = i;
             break;
         end
     end
@@ -79,18 +79,18 @@ else
     n = 10^10;
     for i = 1:numel(sub.Surface)
         if ~strcmp(sub.Surface(i).SurfaceType, 'Cortex'), continue; end
-        nn = sscanf(sub.Surface(i).Comment, 'pial_%dV');
+        nn = sscanf(sub.Surface(i).Comment, 'cortex_%dV');
         if isempty(nn), continue; end
         if nn < n
             n = nn;
-            wm_surf_id = i;
+            pial_surf_id = i;
         end
     end
 end
-if wm_surf_id < 0, error('No pial surface found for subject!'); end
+if pial_surf_id < 0, error('No pial surface found for subject!'); end
 % Next, get the surface data itself:
 anat_dir = proto.SUBJECTS;
-pial_path = fullfile(anat_dir, sub.Surface(wm_surf_id).FileName);
+pial_path = fullfile(anat_dir, sub.Surface(pial_surf_id).FileName);
 pial_surf = load(pial_path);
 bst_vertices = pial_surf.Vertices;
 
