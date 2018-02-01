@@ -30,13 +30,12 @@ exampleSubject = 1;
 contourmapPercentile   = 93.6; % draw contour line at what fraction of the colormap?
 colormapPercentile     = 97.5; % percentile of data to use for max/min limits of colorbar
 
-middleSensors = [13 23, 2, 20, 25, 43];
+% middleSensors = [13 23, 2, 20, 25, 43];
+
 % Set up paths
 figureDir       = fullfile(fmsRootPath, 'figures'); % Where to save images?
 dataDir         = fullfile(fmsRootPath, 'data');    % Where to get data?
-saveFigures     = false;     % Save figures in the figure folder?
-cfg             = [];
-data_hdr        = [];
+saveFigures     = true;     % Save figures in the figure folder?
 
 % Use first stimulus (full field), define how to combine data across subjects
 contrasts     = [1 0 0];
@@ -44,7 +43,7 @@ contrasts     = bsxfun(@rdivide, contrasts, sqrt(sum(contrasts.^2,2)));
 computeSNR    = @(x) nanmean(x,3) ./ nanstd(x, [], 3);
 
 % Predefine tickmark position for colorbar
-yscaleAB = [-6,-3,0,3,6];
+% yscaleAB = [-6,-3,0,3,6];
 
 
 %% 1. Load subject's data
@@ -107,60 +106,19 @@ bb_snr = nanmean(bb_all,3);
 
 %% 2. Plot one subject and average across subjects
 
-dataAll      = {sl_all(:,:,exampleSubject), bb_all(:,:,exampleSubject), sl_snr, bb_snr};
+dataAll      = cat(1,sl_all(:,:,exampleSubject), bb_all(:,:,exampleSubject), sl_snr, bb_snr);
 colorMarkers = {'r','b', 'r', 'b'};
-ttl          = {'Stimulus Locked S1', ...
+fig_ttl      = {'Figure2_Data', 'Figure2_Sl_and_Broadband_Compared'};
+sub_ttl          = {'Stimulus Locked S1', ...
                 'Broadband S2', ...
                 'Stimulus Locked S1-S6', ...
                 'Broadband S1-S6'};
+markerType   = '.';
 
-fH1 = figure; clf; set(fH1,'position',[1,600,1400,800], 'Name', 'Figure 2,  Data', 'NumberTitle', 'off');
-fH2 = figure; clf; set(fH2,'position',[1400,600,700,800], 'Name', 'Figure 2,  Sl and Broadand Compared', 'NumberTitle', 'off');
-                   subplot(2,1,1); megPlotMap(zeros(1,157)); colormap([1 1 1]);
-                   subplot(2,1,2); megPlotMap(zeros(1,157)); colormap([1 1 1]);
+visualizeSensormaps(dataAll, colormapPercentile, contourmapPercentile, colorMarkers, markerType, fig_ttl, sub_ttl, saveFigures, figureDir)
 
-markerType = '.'; '*';
-for ii = 1:length(dataAll)
-    
-    dataToPlot = dataAll{ii};
-    colormapLims =  [-1 1]*prctile(dataToPlot, colormapPercentile);
-    contourmapLims = [1 1]*prctile(dataToPlot, contourmapPercentile);
 
-    % Plot predictions
-    figure(fH1);
-    subplot(2,2,ii);
-    [~,ch] = megPlotMap(dataToPlot,colormapLims,fH1,'bipolar',[],[],[], ...
-        'isolines', contourmapLims, ...
-    ...    'chanindx', dataToPlot > max(contourmapLims), ...
-        'pointsymbol', markerType, ... '*'
-        'pointsize', 10);
-    
-    c = findobj(gca,'Type','Contour'); c.LineWidth = 4;
-    pp = findobj(gca,'Marker',markerType);
-    set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12); title(ttl{ii})
-    
-    % Plot overlap
-    figure(fH2);
-    subplot(2,1,ceil(ii/2)); hold all;   
-    contour(c.XData, c.YData, c.ZData, contourmapLims, 'LineColor',colorMarkers{ii}, 'LineWidth',4);
-    %%scatter(pp(1).XData,pp(1).YData, 150, colorMarkers{ii},'*'); 
-    colorbar off;
-    
-end
-
-if saveFigures
-    set(0, 'currentfigure', fH1);
-    figurewrite(fullfile(figureDir,'Figure2_dataExampleSubject'),[],0,'.',1);
-    set(0, 'currentfigure', fH2);
-    figurewrite(fullfile(figureDir,'Figure2_overlapExampleSubject'),[],0,'.',1);
-     set(0, 'currentfigure', fH3);
-    figurewrite(fullfile(figureDir,'Figure2_dataAverage'),[],0,'.',1);
-    set(0, 'currentfigure', fH4);
-    figurewrite(fullfile(figureDir,'Figure2_overlapAverage'),[],0,'.',1);
-    
-    % hgexport(gcf,fullfile(figureDir,'Figure2_SLBB_onesubject_2'))
-end
-
+return
 %% OBSOLETE 3. Plot mean of 6 subjects
 %
 %
@@ -232,4 +190,4 @@ end
 %
 % ft_warning on
 
-return
+

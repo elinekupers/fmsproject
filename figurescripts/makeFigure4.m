@@ -33,13 +33,13 @@ exampleSubject  = 1;
 
 % What's the plotting range for individual example and average across
 % subjects?
-contourLim      = 0.75; % draw contour line at what fraction of the colormap?
-colorbarLim     = 97.5; % percentile of data to use for max/min limits of colorbar
+contourmapPercentile   = 93.6; % draw contour line at what fraction of the colormap?
+colormapPercentile     = 97.5; % percentile of data to use for max/min limits of colorbar
 
 % Number of iterations for the random coherence prediction of the forward
 % model
-n        = 1000;     % number of timepoints (ms)
-nrEpochs = 1;        % number of epochs
+n        = 10;     % number of timepoints (ms)
+nrEpochs = 100;        % number of epochs
 
 % Define vector that can truncate number of sensors 
 keep_sensors = logical([ones(157,1); zeros(192-157,1)]); % Note: Figure out a more generic way to define keep_sensors
@@ -79,51 +79,17 @@ w.V1i_mn = mean(w.V1i,1);
 
 %% Visualize predictions
 
-dataAll      = {w.V1c(exampleSubject,:), w.V1i(exampleSubject,:), w.V1c_mn, w.V1i_mn};
+dataAll      = cat(1, w.V1c(exampleSubject,:), w.V1i(exampleSubject,:), w.V1c_mn, w.V1i_mn);
 colorMarkers = {'r','b', 'r', 'b'};
-ttl          = {'Coherent phase S1', ...
+fig_ttl      = {'Figure4_V1_model_predictions-No_cancellation', ...
+                'Figure4_Sl_and_Broadband_Compared'};
+sub_ttl      = {'Coherent phase S1', ...
                 'Incoherent phase S2', ...
                 'Coherent phase Average S1-S6', ...
                 'Incoherent phase Average S1-S6'};
-
-fH1 = figure(1); clf; set(fH1,'position',[1,600,1400,800], 'Name', 'Figure 4: V1 model predictions - No cancellation', 'NumberTitle', 'off');
-fH2 = figure(2); clf; subplot(1,2,1); megPlotMap(zeros(1,157)); colormap([1 1 1]);
-                      subplot(1,2,2); megPlotMap(zeros(1,157)); colormap([1 1 1]);
-
-for ii = 1:length(dataAll)
-    
-    dataToPlot = dataAll{ii};
-    cLims = [-1 1]*prctile(dataToPlot, colorbarLim);
-    
-    % Plot predictions
-    set(0, 'currentfigure', mod(ii,1)+1);    
-    subplot(2,2,ii);
-    [~,ch] = megPlotMap(dataToPlot,cLims,fH1,'bipolar',[],[],[], ...
-        'isolines', contourLim*max(cLims)*[1 1], ...
-        'chanindx', dataToPlot > contourLim*max(cLims), ...
-        'pointsymbol', '*', ...
-        'pointsize', 10);
-    
-    c = findobj(gca,'Type','Contour'); c.LineWidth = 4;
-    pp = findobj(gca,'Marker','*');
-    set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12); title(ttl{ii})
-    
-    % Plot overlap
-    set(0, 'currentfigure', mod(ii,1)+2);     
-    subplot(1,2,ceil(ii/2)); hold all;   
-    contour(c.XData, c.YData, c.ZData, contourLim*max(cLims)*[1 1], 'LineColor',colorMarkers{ii}, 'LineWidth',4);
-    scatter(pp(1).XData,pp(1).YData, 150, colorMarkers{ii},'*'); colorbar off;
-    
-end
-
-if saveFigures
-    set(0, 'currentfigure', fH1);
-    figurewrite(fullfile(figureDir,'Figure4_predictionV1_oneVSaverage_NoCancellation'),[],0,'.',1);
-    set(0, 'currentfigure', fH2);
-    figurewrite(fullfile(figureDir,'Figure4_overlap'),[],0,'.',1);
-end
+markerType   = '.';
 
 
-
+visualizeSensormaps(dataAll, colormapPercentile, contourmapPercentile, colorMarkers, markerType, fig_ttl, sub_ttl, saveFigures, figureDir)
 
 end

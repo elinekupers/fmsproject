@@ -19,7 +19,7 @@ function makeFigure3()
 % Path to brainstorm database
 bsDB            = '/Volumes/server/Projects/MEG/brainstorm_db/';
 figureDir       = fullfile(fmsRootPath, 'figures'); % Where to save images?
-saveFigures     = false;     % Save figures in the figure folder?
+saveFigures     = true;     % Save figures in the figure folder?
 
 % Define project name, subject and data/anatomy folders
 projectName    = 'SSMEG';
@@ -30,7 +30,7 @@ exampleSubject  = 1;
 
 % What's the plotting range for individual example and average across
 % subjects?
-contourmapPercentile   = 95; % draw contour line at what fraction of the colormap?
+contourmapPercentile   = 93.6; % draw contour line at what fraction of the colormap?
 colormapPercentile     = 97.5; % percentile of data to use for max/min limits of colorbar
 
 % Number of iterations for the random coherence prediction of the forward
@@ -75,54 +75,16 @@ w.V1i_mn = mean(w.V1i,1);
 
 %% Visualize predictions
 
-dataAll      = {w.V1c(exampleSubject,:), w.V1i(exampleSubject,:), w.V1c_mn, w.V1i_mn};
+dataAll      = cat(1,w.V1c(exampleSubject,:), w.V1i(exampleSubject,:), w.V1c_mn, w.V1i_mn);
 colorMarkers = {'r','b', 'r', 'b'};
-ttl          = {'Coherent phase S1', ...
+sub_ttl      = {'Coherent phase S1', ...
                 'Incoherent phase S2', ...
                 'Coherent phase Average S1-S6', ...
                 'Incoherent phase Average S1-S6'};
+fig_ttl      = {'Figure3_V1_model_predictions', 'Figure3_Coherent_and_Incoherent_Compared'};
+markerType   = '.';
 
-fH1 = figure; clf; set(fH1,'position',[1,600,1400,800], 'Name', 'Figure 3,  V1 model predictions', 'NumberTitle', 'off');
-fH2 = figure; clf; set(fH2,'position',[1400,600,700,800], 'Name', 'Figure 3,  Coherent and Incoherent Compared', 'NumberTitle', 'off');
-                   subplot(2,1,1); megPlotMap(zeros(1,157)); colormap([1 1 1]);
-                   subplot(2,1,2); megPlotMap(zeros(1,157)); colormap([1 1 1]);
+visualizeSensormaps(dataAll, colormapPercentile, contourmapPercentile, colorMarkers, markerType, fig_ttl, sub_ttl, saveFigures, figureDir)
 
-markerType = '.'; '*';
-for ii = 1:length(dataAll)
-    
-    dataToPlot = dataAll{ii};
-    colormapLims =  [-1 1]*prctile(dataToPlot, colormapPercentile);
-    contourmapLims = [1 1]*prctile(dataToPlot, contourmapPercentile);
-
-    % Plot predictions
-    figure(fH1);
-    subplot(2,2,ii);
-    [~,ch] = megPlotMap(dataToPlot,colormapLims,fH1,'bipolar',[],[],[], ...
-        'isolines', contourmapLims, ...
-    ...    'chanindx', dataToPlot > max(contourmapLims), ...
-        'pointsymbol', markerType, ... '*'
-        'pointsize', 10);
-    
-    c = findobj(gca,'Type','Contour'); c.LineWidth = 4;
-    pp = findobj(gca,'Marker',markerType);
-    set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12); title(ttl{ii})
-    
-    % Plot overlap
-    figure(fH2);
-    subplot(2,1,ceil(ii/2)); hold all;   
-    contour(c.XData, c.YData, c.ZData, contourmapLims, 'LineColor',colorMarkers{ii}, 'LineWidth',4);
-    %%scatter(pp(1).XData,pp(1).YData, 150, colorMarkers{ii},'*'); 
-    colorbar off;
-    
-end
-
-if saveFigures
-    set(0, 'currentfigure', fH1);
-    figurewrite(fullfile(figureDir,'Figure3_predictionV1_oneVSaverage'),[],0,'.',1);
-    set(0, 'currentfigure', fH2);
-    figurewrite(fullfile(figureDir,'Figure3_overlap'),[],0,'.',1);
-    
-    % hgexport(gcf,fullfile(figureDir,'Figure2_SLBB_onesubject_2'))
-end
 
 
