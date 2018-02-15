@@ -1,4 +1,4 @@
-function visualizeSensormaps(data, colormapPercentile, contourmapPercentile, colorMarkers, markerType, fig_ttl, sub_ttl, saveFigures, figureDir)
+function sensorsOfInterest = visualizeSensormaps(data, colormapPercentile, contourmapPercentile, colorMarkers, markerType, fig_ttl, sub_ttl, saveFigures, figureDir)
 
 % visualizeSensormaps(data, colormapLims, contourmapLims, colorMarkers, markerType, fig_ttl, sub_ttl, saveFigures)
 
@@ -49,6 +49,9 @@ fH2 = figure; clf; set(fH2,'position',[1400,600,700,800], 'Name', fig_ttl{2}, 'N
                    subplot(2,1,1); megPlotMap(zeros(1,157)); colormap([1 1 1]);
                    subplot(2,1,2); megPlotMap(zeros(1,157)); colormap([1 1 1]);
 
+% Save sensors of interest that fall within the contour lines
+sensorsOfInterest = NaN(size(data));
+
 % Loop over datasets
 for ii = 1:size(data,1)
     
@@ -75,6 +78,8 @@ for ii = 1:size(data,1)
     contour(c.XData, c.YData, c.ZData, contourmapLims, 'LineColor',colorMarkers{ii}, 'LineWidth',4);
     %%scatter(pp(1).XData,pp(1).YData, 150, colorMarkers{ii},'*'); 
     colorbar off;
+    
+    sensorsOfInterest(ii,:) = dataToPlot > max(contourmapLims);
     
 end
 

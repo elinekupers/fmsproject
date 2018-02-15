@@ -90,6 +90,6 @@ sub_ttl      = {'Coherent phase S1', ...
 markerType   = '.';
 
 
-visualizeSensormaps(dataAll, colormapPercentile, contourmapPercentile, colorMarkers, markerType, fig_ttl, sub_ttl, saveFigures, figureDir)
+sensorsOfInterest = visualizeSensormaps(dataAll, colormapPercentile, contourmapPercentile, colorMarkers, markerType, fig_ttl, sub_ttl, saveFigures, figureDir);
 
 end

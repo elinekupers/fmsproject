@@ -42,9 +42,9 @@ anatDir         = fullfile(bsDB, project_name, 'anat', subject);
 figureDir       = fullfile(fmsRootPath, 'figures'); % Where to save images?
 
 % Parameters for simulated coherent / incoherent signal
-nrEpochs        = 1000;     % How many epochs?
-n               = 24;       % How many timepoints (ms)
-f               = 2;        % Frequency for coherent signal (frequency (Hz))
+nrEpochs        = 100;     % How many epochs?
+n               = 10;       % How many timepoints (ms)
+f               = 1;        % Frequency for coherent signal (frequency (Hz))
 
 % Booleans for saving files
 saveSQD         = false;    % Save forwardmodel into a sqd file?
@@ -182,13 +182,13 @@ thresh   = 0.03;
 clims    = [-1 1]* max([mean(s.V1.cAmp,3); mean(s.V1.iAmp,3)]);
 
 % --- Coherent ---
-ttl      = sprintf('Mean 2Hz amplitude: Coherent, threshold: %1.2f', thresh);
+ttl      = sprintf('Mean 1Hz amplitude: Coherent, threshold: %1.2f', thresh);
 colors   = mean(s.V1.cAmp,3);
 
 visualizeBrainstormMesh(anatDir, colors, thresh, clims, meshType, ttl)
 
 % --- Incoherent ---
-ttl      = sprintf('Mean 2Hz amplitude: Incoherent, threshold: %1.2f', thresh);
+ttl      = sprintf('Mean 1Hz amplitude: Incoherent, threshold: %1.2f', thresh);
 colors   = mean(s.V1.iAmp,3);
 
 visualizeBrainstormMesh(anatDir, colors, thresh, clims, meshType, ttl)
