@@ -19,7 +19,7 @@ function makeFigure2()
 % Path to brainstorm database
 bsDB            = '/Volumes/server/Projects/MEG/brainstorm_db/';
 figureDir       = fullfile(fmsRootPath, 'figures'); % Where to save images?
-saveFigures     = true;     % Save figures in the figure folder?
+saveFigures     = false;     % Save figures in the figure folder?
 
 % Define project name, subject and data/anatomy folders
 projectName    = 'SSMEG';

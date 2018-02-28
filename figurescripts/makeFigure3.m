@@ -30,17 +30,12 @@ exampleSubject = 1;
 contourmapPercentile   = 93.6; % draw contour line at what fraction of the colormap?
 colormapPercentile     = 97.5; % percentile of data to use for max/min limits of colorbar
 
-% middleSensors = [13 23, 2, 20, 25, 43];
 
 % Set up paths
 figureDir       = fullfile(fmsRootPath, 'figures'); % Where to save images?
 dataDir         = fullfile(fmsRootPath, 'data');    % Where to get data?
 saveFigures     = true;     % Save figures in the figure folder?
 
-% Use first stimulus (full field), define how to combine data across subjects
-contrasts     = [1 0 0];
-contrasts     = bsxfun(@rdivide, contrasts, sqrt(sum(contrasts.^2,2)));
-computeSNR    = @(x) nanmean(x,3) ./ nanstd(x, [], 3);
 
 % Predefine tickmark position for colorbar
 % yscaleAB = [-6,-3,0,3,6];
@@ -66,79 +61,95 @@ for s = 1:length(subject)
             whichSubject = 5;
     end
     
-    data = loadData(dataDir,whichSubject);
-    bb = data{1}; sl = data{2}; clear data;
-    
-    % Get information, assuming this is the same for SL and BB data
-    numChannels  = size(sl.results.origmodel.beta,2);
-    numBoots     = size(sl.results.origmodel.beta,3);
-    numContrasts = 1;
-    
-    % Stimulus-locked: Compute SNR for contrasts
-    tmp_data = reshape(sl.results.origmodel.beta,3,[]);
-    tmp      = contrasts*tmp_data;
-    tmp      = reshape(tmp, numContrasts, numChannels, numBoots);
-    sSL      = computeSNR(tmp)';
-    
-    % Broadband before denoising: Compute SNR for contrasts
-    tmp_data = reshape(bb.results.origmodel.beta,3,[]);
-    tmp = contrasts*tmp_data;
-    tmp = reshape(tmp, numContrasts, numChannels,numBoots);
-    sBB = computeSNR(tmp)';
-    
-    % Prepare array
-    if s == 1
-        sl_all = NaN(size(contrasts,1),length(sl(1).badChannels), length(subject));
-        bb_all = sl_all;
-    end
+    [data, badChannels] = loadData(dataDir,whichSubject);
     
     % Update array with data converted to channel space
-    sl_all(:,:,s) = to157chan(sSL', ~sl.badChannels,'nans');
-    bb_all(:,:,s) = to157chan(sBB', ~bb.badChannels,'nans');
+    sl_full{s} = to157chan(data{1}.sl, ~badChannels,'nans');
+    sl_blank{s} = to157chan(data{2}.sl, ~badChannels,'nans');
+    
+    bb_full{s} = to157chan(data{1}.bb, ~badChannels,'nans');
+    bb_blank{s} = to157chan(data{2}.bb, ~badChannels,'nans');
+   
+    % Get sensors of interest based on forward model predictions
+    % sensorsOfInterest is booloean of 4x157 (sl Sx, sl Average, bb Sx, bb Average)
+    load(fullfile(fmsRootPath, 'data', subject{s}, sprintf('%s_sensorsOfInterestFromPrediction', subject{s})));
+    soi_full_sl_uniform{s} = sl_full{s}(:,logical(sensorsOfInterest(1,:)));
+    soi_full_bb_random{s} = bb_full{s}(:,logical(sensorsOfInterest(3,:)));
+    
+    soi_blank_sl_uniform{s} = sl_blank{s}(:,logical(sensorsOfInterest(1,:)));
+    soi_blank_bb_random{s} = bb_blank{s}(:,logical(sensorsOfInterest(3,:)));
+    
+    soi_full_sl_random{s} = sl_full{s}(:,logical(sensorsOfInterest(3,:)));
+    soi_full_bb_uniform{s} = bb_full{s}(:,logical(sensorsOfInterest(1,:)));
+    
+    soi_blank_sl_random{s} = sl_blank{s}(:,logical(sensorsOfInterest(3,:)));
+    soi_blank_bb_uniform{s} = bb_blank{s}(:,logical(sensorsOfInterest(1,:)));
+    
+    clear sensorsOfInterest; clear data;
     
 end
 
-%% Get stimulus-locked snr across subjects
-sl_snr = nanmean(sl_all,3);
-% Get broadband snr (after denoising) across subjects
-bb_snr = nanmean(bb_all,3);
+%% Get mean difference full field and blank for SL and BB across subjects and top 10 sensors
+all_full_sl_uniform = vertcat(soi_full_sl_uniform{:});
+all_blank_sl_uniform = vertcat(soi_blank_sl_uniform{:});
+
+all_full_bb_random = vertcat(soi_full_bb_random{:});
+all_blank_bb_random = vertcat(soi_blank_bb_random{:});
+
+all_full_sl_random = vertcat(soi_full_sl_random{:});
+all_blank_sl_random = vertcat(soi_blank_sl_random{:});
+
+all_full_bb_uniform = vertcat(soi_full_bb_uniform{:});
+all_blank_bb_uniform = vertcat(soi_blank_bb_uniform{:});
+
+nboot = 1000;
+bootfun = @(x) nanmean(x,2);
+
+bootstat_sl_uniform = bootstrp(nboot, bootfun, (all_full_sl_uniform-all_blank_sl_uniform(size(all_full_sl_uniform,1),:)));
+bootstat_bb_random = bootstrp(nboot, bootfun, (all_full_bb_random-all_blank_bb_random(size(all_full_bb_random,1),:)));
+
+bootstat_sl_random = bootstrp(nboot, bootfun, (all_full_sl_random-all_blank_sl_random(size(all_full_sl_random,1),:)));
+bootstat_bb_uniform = bootstrp(nboot, bootfun, (all_full_bb_uniform-all_blank_bb_uniform(size(all_full_bb_uniform,1),:)));
+
+
+% Get mean and SE across boots for both metrics
+sl_bootmean_uniform = mean(bootstat_sl_uniform,1);
+sl_bootsd_uniform = std(bootstat_sl_uniform,[],1);
+bb_bootmean_random = mean(bootstat_bb_random,1);
+sl_bootsd_random = std(bootstat_b,[],1);
+
+sl_bootmean_random = mean(bootstat_sl_uniform,1);
+sl_bootsd_random = std(bootstat_sl_uniform,[],1);
+bb_bootmean_uniform = mean(bootstat_bb_random,1);
+sl_bootsd_uniform = std(bootstat_b,[],1);
+
 
 
 %% 2. Plot one subject and average across subjects
 
-dataAll      = cat(1,sl_all(:,:,exampleSubject), bb_all(:,:,exampleSubject), sl_snr, bb_snr);
-colorMarkers = {'r','b', 'r', 'b'};
-fig_ttl      = {'Figure3_Data', 'Figure3_Sl_and_Broadband_Compared'};
-sub_ttl          = {sprintf('Stimulus locked S%d', exampleSubject), ...
-                sprintf('Broadband S%d', exampleSubject), ...
-                'Stimulus locked group average', ...
-                'Broadband group average'};
-markerType   = '.';
-
-visualizeSensormaps(dataAll, colormapPercentile, contourmapPercentile, colorMarkers, markerType, fig_ttl, sub_ttl, saveFigures, figureDir);
+% dataAll      = cat(1,sl_all(:,:,exampleSubject), bb_all(:,:,exampleSubject), sl_snr, bb_snr);
+% colorMarkers = {'r','b', 'r', 'b'};
+% fig_ttl      = {'Figure3_Data', 'Figure3_Sl_and_Broadband_Compared'};
+% sub_ttl          = {sprintf('Stimulus locked S%d', exampleSubject), ...
+%                 sprintf('Broadband S%d', exampleSubject), ...
+%                 'Stimulus locked group average', ...
+%                 'Broadband group average'};
+% markerType   = '.';
+% 
+% visualizeSensormaps(dataAll, colormapPercentile, contourmapPercentile, colorMarkers, markerType, fig_ttl, sub_ttl, saveFigures, figureDir);
 
 %% 3. Make barplot with sensors that fall within contour lines
-
-% Load sensors of interest from prediction
-load(fullfile(fmsRootPath, 'data', subject{exampleSubject}, sprintf('%s_sensorsOfInterestFromPrediction', subject{exampleSubject})));
 
 % Make figure
 figure; set(gcf, 'Position', [1000, 404, 498, 934], 'Color','w')
 x_pos = [1, 1.2, 1.4];
 ylims = [[0 25]; [0 4]; [0 15]; [0 2]];
 idx = [1 1 3 3];
-labels = {'Union', 'only SL', 'only BB'};
+labels = {'Union', 'only uniform SOI', 'only random SOI'};
+
+mean
 
 for ii = 1:4
-
-    slSensors = find(sensorsOfInterest(idx(ii),:));
-    bbSensors = find(sensorsOfInterest(idx(ii)+1,:));
-
-
-    union_SLBB = intersect(slSensors, bbSensors);
-    onlySL = slSensors(~ismember(slSensors,union_SLBB));
-    onlyBB = bbSensors(~ismember(bbSensors,union_SLBB));
-    
     mn  = [mean(dataAll(ii,union_SLBB)), mean(dataAll(ii,onlySL)), mean(dataAll(ii,onlyBB))];
     se = [std(dataAll(ii,union_SLBB))/sqrt(length(union_SLBB)), ...
          std(dataAll(ii,onlySL))/sqrt(length(onlySL)), ...

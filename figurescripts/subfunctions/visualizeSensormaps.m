@@ -44,10 +44,11 @@ else
 end
 
 %% Predefine figures 
+cmap = [1 1 1; 0 0 1; 1 0 0];
 fH1 = figure; clf; set(fH1,'position',[1,600,1400,800], 'Name', fig_ttl{1}, 'NumberTitle', 'off');
 fH2 = figure; clf; set(fH2,'position',[1400,600,700,800], 'Name', fig_ttl{2}, 'NumberTitle', 'off');
-                   subplot(2,1,1); megPlotMap(zeros(1,157)); colormap([1 1 1]);
-                   subplot(2,1,2); megPlotMap(zeros(1,157)); colormap([1 1 1]);
+                   subplot(2,1,1); megPlotMap(zeros(1,157)); colormap(cmap);
+                   subplot(2,1,2); megPlotMap(zeros(1,157)); colormap(cmap);
 
 % Save sensors of interest that fall within the contour lines
 sensorsOfInterest = NaN(size(data));
@@ -71,11 +72,11 @@ for ii = 1:size(data,1)
     c = findobj(gca,'Type','Contour'); c.LineWidth = 4;
     pp = findobj(gca,'Marker',markerType);
     set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12); title(sub_ttl{ii})
-    
+        
     % Plot overlap
     figure(fH2);
     subplot(2,1,ceil(ii/2)); hold all;   
-    contour(c.XData, c.YData, c.ZData, contourmapLims, 'LineColor',colorMarkers{ii}, 'LineWidth',4);
+    contourf(c.XData, c.YData, c.ZData, contourmapLims, 'LineColor',colorMarkers{ii}, 'Fill','off','LineWidth',4);
     %%scatter(pp(1).XData,pp(1).YData, 150, colorMarkers{ii},'*'); 
     colorbar off;
     
