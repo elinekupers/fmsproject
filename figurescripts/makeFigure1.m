@@ -1,10 +1,10 @@
-function makeSupplementaryFigure1()
+function makeFigure1()
 
-% This is a function to make Supplementary Figure 1 from the manuscript about forward
+% This is a function to make Figure 1 from the manuscript about forward
 % modeling coherent and incoherent neural sources to MEG responses.
 
 % This figure shows the MEG forward model based on coherent and incoherent
-% predictions coming from vertices located in V1, V2 and V3.
+% predictions coming from vertices located in V1.
 
 % To runs this script, you need:     
 % (1) Access to the SSMEG folder in the brainstorm data base
@@ -19,18 +19,18 @@ function makeSupplementaryFigure1()
 % Path to brainstorm database
 bsDB            = '/Volumes/server/Projects/MEG/brainstorm_db/';
 figureDir       = fullfile(fmsRootPath, 'figures'); % Where to save images?
-saveFigures     = true;     % Save figures in the figure folder?
+saveFigures     = false;     % Save figures in the figure folder?
 
 % Define project name, subject and data/anatomy folders
 projectName    = 'SSMEG';
 
 % Which subjects to average?
 subject         = {'wl_subj002','wl_subj004','wl_subj005','wl_subj006','wl_subj010','wl_subj011'};
-exampleSubject  = 2;
+exampleSubject  = 1;
 
 % What's the plotting range for individual example and average across
 % subjects?
-contourmapPercentile   = 90; % draw contour line at what fraction of the colormap?
+contourmapPercentile   = 93.6; % draw contour line at what fraction of the colormap?
 colormapPercentile     = 97.5; % percentile of data to use for max/min limits of colorbar
 
 % Number of iterations for the random coherence prediction of the forward
@@ -53,11 +53,11 @@ for s = 1:length(subject)
     G_constrained = getGainMatrix(dataDir, keep_sensors);
 
     % Get V1 template limited to 11 degrees eccentricity
-    template = getTemplate(anatDir, 'all', 11);
+    template = getTemplate(anatDir, 'V1', 11);
 
     % Simulate coherent and incoherent source time series and compute
     % predictions from forward model (w)
-    tmp = getForwardModelPredictions(abs(G_constrained), template.V123StimEccen, [], n, nrEpochs);
+    tmp = getForwardModelPredictions(G_constrained, template.V1StimEccen, [], n, nrEpochs);
    
     % Take mean amplitude across epochs
     amps.c = abs(fft(tmp.c,[],2));
@@ -81,7 +81,15 @@ sub_ttl      = {sprintf('Coherent phase S%d', exampleSubject), ...
                 sprintf('Incoherent phase S%d', exampleSubject), ...
                 'Coherent phase Average S1-S6', ...
                 'Incoherent phase Average S1-S6'};
-fig_ttl      = {'SupplFigure1_V123_model_predictions', 'SupplFigure1_V123Coherent_and_Incoherent_Compared'};
+fig_ttl      = {'Figure1_V1_model_predictions', 'Figure1_Coherent_and_Incoherent_Compared'};
 markerType   = '.';
 
-visualizeSensormaps(dataAll, colormapPercentile, contourmapPercentile, colorMarkers, markerType, fig_ttl, sub_ttl, saveFigures, figureDir);
+sensorsOfInterest = visualizeSensormaps(dataAll, colormapPercentile, contourmapPercentile, colorMarkers, markerType, fig_ttl, sub_ttl, saveFigures, figureDir);
+
+% Make them logicals so we can use them later as indices
+sensorsOfInterest = logical(sensorsOfInterest);
+
+% Save sensors of interest falling within the contour lines
+save(fullfile(fmsRootPath, 'data', subject{exampleSubject}, sprintf('%s_sensorsOfInterestFromPrediction', subject{exampleSubject})), 'sensorsOfInterest');
+
+

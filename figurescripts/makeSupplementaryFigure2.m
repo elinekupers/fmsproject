@@ -1,4 +1,4 @@
-function makeFigure5()
+function makeSupplementaryFigure2()
 
 % NOTE: This function is under construction
 
@@ -90,7 +90,7 @@ subplot(1,2,1); megPlotMap(w.V1.cAmp_mn, clims, [], 'bipolar', 'Coherent phase',
 subplot(1,2,2); megPlotMap(w.V1.iAmp_mn, clims, [], 'bipolar', 'Incoherent phase', [], [], 'isolines', 0.15*max(clims) * [1 1]);
 
  if saveFigures
-    hgexport(gcf, fullfile(figureDir, sprintf('Figure5A_predictionForwardModelV1wtimeseries_%s.eps',subject)))
+    hgexport(gcf, fullfile(figureDir, sprintf('SF2A_predictionForwardModelV1wtimeseries_%s.eps',subject)))
  end
  
 %% -----------------------------------------------------------------------

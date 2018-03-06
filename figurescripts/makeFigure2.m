@@ -3,12 +3,15 @@ function makeFigure2()
 % This is a function to make Figure 2 from the manuscript about forward
 % modeling coherent and incoherent neural sources to MEG responses.
 
-% This figure shows the MEG forward model based on coherent and incoherent
-% predictions coming from vertices located in V1.
+% This figure shows the empirical finding of two different spatial patterns
+% for a stimulus-locked response and an asynchronous broadband response to
+% a large field flickering (12 Hz) dartboard pattern.
 
-% To runs this script, you need:     
-% (1) Access to the SSMEG folder in the brainstorm data base
-% (2) MEG_utils and Fieldtrip toolbox added to the paths. For example:
+% To runs this script, you need:
+% (1) the data from the denoiseproject in the data folder of its FMS
+%     code repository
+%
+% (2) MEG_utils toolbox added to the paths. For example:
 %     tbUse('ForwardModelSynchrony');
 %        or to only add the MEG_utils toolbox:
 %     addpath(genpath('~/matlab/git/toolboxes/meg_utils'))
@@ -16,77 +19,267 @@ function makeFigure2()
 
 %% 0. Set up paths and define parameters
 
-% Path to brainstorm database
-bsDB            = '/Volumes/server/Projects/MEG/brainstorm_db/';
-figureDir       = fullfile(fmsRootPath, 'figures'); % Where to save images?
-saveFigures     = false;     % Save figures in the figure folder?
-
-% Define project name, subject and data/anatomy folders
-projectName    = 'SSMEG';
-
 % Which subjects to average?
-subject         = {'wl_subj002','wl_subj004','wl_subj005','wl_subj006','wl_subj010','wl_subj011'};
-exampleSubject  = 1;
+subject = {'wl_subj002','wl_subj004','wl_subj005','wl_subj006','wl_subj010','wl_subj011'};
+
+% Which example subject to show?
+exampleSubject = 1;
 
 % What's the plotting range for individual example and average across
 % subjects?
 contourmapPercentile   = 93.6; % draw contour line at what fraction of the colormap?
 colormapPercentile     = 97.5; % percentile of data to use for max/min limits of colorbar
 
-% Number of iterations for the random coherence prediction of the forward
-% model
-n        = 10;         % number of timepoints (ms)
-nrEpochs = 100;        % number of epochs
 
-% Define vector that can truncate number of sensors 
-keep_sensors = logical([ones(157,1); zeros(192-157,1)]); % Note: Figure out a more generic way to define keep_sensors
+% Set up paths
+figureDir       = fullfile(fmsRootPath, 'figures'); % Where to save images?
+dataDir         = fullfile(fmsRootPath, 'data');    % Where to get data?
+saveFigures     = true;     % Save figures in the figure folder?
 
 
+% Predefine tickmark position for colorbar
+% yscaleAB = [-6,-3,0,3,6];
+
+
+%% 1. Load subject's data
+
+% predefine cells
+soi_full_sl =  cell(length(subject),2);
+soi_blank_sl = cell(length(subject),2);
+soi_full_bb =  cell(length(subject),2);
+soi_blank_bb = cell(length(subject),2);
+
+% Get sensors of interest based on forward model predictions
+% sensorsOfInterest is booloean of 4x157
+
+% Row 1 SOI based on single subject uniform forward model prediction,
+% Row 2 SOI based on average uniform forward model prediction,
+% Row 3 SOI based on single subject random forward model prediction,
+% Row 4 SOI based on average subject random forward model prediction
+temp = load(fullfile(fmsRootPath, 'data', subject{exampleSubject}, sprintf('%s_sensorsOfInterestFromPrediction', subject{exampleSubject})));
+soi = logical(temp.sensorsOfInterest); clear sensorsOfInterest;
+
+% Find the sensors for the single subject for uniform and random phase
+% forward model predictions
+uniformSensors = find(soi(1,:));
+randomSensors = find(soi(3,:));
+
+% Get union and separate sensors for only uniform or random phase predictions
+singleSubject.unionUR       = intersect(uniformSensors, randomSensors);
+singleSubject.onlyUniform   = uniformSensors(~ismember(uniformSensors,singleSubject.unionUR));
+singleSubject.onlyRandom    = randomSensors(~ismember(randomSensors,singleSubject.unionUR));
+
+% And again based on the average across subjects
+uniformSensors = find(soi(2,:));
+randomSensors = find(soi(4,:));
+
+% Get union and separate sensors for only uniform or random phase predictions
+averageSubject.unionUR      = intersect(uniformSensors, randomSensors);
+averageSubject.onlyUniform  = uniformSensors(~ismember(uniformSensors,averageSubject.unionUR));
+averageSubject.onlyRandom   = randomSensors(~ismember(randomSensors,averageSubject.unionUR));
+
+clear uniformSensors randomSensors;
+
+
+
+% Get data by looping over subjects
 for s = 1:length(subject)
     
-    d = dir(fullfile(bsDB, projectName, 'data', subject{s}, 'R*'));
-    dataDir = fullfile(d(1).folder, d(1).name);    
-    anatDir = fullfile(bsDB, projectName, 'anat', subject{s});
+    switch subject{s}
+        % Go from subject to session nr
+        case 'wl_subj002'
+            whichSubject = 2;
+        case 'wl_subj004'
+            whichSubject = 7;
+        case 'wl_subj005'
+            whichSubject = 8;
+        case 'wl_subj006'
+            whichSubject = 1;
+        case 'wl_subj010'
+            whichSubject = 6;
+        case 'wl_subj011'
+            whichSubject = 5;
+    end
     
-    %% 1. Load relevant matrices
+    % Get SNR data
+    data = loadData(dataDir,whichSubject,'SNR');
+    bb = data{1};
+    sl = data{2};
     
-    G_constrained = getGainMatrix(dataDir, keep_sensors);
-
-    % Get V1 template limited to 11 degrees eccentricity
-    template = getTemplate(anatDir, 'V1', 11);
-
-    % Simulate coherent and incoherent source time series and compute
-    % predictions from forward model (w)
-    tmp = getForwardModelPredictions(G_constrained, template.V1StimEccen, [], n, nrEpochs);
+    % get stimulus-locked snr
+    snr_sl = getsignalnoise(sl.results.origmodel(1),[1 0 0], 'SNR',sl.badChannels);
+    % get broadband snr for before and after denoising
+    snr_bb = getsignalnoise(bb.results.origmodel(1), [1 0 0], 'SNR',bb.badChannels);
+    
+    % Account for NaNs in the data
+    snr(s,1,:) = to157chan(snr_sl,~sl.badChannels,'nans');
+    snr(s,2,:) = to157chan(snr_bb,~bb.badChannels,'nans');  
+    
    
-    % Take mean amplitude across epochs
-    amps.c = abs(fft(tmp.c,[],2));
-    amps.i = abs(fft(tmp.i,[],2));
+    % Get amplitude data
+    [data, badChannels] = loadData(dataDir,whichSubject,'amplitudes');
     
-    w.V1c(s,:) = mean(amps.c(:,2,:),3);
-    w.V1i(s,:) = mean(amps.i(:,2,:),3);
+    % Update array with data converted to channel space
+    ampl{s}.sl.full = to157chan(data.sl.full, ~badChannels,'nans');
+    ampl{s}.sl.blank = to157chan(data.sl.blank, ~badChannels,'nans');
+    
+    ampl{s}.bb.full = to157chan(data.bb.full, ~badChannels,'nans');
+    ampl{s}.bb.blank = to157chan(data.bb.blank, ~badChannels,'nans');
+    
+    clear bb sl snr_sl snr_bb data;
     
 end
 
-%% Take mean across subjects
 
-w.V1c_mn = mean(w.V1c,1);
-w.V1i_mn = mean(w.V1i,1);
+%% Bootstrap across epochs
+nboot = 1000;
 
-%% Visualize predictions
+fns = fieldnames(singleSubject);
 
-dataAll      = cat(1,w.V1c(exampleSubject,:), w.V1i(exampleSubject,:), w.V1c_mn, w.V1i_mn);
-colorMarkers = {'r','b', 'r', 'b'};
-sub_ttl      = {sprintf('Coherent phase S%d', exampleSubject), ...
-                sprintf('Incoherent phase S%d', exampleSubject), ...
-                'Coherent phase Average S1-S6', ...
-                'Incoherent phase Average S1-S6'};
-fig_ttl      = {'Figure2_V1_model_predictions', 'Figure2_Coherent_and_Incoherent_Compared'};
-markerType   = '.';
+% Init matrices
+diffFullBlankSL = NaN(length(subject),size(ampl{s}.sl.full,2));
+diffFullBlankBB = diffFullBlankSL;
 
-sensorsOfInterest = visualizeSensormaps(dataAll, colormapPercentile, contourmapPercentile, colorMarkers, markerType, fig_ttl, sub_ttl, saveFigures, figureDir);
+% Take difference between mean of full and blank epochs for each subject
+% and dataset (sl or bb)
+for s = 1:length(subject)
+    diffFullBlankSL(s,:) = nanmean(ampl{s}.sl.full,1) - nanmean(ampl{s}.sl.blank,1);
+    diffFullBlankBB(s,:) = nanmean(ampl{s}.bb.full,1) - nanmean(ampl{s}.bb.blank,1);
+end
 
-% Save sensors of interest falling within the contour lines
-save(fullfile(fmsRootPath, 'data', subject{exampleSubject}, sprintf('%s_sensorsOfInterestFromPrediction', subject{exampleSubject})), 'sensorsOfInterest');
+
+% Loop over fieldnames (sensors of interest)
+for ii = 1:numel(fns)
+    
+    % Example subject
+    bootstat{1}.sl.full.(fns{ii})  = bootstrp(nboot, @(x) nanmean(x,1), ampl{1}.sl.full(:,singleSubject.(fns{ii})));
+    bootstat{1}.sl.blank.(fns{ii})  = bootstrp(nboot, @(x) nanmean(x,1), ampl{1}.sl.blank(:,singleSubject.(fns{ii})));
+
+    % take difference between full and blank
+    bootstat{1}.sl.diff.(fns{ii}) = mean([bootstat{1}.sl.full.(fns{ii}) - bootstat{1}.sl.blank.(fns{ii})],2);
+    
+    bootstat{1}.bb.full.(fns{ii})  = bootstrp(nboot, @(x) nanmean(x,1), ampl{1}.bb.full(:,singleSubject.(fns{ii})));
+    bootstat{1}.bb.blank.(fns{ii})  = bootstrp(nboot, @(x) nanmean(x,1), ampl{1}.bb.blank(:,singleSubject.(fns{ii})));
+
+    bootstat{1}.bb.diff.(fns{ii}) = mean([bootstat{1}.bb.full.(fns{ii}) - bootstat{1}.bb.blank.(fns{ii})],2);
+        
+    % Group average
+    bootstatGroup.sl.(fns{ii}) = bootstrp(nboot, @(x) nanmean(x,2), diffFullBlankSL(:,averageSubject.(fns{ii})));
+    bootstatGroup.bb.(fns{ii}) = bootstrp(nboot, @(x) nanmean(x,2), diffFullBlankBB(:,averageSubject.(fns{ii})));
+    
+end
+
+
+%% 2. Plot one subject and average across subjects
+
+dataAll      = cat(1, diffFullBlankSL(1,:), diffFullBlankBB(1,:), ...
+                      nanmean(diffFullBlankSL,1), nanmean(diffFullBlankBB,1));
+fig_ttl      = {'Figure2_Observed_MEG_Data', 'Figure2_Sl_and_Broadband_Compared'};
+sub_ttl          = {sprintf('Stimulus locked S%d', exampleSubject), ...
+                sprintf('Broadband S%d', exampleSubject), ...
+                'Stimulus locked group average', ...
+                'Broadband group average'};
+
+visualizeSensormaps(dataAll, colormapPercentile, contourmapPercentile, [], [], fig_ttl, sub_ttl, saveFigures, figureDir);
+
+%% 3. Make barplot with sensors that fall within contour lines
+
+% Make figure
+figure; set(gcf, 'Position', [509, 238, 672, 1072], 'Color','w')
+labels = {'Union', 'Only Uniform', 'Only Random'};
+ttls   = {'SL one subject',  'SL group average', 'BB one subject', 'BB group average'};
+
+allData = {bootstat{1}.sl.diff, bootstatGroup.sl, bootstat{1}.bb.diff, bootstatGroup.bb};
+
+ylims = [-10 50; -10 50; -2 3; -2 3];
+
+for dd = 1:4
+    subplot(2,2,dd)
+   
+    boxplot([nanmean(allData{dd}.unionUR,2), nanmean(allData{dd}.onlyUniform,2), nanmean(allData{dd}.onlyRandom,2)], ...
+            'PlotStyle','traditional', 'Widths',0.2,'MedianStyle','line','Colors','mrb'); hold on
+    plot([-0.5 4.5], [0 0],'k', 'LineWidth',2)
+        
+    box off; ylabel('Amplitudes (fT)');
+    set(gca,'TickDir','out', 'XTickLabel', labels, 'XTickLabelRotation',45, 'FontSize',12,'LineWidth',2, 'YLim', ylims(dd,:));
+    title(ttls{dd});
+    
+end
+
+if saveFigures
+    hgexport(gcf,fullfile(figureDir,'Figure2_SOI_boxplot'))
+end
+
+return
+%% OBSOLETE 3. Plot mean of 6 subjects
+%
+%
+%
+% % Define color range
+% cLims = [-1 1]*prctile(sl_snr, 95);
+%
+% % Plot average subject
+% fH = figure('position',[1,600,1400,800]); set(gcf, 'Name', 'Figure 2B, Average across subject', 'NumberTitle', 'off');
+% [fH,ch] = megPlotMap(sl_snr,cLims,fH,'bipolar',[],data_hdr,cfg, ...
+%     'isolines', contourLim*max(cLims)*[1 1], ...
+%     'highlightchannel', sl_snr > contourLim*max(cLims), ...
+%     'highlightmarker', '*');
+%
+% % colormap(bipolar);
+% c = findobj(fH,'Type','Contour'); c.LineWidth = 4;
+%
+%
+%
+% set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
+%
+% cLims = [-1 1]*prctile(bb_snr, 95);
+%
+% subplot(1,2,2)
+% [~,ch] = megPlotMap(bb_snr,cLims,gcf,'bipolar',[],data_hdr,cfg,'isolines', contourLim*max(cLims)*[1 1]); colormap(bipolar);
+% set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
+%
+% if saveFigures
+%     figurewrite(fullfile(figureDir,'Figure2_SLBB_average'),[],0,'.',1);
+%     hgexport(gcf,fullfile(figureDir,'Figure2_SLBB_average_2'))
+% end
+
+%% (obsolete?) Plot mean of 6 subjects with CI from contour lines
+
+% allData  = {squeeze(sl_all)',squeeze(bb_all)'};
+% clims    = {climsSL,climsBB};
+% nBoot    = 50;
+%
+%
+% meshplotFigHandleFun = @(x) megPlotMap(x, [],[],bipolar,[],[],[],'isolines', 1);
+% getContourStruct     = @(x) findobj(x.Children,'Type','Contour');
+% getXYZData           = @(x) cat(3,x.XData,x.YData,x.ZData);
+%
+% ft_warning off
+%
+% for d = 1:2
+%
+%     bootData = allData{d};
+%     bootstat = bootstrp(nBoot, @(x) mean(x,1), bootData);
+%
+%     for ii = 1:nBoot
+%         close all;
+%         c              = getContourStruct(meshplotFigHandleFun(bootstat(ii,:)));
+%         xyz(ii,:,:,:)= getXYZData(c);
+%         clear c
+%     end
+%
+%
+%     figure('position',[1,600,1400,800]); set(gcf, 'Name', 'Figure 2B, Average across subject', 'NumberTitle', 'off');
+%     subplot(121); megPlotMap(mean(bootData,1),clims{d},[],bipolar); hold all;
+%     for ii = 1:nBoot
+%         contour(squeeze(xyz(ii,:,:,1)),squeeze(xyz(ii,:,:,2)),squeeze(xyz(ii,:,:,3)),1, 'k-');
+%     end
+% %     set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
+%
+%     figurewrite(fullfile(figureDir, sprintf('Figure2_dataCI_average%d',d)), [],0,'.',1);
+%
+% end
+%
+% ft_warning on
 
 

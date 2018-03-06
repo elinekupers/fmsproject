@@ -1,84 +1,110 @@
-function [data, badChannels] = loadData(dataDir, whichSubject)
-
-%% Define parameters to get SL and BB data
-fs           = 1000;         % Sample rate
-f            = 0:150;        % Limit frequencies to [0 150] Hz
-slFreq       = 12;           % Stimulus-locked frequency
-tol          = 1.5;          % Exclude frequencies within +/- tol of sl_freq
-slDrop       = f(mod(f, slFreq) <= tol | mod(f, slFreq) > slFreq - tol);
-
-% Exclude all frequencies below 60 Hz when computing broadband power
-lfDrop       = f(f<60);
-
-% Define the frequenies and indices into the frequencies used to compute
-% broadband power
-[~, abIndex] = setdiff(f, [slDrop lfDrop]);
-
-% Create function handles for the frequencies that we use
-keepFrequencies    = @(x) x(abIndex);
+function [data, badChannels] = loadData(dataDir, whichSubject, type)
 
 
+switch type
+    case 'SNR'
+        bb = load(sprintf(fullfile(dataDir, 's%02d_denoisedData_bb.mat'),whichSubject));
+        sl = load(sprintf(fullfile(dataDir, 's%02d_denoisedData_sl.mat'),whichSubject));
 
-%% Load data
-load(sprintf(fullfile(dataDir, 's%02d_conditions.mat'),whichSubject));
-load(sprintf(fullfile(dataDir, 's%02d_sensorData.mat'),whichSubject));
-load(sprintf(fullfile(dataDir, 's%02d_denoisedData_bb.mat'),whichSubject));
-load(sprintf(fullfile(dataDir, 's%02d_denoisedts.mat'),whichSubject));
+        data = {bb, sl};
+        
+    case 'amplitudes'
+        
+        % Define parameters to get SL and BB data
+        fs           = 1000;         % Sample rate
+        f            = 0:150;        % Limit frequencies to [0 150] Hz
+        slFreq       = 12;           % Stimulus-locked frequency
+        tol          = 1.5;          % Exclude frequencies within +/- tol of sl_freq
+        slDrop       = f(mod(f, slFreq) <= tol | mod(f, slFreq) > slFreq - tol);
+
+        % Exclude all frequencies below 60 Hz when computing broadband power
+        lfDrop       = f(f<60);
+
+        % Define the frequenies and indices into the frequencies used to compute
+        % broadband power
+        [~, abIndex] = setdiff(f, [slDrop lfDrop]);
+
+        % Create function handles for the frequencies that we use
+        keepFrequencies    = @(x) x(abIndex);
 
 
-% preprocessing parameters (see nppPreprocessData)
-varThreshold        = [0.05 20];
-badChannelThreshold = 0.2;
-badEpochThreshold   = 0.2;
-dataChannels        = 1:157;
 
-% Preprocess raw sensordata
-[sensorData, badChannels0, badEpochs0] = nppPreprocessData(sensorData(:,:,dataChannels), ...
-    varThreshold, badChannelThreshold, badEpochThreshold, false);
+        %% Load data
+        load(sprintf(fullfile(dataDir, 's%02d_conditions.mat'),whichSubject));
+        load(sprintf(fullfile(dataDir, 's%02d_sensorData.mat'),whichSubject));
+        load(sprintf(fullfile(dataDir, 's%02d_denoisedData_bb.mat'),whichSubject));
+        load(sprintf(fullfile(dataDir, 's%02d_denoisedts.mat'),whichSubject));
 
-% ---- Define first epochs in order to remove later ------------------
-badEpochs0(1:6:end) = 1;
 
-% Remove bad channels and bad epochs from data and conditions
-sensorData = sensorData(:,~badEpochs0, ~badChannels0);
+        % preprocessing parameters (see nppPreprocessData)
+        varThreshold        = [0.05 20];
+        badChannelThreshold = 0.2;
+        badEpochThreshold   = 0.2;
+        dataChannels        = 1:157;
 
-% Permute sensorData for denoising
-sensorData = permute(sensorData, [3 1 2]);
+        % Preprocess raw sensordata
+        [sensorData, badChannels0, badEpochs0] = nppPreprocessData(sensorData(:,:,dataChannels), ...
+            varThreshold, badChannelThreshold, badEpochThreshold, false);
 
-% time domain data before and after denoising
-denoisedts = denoisedts_bb;
+        % ---- Define first epochs in order to remove later ------------------
+        badEpochs0(1:6:end) = 1;
 
-sl_ts = sensorData;
-bb_ts = denoisedts{1};
+        % Make sure bad epochs and bad sensors are the same across two datasets
+        assert(isequal(badEpochs,badEpochs0))
+        assert(isequal(badChannels,badChannels0))
 
-design = zeros(size(conditions,1),3);
-design(conditions == 1,1) = 1; % Full
-design(conditions == 5,2) = 1; % Right
-design(conditions == 7,3) = 1; % Left
+        % Remove bad channels and bad epochs from data and conditions
+        sensorData = sensorData(:,~badEpochs, ~badChannels);
 
-% Get rid of bad epochs
-design_sl = design(~badEpochs0,:);
-design_bb = design(~badEpochs,:);
+        % Permute sensorData for denoising
+        sensorData = permute(sensorData, [3 1 2]);
 
-% Define conditions: Full, right, left, off
-condEpochsSL = {design_sl(:,1)==1, design_sl(:,2)==1, design_sl(:,3)==1, all(design_sl==0,2)};
-condEpochsBB = {design_bb(:,1)==1, design_bb(:,2)==1, design_bb(:,3)==1, all(design_bb==0,2)};
+        sl_ts = sensorData;
+        bb_ts = denoisedts_bb{1};
 
-% Compute log power for full (1) and blank (4) epochs, at the specified frequencies
-full.sl  = sl_ts(:,:,condEpochsSL{1});
-blank.sl = sl_ts(:,:,condEpochsSL{4});
+        design = zeros(size(conditions,1),3);
+        design(conditions == 1,1) = 1; % Full
+        design(conditions == 5,2) = 1; % Right
+        design(conditions == 7,3) = 1; % Left
 
-full.bb  = bb_ts(:,:,condEpochsBB{1});
-blank.bb = bb_ts(:,:,condEpochsBB{4});
+        % Define full field condition (first column (2nd and 2rd are right and
+        % left, zeros are blanks)
+        condEpochsFull = design(:,1)==1;
 
-% Get SL and BB amplitudes
-full.sl = log10(getstimlocked(full.sl,slFreq+1));  % Amplitude (so not squared). Square values to get units of power
-blank.sl = log10(getstimlocked(blank.sl,slFreq+1)); % Amplitude (so not squared). Square values to get units of power
+        % Define blank epochs following fullfield epochs and remove bad epochs
+        condEpochsBlank = logical([zeros(6,1); design(1:end-6,1)]);
 
-full.bb  = log10(getbroadband(full.bb,keepFrequencies,fs)); % Broadband data is already in units of power
-blank.bb  = log10(getbroadband(blank.bb,keepFrequencies,fs)); % Broadband data is already in units of power
+        % Get rid of bad epochs
+        condEpochsBlank = condEpochsBlank(~badEpochs,:);
+        condEpochsFull  = condEpochsFull(~badEpochs,:);
 
-data = {full, blank};
-assert(isequal(badChannels,badChannels0))
+        if sum(condEpochsFull==1)~=sum(condEpochsBlank==1)
+            if sum(condEpochsBlank==1) > sum(condEpochsFull==1)
+                idx = find(condEpochsBlank);
+                idx = idx(1:length(find(condEpochsFull)));
+                condEpochsBlank = condEpochsBlank(idx);
+            else
+                idx = find(condEpochsFull);
+                idx = idx(1:sum(condEpochsBlank));
+                condEpochsFull = condEpochsFull(idx);
+            end
+        end
+
+        % Select timeseries in epochs of interest
+        sl.full  = sl_ts(:,:,condEpochsFull);
+        sl.blank = sl_ts(:,:,condEpochsBlank);
+
+        bb.full  = bb_ts(:,:,condEpochsFull);
+        bb.blank = bb_ts(:,:,condEpochsBlank);
+
+        % Compute log power for full and blank epochs at specified frequencies
+        sl.full = (getstimlocked(sl.full,slFreq+1));  % Amplitude (so not squared). Square values to get units of power
+        sl.blank = (getstimlocked(sl.blank,slFreq+1)); % Amplitude (so not squared). Square values to get units of power
+
+        bb.full  = (getbroadband(bb.full ,keepFrequencies,fs)); % Broadband data is already in units of power
+        bb.blank  = (getbroadband(bb.blank,keepFrequencies,fs)); % Broadband data is already in units of power
+
+        data.sl = sl;
+        data.bb = bb;
 
 end
