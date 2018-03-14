@@ -27,15 +27,20 @@ exampleSubject = 1;
 
 % What's the plotting range for individual example and average across
 % subjects?
-contourmapPercentile   = 93.6; % draw contour line at what fraction of the colormap?
-colormapPercentile     = 97.5; % percentile of data to use for max/min limits of colorbar
+tmp = load(fullfile(fmsRootPath, 'data', subject{exampleSubject}, sprintf('%s_prediction', subject{exampleSubject})));
+contourmapPercentile = tmp.dataAll;
 
+% contourmapPercentile   = 93.6; % draw contour line at what fraction of the colormap? 
+colormapPercentile     = 97.5; % percentile of data to use for max/min limits of colorbar
+snrThresh              = 1;    % Threshold amplitudes by 1 SD of SNR
 
 % Set up paths
 figureDir       = fullfile(fmsRootPath, 'figures'); % Where to save images?
 dataDir         = fullfile(fmsRootPath, 'data');    % Where to get data?
 saveFigures     = true;     % Save figures in the figure folder?
 
+% Number of bootstraps
+nboot = 1000;
 
 % Predefine tickmark position for colorbar
 % yscaleAB = [-6,-3,0,3,6];
@@ -56,8 +61,8 @@ soi_blank_bb = cell(length(subject),2);
 % Row 2 SOI based on average uniform forward model prediction,
 % Row 3 SOI based on single subject random forward model prediction,
 % Row 4 SOI based on average subject random forward model prediction
-temp = load(fullfile(fmsRootPath, 'data', subject{exampleSubject}, sprintf('%s_sensorsOfInterestFromPrediction', subject{exampleSubject})));
-soi = logical(temp.sensorsOfInterest); clear sensorsOfInterest;
+tmp = load(fullfile(fmsRootPath, 'data', subject{exampleSubject}, sprintf('%s_sensorsOfInterestFromPrediction', subject{exampleSubject})));
+soi = logical(tmp.sensorsOfInterest); clear sensorsOfInterest; clear tmp;
 
 % Find the sensors for the single subject for uniform and random phase
 % forward model predictions
@@ -132,7 +137,7 @@ end
 
 
 %% Bootstrap across epochs
-nboot = 1000;
+
 
 fns = fieldnames(singleSubject);
 
@@ -172,15 +177,25 @@ end
 
 %% 2. Plot one subject and average across subjects
 
-dataAll      = cat(1, diffFullBlankSL(1,:), diffFullBlankBB(1,:), ...
-                      nanmean(diffFullBlankSL,1), nanmean(diffFullBlankBB,1));
+snrThreshMask.sl.single = abs(squeeze(snr(exampleSubject,1,:))) > snrThresh;
+snrThreshMask.sl.group  = abs(squeeze(nanmean(snr(:,1,:),1))) > snrThresh;
+
+snrThreshMask.bb.single = abs(squeeze(snr(exampleSubject,2,:))) > snrThresh;
+snrThreshMask.bb.group  = abs(squeeze(nanmean(snr(:,2,:),1))) > snrThresh;
+
+
+dataAllMesh      = cat(1, diffFullBlankSL(1,:) .* snrThreshMask.sl.single', ...
+                      diffFullBlankBB(1,:) .* snrThreshMask.bb.single', ...
+                      nanmean(diffFullBlankSL,1) .* snrThreshMask.sl.group', ...
+                      nanmean(diffFullBlankBB,1) .* snrThreshMask.bb.group');
+                  
 fig_ttl      = {'Figure2_Observed_MEG_Data', 'Figure2_Sl_and_Broadband_Compared'};
 sub_ttl          = {sprintf('Stimulus locked S%d', exampleSubject), ...
                 sprintf('Broadband S%d', exampleSubject), ...
                 'Stimulus locked group average', ...
                 'Broadband group average'};
 
-visualizeSensormaps(dataAll, colormapPercentile, contourmapPercentile, [], [], fig_ttl, sub_ttl, saveFigures, figureDir);
+visualizeSensormaps(dataAllMesh, colormapPercentile, contourmapPercentile, [], [], fig_ttl, sub_ttl, saveFigures, figureDir);
 
 %% 3. Make barplot with sensors that fall within contour lines
 
@@ -189,14 +204,14 @@ figure; set(gcf, 'Position', [509, 238, 672, 1072], 'Color','w')
 labels = {'Union', 'Only Uniform', 'Only Random'};
 ttls   = {'SL one subject',  'SL group average', 'BB one subject', 'BB group average'};
 
-allData = {bootstat{1}.sl.diff, bootstatGroup.sl, bootstat{1}.bb.diff, bootstatGroup.bb};
+dataAllBox = {bootstat{1}.sl.diff, bootstatGroup.sl, bootstat{1}.bb.diff, bootstatGroup.bb};
 
 ylims = [-10 50; -10 50; -2 3; -2 3];
 
 for dd = 1:4
     subplot(2,2,dd)
    
-    boxplot([nanmean(allData{dd}.unionUR,2), nanmean(allData{dd}.onlyUniform,2), nanmean(allData{dd}.onlyRandom,2)], ...
+    boxplot([nanmean(dataAllBox{dd}.unionUR,2), nanmean(dataAllBox{dd}.onlyUniform,2), nanmean(dataAllBox{dd}.onlyRandom,2)], ...
             'PlotStyle','traditional', 'Widths',0.2,'MedianStyle','line','Colors','mrb'); hold on
     plot([-0.5 4.5], [0 0],'k', 'LineWidth',2)
         
