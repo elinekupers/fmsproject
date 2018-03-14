@@ -15,7 +15,7 @@ if ~exist('colormapPercentile','var') || isempty(colormapPercentile)
 end
 
 if ~exist('contourmapPercentile','var') || isempty(contourmapPercentile)
-    contourmapPercentile = 93.6; % such that we show the top 10 sensors
+    contourmapPercentile = []; % if empty, don't show any
 end
 
 if ~exist('colorMarkers','var') || isempty(colorMarkers)
@@ -46,9 +46,12 @@ end
 %% Predefine figures 
 cmap = [1 1 1; 0 0 1; 1 0 0];
 fH1 = figure; clf; set(fH1,'position',[1,600,1400,800], 'Name', fig_ttl{1}, 'NumberTitle', 'off');
-fH2 = figure; clf; set(fH2,'position',[1400,600,700,800], 'Name', fig_ttl{2}, 'NumberTitle', 'off');
+
+if ~isempty(contourmapPercentile) && length(contourmapPercentile)==1
+    fH2 = figure; clf; set(fH2,'position',[1400,600,700,800], 'Name', fig_ttl{2}, 'NumberTitle', 'off');
                    subplot(2,1,1); megPlotMap(zeros(1,157)); colormap(cmap);
                    subplot(2,1,2); megPlotMap(zeros(1,157)); colormap(cmap);
+end
 
 % Save sensors of interest that fall within the contour lines
 sensorsOfInterest = NaN(size(data));
@@ -58,7 +61,11 @@ for ii = 1:size(data,1)
     
     dataToPlot = data(ii,:);
     colormapLims =  [-1 1]*prctile(dataToPlot, colormapPercentile);
-    contourmapLims = [1 1]*prctile(dataToPlot, contourmapPercentile);
+    
+    if ~isempty(contourmapPercentile) && length(contourmapPercentile)==1      
+        contourmapLims = [1 1]*prctile(dataToPlot, contourmapPercentile);
+    else contourmapLims = [];
+    end
 
     % Plot data or predictions
     figure(fH1);
@@ -67,27 +74,61 @@ for ii = 1:size(data,1)
         'isolines', contourmapLims, ...
     ...    'chanindx', dataToPlot > max(contourmapLims), ...
         'pointsymbol', markerType, ... '*'
-        'pointsize', 10);
+        'pointsize', 10); hold on;
     
-    c = findobj(gca,'Type','Contour'); c.LineWidth = 4;
-    pp = findobj(gca,'Marker',markerType);
+    % Check if a contour line was requested, if so, save those data
+    if ~isempty(contourmapPercentile) && length(contourmapPercentile)==1
+        c = findobj(gca,'Type','Contour'); c.LineWidth = 4;
+        pp = findobj(gca,'Marker',markerType);
+        
+    % Check if a contour lines are a matrix, if so, plot contour lines based on these data   
+    elseif ~isempty(contourmapPercentile) && length(contourmapPercentile)>1        
+        
+        if ii < 3; idx = 1; else idx = 3; end
+        fHP = figure(99); clf; subplot(211);
+        external_contourmapLims1 = [1 1]*prctile(contourmapPercentile(idx,:), 93.6);
+        external_colormapLims1   = [-1 1]*prctile(contourmapPercentile(idx,:), colormapPercentile);
+        megPlotMap(contourmapPercentile(idx,:),external_colormapLims1,[],bipolar,[],[],[],'isolines', external_contourmapLims1);
+        cP1 = findobj(gca,'Type','Contour');
+        
+        subplot(212);
+        external_contourmapLims2 = [1 1]*prctile(contourmapPercentile(idx+1,:), 93.6);
+        external_colormapLims2   = [-1 1]*prctile(contourmapPercentile(idx+1,:), colormapPercentile);
+        megPlotMap(contourmapPercentile(idx+1,:),external_colormapLims2,[],bipolar,[],[],[],'isolines', external_contourmapLims2);
+        cP2 = findobj(gca,'Type','Contour');
+        
+        % Plot them in actual mesh
+        set(0, 'currentfigure', fH1);
+        contour(cP1.XData, cP1.YData, cP1.ZData, external_contourmapLims1, 'LineColor','k', 'Fill','off','LineWidth',2);
+        contour(cP2.XData, cP2.YData, cP2.ZData, external_contourmapLims2, 'LineColor','w', 'Fill','off','LineWidth',2);
+        sensorsOfInterest(idx,:) = contourmapPercentile(idx,:) > max(external_contourmapLims1);
+        sensorsOfInterest(idx+1,:) = contourmapPercentile(idx+1,:) > max(external_contourmapLims2);        
+    end
+    
+    % Make figure pretty
     set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12); title(sub_ttl{ii})
         
     % Plot overlap
-    figure(fH2);
-    subplot(2,1,ceil(ii/2)); hold all;   
-    contourf(c.XData, c.YData, c.ZData, contourmapLims, 'LineColor',colorMarkers{ii}, 'Fill','off','LineWidth',4);
-    %%scatter(pp(1).XData,pp(1).YData, 150, colorMarkers{ii},'*'); 
-    colorbar off;
+    if ~isempty(contourmapLims)
+        figure(fH2);
+        subplot(2,1,ceil(ii/2)); hold all;   
+        contourf(c.XData, c.YData, c.ZData, contourmapLims, 'LineColor',colorMarkers{ii}, 'Fill','off','LineWidth',4);
+        %%scatter(pp(1).XData,pp(1).YData, 150, colorMarkers{ii},'*'); 
+        colorbar off;
     
-    sensorsOfInterest(ii,:) = dataToPlot > max(contourmapLims);
+        sensorsOfInterest(ii,:) = dataToPlot > max(contourmapLims);
+    end
     
 end
+
+close(fHP)
 
 % Save if requested
 if saveFigures
     set(0, 'currentfigure', fH1);
     figurewrite(fullfile(figureDir,fig_ttl{1}),[],0,'.',1);
-    set(0, 'currentfigure', fH2);
-    figurewrite(fullfile(figureDir,fig_ttl{2}),[],0,'.',1);
+    if ~isempty(contourmapLims)
+        set(0, 'currentfigure', fH2);
+        figurewrite(fullfile(figureDir,fig_ttl{2}),[],0,'.',1);
+    end
 end
