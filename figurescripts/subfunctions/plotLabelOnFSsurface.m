@@ -50,7 +50,7 @@ set(fH, 'Color', 'w', 'Position', pos); clf;
 
 % Mesh
 c = mshcolor.curv;
-c(idx) = round(mshcolor.v1StimEccen(idx)/clim(2)*155);
+c(idx) = round(mshcolor.v1StimEccen(idx)/clim(2)*60);
 
 mx = vertices(:,1);%+surf_offsets(1);
 my = vertices(:,2);%+surf_offsets(2);
