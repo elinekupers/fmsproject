@@ -77,11 +77,11 @@ w.V1i_mn = mean(w.V1i,1);
 
 dataAll      = cat(1,w.V1c(exampleSubject,:), w.V1i(exampleSubject,:), w.V1c_mn, w.V1i_mn);
 colorMarkers = {'r','b', 'r', 'b'};
-sub_ttl      = {sprintf('Coherent phase S%d', exampleSubject), ...
-                sprintf('Incoherent phase S%d', exampleSubject), ...
-                'Coherent phase Average S1-S6', ...
-                'Incoherent phase Average S1-S6'};
-fig_ttl      = {'Figure1_V1_model_predictions', 'Figure1_Coherent_and_Incoherent_Compared'};
+sub_ttl      = {sprintf('Uniform phase S%d', exampleSubject), ...
+                sprintf('Random phase S%d', exampleSubject), ...
+                'Uniform phase Average S1-S6', ...
+                'Random phase Average S1-S6'};
+fig_ttl      = {'Figure1_V1_model_predictions', 'Figure1_Uniform_and_Random_Compared'};
 markerType   = '.';
 
 sensorsOfInterest = visualizeSensormaps(dataAll, colormapPercentile, contourmapPercentile, colorMarkers, markerType, fig_ttl, sub_ttl, saveFigures, figureDir);
@@ -92,4 +92,5 @@ sensorsOfInterest = logical(sensorsOfInterest);
 % Save sensors of interest falling within the contour lines
 save(fullfile(fmsRootPath, 'data', subject{exampleSubject}, sprintf('%s_sensorsOfInterestFromPrediction', subject{exampleSubject})), 'sensorsOfInterest');
 
+save(fullfile(fmsRootPath, 'data', subject{exampleSubject}, sprintf('%s_prediction', subject{exampleSubject})), 'dataAll');
 
