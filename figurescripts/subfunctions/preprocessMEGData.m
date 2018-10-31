@@ -1,13 +1,29 @@
 function preprocessMEGData(whichSubject)
 
-% This function is to preprocess the SSMEG data
+% This function is to preprocess the SSMEG data:
+% 1. Load raw sqd
+% 2. Get triggers
+% 3. Make epochs with the given triggers
+% 4. Save sensorData and conditions in separate mat files
+
+% INPUTS:
+% whichSubject      : [integer] Subject dataset you want to load.
+%                     The fullOnly subfolder has subjects 1-4.
+%                     The general SSMEG folder (set subfolder to empty) 
+%                     has subjects 1-8.
+
+% OUTPUTS:
+% None
+
+% % Example: 
+% preprocessMEGData(4)
 
 %% Set analysis variables
 projectPth                    = '/Volumes/server/Projects/MEG/SSMEG/';
 subFolder                     = 'fullOnly'; 
 
 saveTimeSeries                = true;        % Save epoched time series?
-triggerChannels               = 161:168;
+triggerChannels               = 161:164;
 dataChannels                  = 1:157;
 
 fs                            = 1000;        % sample rate (Hz)
@@ -31,7 +47,7 @@ dataPth = fullfile(projectPth, subFolder, subjectPths(whichSubject).name, 'raw')
 hdr = ft_read_header(fullfile(megfiles(1).folder, megfiles(1).name));
 
 %% -------------------------------------
-% ------------ Fix triggers ------------
+% ------------ Get triggers ------------
 % --------------------------------------
 
 if (~strcmp(subFolder,'fullOnly')) && (whichSubjects == 5) 
