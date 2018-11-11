@@ -22,6 +22,10 @@ if ~exist('clims','var') || isempty(clims)
     clims = [-1 1].*max(colors(:));
 end
 
+if ~exist('ttl','var') || isempty(ttl)
+    ttl = 'Brainstorm Mesh';
+end
+
 % Define colorbar colors
 cmap = [gray(128); jet(128)];
 
