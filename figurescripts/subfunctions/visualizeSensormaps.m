@@ -121,10 +121,9 @@ for ii = 1:size(data,1)
     
 end
 
-close(fHP)
-
 % Save if requested
 if saveFigures
+    if ~exist('figureDir', 'dir'); mkdir(figureDir); end
     set(0, 'currentfigure', fH1);
     figurewrite(fullfile(figureDir,fig_ttl{1}),[],0,'.',1);
     if ~isempty(contourmapLims)
