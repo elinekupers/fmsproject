@@ -24,21 +24,22 @@
 
 
 %% 0. Define paths and variables
-subject = 'wl_subj010';
+bssubject = 'wl_subj048';
+fssubject = 'wlsubj048';
 exp     = 'SSMEG';
 
 % Freesurfer, brainstorm database and data/anatomy directories
 fsdir     = '/Volumes/server/Freesurfer_subjects';
 bsDB     = '/Volumes/server/Projects/MEG/brainstorm_db/';
 
-d = dir(fullfile(bsDB, exp, 'data', subject));
-if strcmp(subject,'wl_subj002')
-    datadir = fullfile(bsDB, exp, 'data', subject, d(end-1).name);
+d = dir(fullfile(bsDB, exp, 'data', bssubject));
+if strcmp(bssubject,'wl_subj002')
+    datadir = fullfile(bsDB, exp, 'data', bssubject, d(end-1).name);
 else
-    datadir = fullfile(bsDB, exp, 'data', subject, d(end).name);
+    datadir = fullfile(bsDB, exp, 'data', bssubject, d(end).name);
 end
 
-anatdir = fullfile(bsDB, exp, 'anat', subject);
+anatdir = fullfile(bsDB, exp, 'anat', bssubject);
 
 %% 1.1 Create downsampled amplitude template
-interp_retinotopy(bsDB, fsdir, subject, subject, exp)
+interp_retinotopy(bsDB, fsdir, fssubject, bssubject, exp)
