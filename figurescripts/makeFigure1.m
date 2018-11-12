@@ -18,14 +18,14 @@ function makeFigure1()
 
 % Path to brainstorm database
 bsDB            = '/Volumes/server/Projects/MEG/brainstorm_db/';
-figureDir       = fullfile(fmsRootPath, 'fullOnly','figures'); % Where to save images?
+figureDir       = fullfile(fmsRootPath,'figures'); % Where to save images?
 saveFigures     = false;     % Save figures in the figure folder?
 
 % Define project name, subject and data/anatomy folders
 projectName    = 'SSMEG';
 
 % Which subjects to average?
-subject         = {'wl_subj048', 'wl_subj046','wl_subj039', 'wl_subj059'}; %{'wl_subj002','wl_subj004','wl_subj005','wl_subj006','wl_subj010','wl_subj011'};
+subject         = {'wl_subj048'};%, 'wl_subj046','wl_subj039','wl_subj059', 'wlsubj_067'}; %{'wl_subj002','wl_subj004','wl_subj005','wl_subj006','wl_subj010','wl_subj011'};
 exampleSubject  = 1;
 
 % What's the plotting range for individual example and average across
@@ -90,7 +90,7 @@ sensorsOfInterest = visualizeSensormaps(dataAll, colormapPercentile, contourmapP
 sensorsOfInterest = logical(sensorsOfInterest);
 
 % Save sensors of interest falling within the contour lines
-save(fullfile(fmsRootPath, 'fullOnly','data', subject{exampleSubject}, sprintf('%s_sensorsOfInterestFromPrediction', subject{exampleSubject})), 'sensorsOfInterest');
+save(fullfile(fmsRootPath, 'data', subject{exampleSubject}, sprintf('%s_sensorsOfInterestFromPrediction', subject{exampleSubject})), 'sensorsOfInterest');
 
-save(fullfile(fmsRootPath, 'fullOnly','data', subject{exampleSubject}, sprintf('%s_prediction', subject{exampleSubject})), 'dataAll');
+save(fullfile(fmsRootPath, 'data', subject{exampleSubject}, sprintf('%s_prediction', subject{exampleSubject})), 'dataAll');
 
