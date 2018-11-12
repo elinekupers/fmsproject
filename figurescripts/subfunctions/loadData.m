@@ -98,11 +98,14 @@ switch type
         bb.blank = bb_ts(:,:,condEpochsBlank);
 
         % Compute log power for full and blank epochs at specified frequencies
-        sl.full = (getstimlocked(sl.full,slFreq+1));  % Amplitude (so not squared). Square values to get units of power
-        sl.blank = (getstimlocked(sl.blank,slFreq+1)); % Amplitude (so not squared). Square values to get units of power
+        sl.full = getstimlocked(sl.full,slFreq+1);  % Amplitude (so not squared). Square values to get units of power
+        sl.blank = getstimlocked(sl.blank,slFreq+1); % Amplitude (so not squared). Square values to get units of power
 
-        bb.full  = (getbroadband(bb.full ,keepFrequencies,fs)); % Broadband data is already in units of power
-        bb.blank  = (getbroadband(bb.blank,keepFrequencies,fs)); % Broadband data is already in units of power
+        sl.full_coherent = getstimlocked_coherent(sl_ts,slFreq+1, condEpochsFull);  % Amplitude (so not squared). Square values to get units of power
+        sl.blank_coherent = getstimlocked_coherent(sl_ts,slFreq+1, condEpochsBlank); % Amplitude (so not squared). Square values to get units of power
+        
+        bb.full  = getbroadband(bb.full ,keepFrequencies,fs); % Broadband data is already in units of power
+        bb.blank  = getbroadband(bb.blank,keepFrequencies,fs); % Broadband data is already in units of power
 
         data.sl = sl;
         data.bb = bb;
