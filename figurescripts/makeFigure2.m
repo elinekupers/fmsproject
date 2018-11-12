@@ -20,24 +20,26 @@ function makeFigure2()
 %% 0. Set up paths and define parameters
 
 % Which subjects to average?
-subject = {'wl_subj002','wl_subj004','wl_subj005','wl_subj006','wl_subj010','wl_subj011'};
+subject = {'wl_subj048'};%, 'wl_subj046','wl_subj039','wl_subj059', 'wlsubj_067'}; %{'wl_subj002','wl_subj004','wl_subj005','wl_subj006','wl_subj010','wl_subj011'};
 
 % Which example subject to show?
 exampleSubject = 1;
 
+% Set up paths
+figureDir       = fullfile(fmsRootPath, 'figures'); % Where to save images?
+dataDir         = fullfile(fmsRootPath, 'data');    % Where to get data?
+
+saveFigures     = true;     % Save figures in the figure folder?
+
 % What's the plotting range for individual example and average across
 % subjects?
-tmp = load(fullfile(fmsRootPath, 'data', subject{exampleSubject}, sprintf('%s_prediction', subject{exampleSubject})));
+tmp = load(fullfile(dataDir, subject{exampleSubject}, sprintf('%s_prediction', subject{exampleSubject})));
 contourmapPercentile = tmp.dataAll;
 
 % contourmapPercentile   = 93.6; % draw contour line at what fraction of the colormap? 
 colormapPercentile     = 97.5; % percentile of data to use for max/min limits of colorbar
 snrThresh              = 1;    % Threshold amplitudes by 1 SD of SNR
 
-% Set up paths
-figureDir       = fullfile(fmsRootPath, 'figures'); % Where to save images?
-dataDir         = fullfile(fmsRootPath, 'data');    % Where to get data?
-saveFigures     = true;     % Save figures in the figure folder?
 
 % Number of bootstraps
 nboot = 1000;
@@ -61,7 +63,7 @@ soi_blank_bb = cell(length(subject),2);
 % Row 2 SOI based on average uniform forward model prediction,
 % Row 3 SOI based on single subject random forward model prediction,
 % Row 4 SOI based on average subject random forward model prediction
-tmp = load(fullfile(fmsRootPath, 'data', subject{exampleSubject}, sprintf('%s_sensorsOfInterestFromPrediction', subject{exampleSubject})));
+tmp = load(fullfile(dataDir, subject{exampleSubject}, sprintf('%s_sensorsOfInterestFromPrediction', subject{exampleSubject})));
 soi = logical(tmp.sensorsOfInterest); clear sensorsOfInterest; clear tmp;
 
 % Find the sensors for the single subject for uniform and random phase
@@ -89,40 +91,64 @@ clear uniformSensors randomSensors;
 
 % Get data by looping over subjects
 for s = 1:length(subject)
-    
     switch subject{s}
         % Go from subject to session nr
         case 'wl_subj002'
-            whichSubject = 2;
+            whichSession = 2;
         case 'wl_subj004'
-            whichSubject = 7;
+            whichSession = 7;
         case 'wl_subj005'
-            whichSubject = 8;
+            whichSession = 8;
         case 'wl_subj006'
-            whichSubject = 1;
+            whichSession = 1;
         case 'wl_subj010'
-            whichSubject = 6;
+            whichSession = 6;
         case 'wl_subj011'
-            whichSubject = 5;
+            whichSession = 5;
+        case 'wl_subj048'
+            whichSession = 9; % Full field Only
+        case 'wl_subj046'
+            whichSession = 10; % Full field Only
+        case 'wl_subj039'
+            whichSession = 11; % Full field Only
+        case 'wl_subj059'
+            whichSession = 12; % Full field Only
+        case 'wl_subj067'
+            whichSession = 13; % Full field Only
     end
     
+    
+    
     % Get SNR data
-    data = loadData(dataDir,whichSubject,'SNR');
+    data = loadData(fullfile(dataDir, subject{exampleSubject}),whichSession,'SNR');
     bb = data{1};
     sl = data{2};
     
     % get stimulus-locked snr
-    snr_sl = getsignalnoise(sl.results.origmodel(1),[1 0 0], 'SNR',sl.badChannels);
+    % incoherent spectrum
+    if whichSession >9; whichCondition = 1; else whichCondition = [1 0 0]; end
+    snr_sl = getsignalnoise(sl.results.origmodel(1), whichCondition, 'SNR',sl.badChannels);
+    
     % get broadband snr for before and after denoising
-    snr_bb = getsignalnoise(bb.results.origmodel(1), [1 0 0], 'SNR',bb.badChannels);
+
+    snr_bb = getsignalnoise(bb.results.origmodel(1), whichCondition, 'SNR',bb.badChannels);
     
     % Account for NaNs in the data
-    snr(s,1,:) = to157chan(snr_sl,~sl.badChannels,'nans');
+%     snr(s,1,:) = to157chan(snr_sl,~sl.badChannels,'nans');
     snr(s,2,:) = to157chan(snr_bb,~bb.badChannels,'nans');  
+    
+    % coherent spectrum
+    data = loadData(fullfile(dataDir, subject{exampleSubject}),whichSession,'amplitudes');
+    bb = data.bb;
+    sl = data.sl;
+%     slCoh = getstimlocked_coherent(
+    
+
+
     
    
     % Get amplitude data
-    [data, badChannels] = loadData(dataDir,whichSubject,'amplitudes');
+    [data, badChannels] = loadData(fullfile(dataDir, subject{exampleSubject}), whichSession,'amplitudes');
     
     % Update array with data converted to channel space
     ampl{s}.sl.full = to157chan(data.sl.full, ~badChannels,'nans');
