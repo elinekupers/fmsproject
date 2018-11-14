@@ -16,17 +16,19 @@ function makeFigure1()
 
 %% 0. Set up paths and define parameters
 
+% Which subjects to average?
+%   Full  only: 'wlsubj048', 'wlsubj046','wl_subj039','wl_subj059', 'wl_subj067'
+%   Full, Left, Right: 'wl_subj002','wl_subj004','wl_subj005','wl_subj006','wl_subj010','wl_subj011'
+subject         = {'wlsubj048', 'wlsubj046','wl_subj039','wl_subj059', 'wl_subj067'};
+exampleSubject  = 1;
+
 % Path to brainstorm database
 bsDB            = '/Volumes/server/Projects/MEG/brainstorm_db/';
-figureDir       = fullfile(fmsRootPath,'figures'); % Where to save images?
-saveFigures     = false;     % Save figures in the figure folder?
+figureDir       = fullfile(fmsRootPath,'figures', subject{exampleSubject}); % Where to save images?
+saveFigures     = true;     % Save figures in the figure folder?
 
 % Define project name, subject and data/anatomy folders
 projectName    = 'SSMEG';
-
-% Which subjects to average?
-subject         = {'wl_subj048'};%, 'wl_subj046','wl_subj039','wl_subj059', 'wlsubj_067'}; %{'wl_subj002','wl_subj004','wl_subj005','wl_subj006','wl_subj010','wl_subj011'};
-exampleSubject  = 1;
 
 % What's the plotting range for individual example and average across
 % subjects?
@@ -45,7 +47,8 @@ keep_sensors = logical([ones(157,1); zeros(192-157,1)]); % Note: Figure out a mo
 for s = 1:length(subject)
     
     d = dir(fullfile(bsDB, projectName, 'data', subject{s}, 'R*'));
-    dataDir = fullfile(d(1).folder, d(1).name);    
+    if strcmp(subject{s},'wl_subj059'), idx = 2; else, idx = 1; end
+    dataDir = fullfile(d(idx).folder, d(idx).name);    
     anatDir = fullfile(bsDB, projectName, 'anat', subject{s});
     
     %% 1. Load relevant matrices

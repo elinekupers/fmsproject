@@ -20,15 +20,17 @@ function makeFigure2()
 %% 0. Set up paths and define parameters
 
 % Which subjects to average?
-subject = {'wl_subj048'};%, 'wl_subj046','wl_subj039','wl_subj059', 'wlsubj_067'}; %{'wl_subj002','wl_subj004','wl_subj005','wl_subj006','wl_subj010','wl_subj011'};
+%   Full  only: 'wlsubj048', 'wlsubj046','wl_subj039','wl_subj059', 'wl_subj067'
+%   Full, Left, Right: 'wl_subj002','wl_subj004','wl_subj005','wl_subj006','wl_subj010','wl_subj011'
+subject         = {'wlsubj048', 'wlsubj046','wl_subj039','wl_subj059', 'wl_subj067'};
 
 % Which example subject to show?
 exampleSubject = 1;
 
 % Set up paths
+figureDirSub    = fullfile(fmsRootPath, 'figures', subject{exampleSubject}); % Where to save images?
 figureDir       = fullfile(fmsRootPath, 'figures'); % Where to save images?
 dataDir         = fullfile(fmsRootPath, 'data');    % Where to get data?
-
 saveFigures     = true;     % Save figures in the figure folder?
 
 % What's the plotting range for individual example and average across
@@ -39,7 +41,6 @@ contourmapPercentile = tmp.dataAll;
 % contourmapPercentile   = 93.6; % draw contour line at what fraction of the colormap? 
 colormapPercentile     = 97.5; % percentile of data to use for max/min limits of colorbar
 snrThresh              = 1;    % Threshold amplitudes by 1 SD of SNR
-
 
 % Number of bootstraps
 nboot = 1000;
@@ -105,9 +106,9 @@ for s = 1:length(subject)
             whichSession = 6;
         case 'wl_subj011'
             whichSession = 5;
-        case 'wl_subj048'
+        case 'wlsubj048'
             whichSession = 9; % Full field Only
-        case 'wl_subj046'
+        case 'wlsubj046'
             whichSession = 10; % Full field Only
         case 'wl_subj039'
             whichSession = 11; % Full field Only
@@ -120,25 +121,27 @@ for s = 1:length(subject)
     
     
     % Get SNR data
-    data = loadData(fullfile(dataDir, subject{exampleSubject}),whichSession,'SNR');
+    data = loadData(fullfile(dataDir, subject{s}),whichSession,'SNR');
     bb = data{1};
     sl = data{2};
+
     
+    % Pick full field condition (first one, or the only one)
+    if whichSession >8; whichCondition = 1; else whichCondition = [1 0 0]; end
+    
+        
     % get stimulus-locked snr
-    % incoherent spectrum
-    if whichSession >9; whichCondition = 1; else whichCondition = [1 0 0]; end
     snr_sl = getsignalnoise(sl.results.origmodel(1), whichCondition, 'SNR',sl.badChannels);
     
-    % get broadband snr for before and after denoising
-
+    % get broadband snr for before
     snr_bb = getsignalnoise(bb.results.origmodel(1), whichCondition, 'SNR',bb.badChannels);
     
     % Account for NaNs in the data
-%     snr(s,1,:) = to157chan(snr_sl,~sl.badChannels,'nans');
+    snr(s,1,:) = to157chan(snr_sl,~sl.badChannels,'nans');
     snr(s,2,:) = to157chan(snr_bb,~bb.badChannels,'nans');  
     
     % coherent spectrum
-    data = loadData(fullfile(dataDir, subject{exampleSubject}),whichSession,'amplitudes');
+    data = loadData(fullfile(dataDir, subject{s}),whichSession,'amplitudes');
     bb = data.bb;
     sl = data.sl;
 %     slCoh = getstimlocked_coherent(
@@ -148,7 +151,7 @@ for s = 1:length(subject)
     
    
     % Get amplitude data
-    [data, badChannels] = loadData(fullfile(dataDir, subject{exampleSubject}), whichSession,'amplitudes');
+    [data, badChannels] = loadData(fullfile(dataDir, subject{s}), whichSession,'amplitudes');
     
     % Update array with data converted to channel space
     ampl{s}.sl.full = to157chan(data.sl.full, ~badChannels,'nans');
@@ -221,7 +224,7 @@ sub_ttl          = {sprintf('Stimulus locked S%d', exampleSubject), ...
                 'Stimulus locked group average', ...
                 'Broadband group average'};
 
-visualizeSensormaps(dataAllMesh, colormapPercentile, contourmapPercentile, [], [], fig_ttl, sub_ttl, saveFigures, figureDir);
+visualizeSensormaps(dataAllMesh, colormapPercentile, contourmapPercentile, [], [], fig_ttl, sub_ttl, saveFigures, figureDirSub);
 
 %% 3. Make barplot with sensors that fall within contour lines
 

@@ -16,21 +16,19 @@ function makeFigure3()
 %        or to only add the MEG_utils toolbox:
 %     addpath(genpath('~/matlab/git/toolboxes/meg_utils'))
 
-% Path to brainstorm database
+%% 0. Define paths and variables
 bsDB            = '/Volumes/server/Projects/MEG/brainstorm_db/';
 figureDir       = fullfile(fmsRootPath, 'figures'); % Where to save images?
 saveFigures     = true;     % Save figures in the figure folder?
-megDataDir    = fullfile(fmsRootPath, 'data');    % Where to get data?
+dataDir         = fullfile(fmsRootPath, 'data');    % Where to get data?
 
 % Define project name, subject and data/anatomy folders
 projectName    = 'SSMEG';
 
 % Which subjects to average?
+%   Full  only: 'wlsubj048', 'wlsubj046','wl_subj039','wl_subj059', 'wl_subj067'
+%   Full, Left, Right: 'wl_subj002','wl_subj004','wl_subj005','wl_subj006','wl_subj010','wl_subj011'
 subject         = {'wl_subj002','wl_subj004','wl_subj005','wl_subj006','wl_subj010','wl_subj011'};
-
-% Pick full field data
-contrasts = [1 0 0];
-contrasts = bsxfun(@rdivide, contrasts, sqrt(sum(contrasts.^2,2)));
 
 % What's the plotting range
 climsSL = [-20,20];
@@ -52,15 +50,16 @@ fH3 = figure(3); clf; set(fH3, 'Position', [1 1 1600 800], 'Name','Figure 3B, Da
 for s = 1:length(subject)
     
     d = dir(fullfile(bsDB, projectName, 'data', subject{s}, 'R*'));
-    dataDir = fullfile(d(1).folder, d(1).name);    
-    anatDir = fullfile(bsDB, projectName, 'anat', subject{s});
+    if strcmp(subject{s},'wl_subj059'); idx =2; else idx = 1; end
+    BSdataDir = fullfile(d(idx).folder, d(idx).name);    
+    BSanatDir = fullfile(bsDB, projectName, 'anat', subject{s});
     
     %% 1. Load relevant matrices
     
-    G_constrained = getGainMatrix(dataDir, keep_sensors);
+    G_constrained = getGainMatrix(BSdataDir, keep_sensors);
 
     % Get V1 template limited to 11 degrees eccentricity
-    template = getTemplate(anatDir, 'V1', 11);
+    template = getTemplate(BSanatDir, 'V1', 11);
 
     % Simulate coherent and incoherent source time series and compute
     % predictions from forward model (w)
@@ -76,28 +75,41 @@ for s = 1:length(subject)
     switch subject{s}
         % Go from subject to session nr
         case 'wl_subj002'
-            whichSubject = 2;          
+            whichSession = 2;
         case 'wl_subj004'
-            whichSubject = 7;
+            whichSession = 7;
         case 'wl_subj005'
-            whichSubject = 8;
+            whichSession = 8;
         case 'wl_subj006'
-            whichSubject = 1;
+            whichSession = 1;
         case 'wl_subj010'
-            whichSubject = 6;
+            whichSession = 6;
         case 'wl_subj011'
-            whichSubject = 5;
+            whichSession = 5;
+        case 'wlsubj048'
+            whichSession = 9; % Full field Only
+        case 'wlsubj046'
+            whichSession = 10; % Full field Only
+        case 'wl_subj039'
+            whichSession = 11; % Full field Only
+        case 'wl_subj059'
+            whichSession = 12; % Full field Only
+        case 'wl_subj067'
+            whichSession = 13; % Full field Only
     end
     
     % Load denoised data of example subject
-    data = loadData(megDataDir,whichSubject, 'SNR');
+    data = loadData(fullfile(dataDir, subject{s}),whichSession, 'SNR');
     bb = data{1};
     sl = data{2};
     
+    % Pick full field condition (first one, or the only one)
+    if whichSession >8; whichCondition = 1; else whichCondition = [1 0 0]; end
+    
     % get stimulus-locked snr
-    sl_signal = getsignalnoise(sl.results.origmodel(1),contrasts, 'SNR',sl.badChannels);
+    sl_signal = getsignalnoise(sl.results.origmodel(1),whichCondition, 'SNR',sl.badChannels);
     % get broadband snr for before and after denoising
-    bb_signal = getsignalnoise(bb.results.origmodel(1),  contrasts, 'SNR',bb.badChannels);
+    bb_signal = getsignalnoise(bb.results.origmodel(1),  whichCondition, 'SNR',bb.badChannels);
     
     % Account for NaNs in the data
     sl_signal = to157chan(sl_signal,~sl.badChannels,'nans');
@@ -179,7 +191,7 @@ close all;
 
 %% Calculate CoD
     
-for d = 1:6
+for d = 1:length(subject)
     
     thisDataSL = allDataSL_norm(d,:);
     thisDataBB = allDataBB_norm(d,:);
@@ -187,7 +199,7 @@ for d = 1:6
     idx = isfinite(thisDataSL);
 
     
-    for p = 1:6
+    for p = 1:length(subject)
         
         thisPredictionCoherent = allPredictionCoherent_norm(p,:);
         thisPredictionIncoherent = allPredictionIncoherent_norm(p,:);
@@ -206,7 +218,7 @@ end
 %%
 
 slDataCoherentPred_subjectsMatched = diag(codSLCoherent);
-slDataCoherentPred_subjectsNotMatched = mean(reshape(codSLCoherent(~eye(6)),[5,6]))';
+slDataCoherentPred_subjectsNotMatched = mean(reshape(codSLCoherent(~eye(length(subject))),[length(subject)-1,length(subject)]))';
 
 % bbDataIncoherentPred_subjectMatched = diag(codBBIncoherent);
 % bbDataIncoherentPred_subjectNotMatched = mean(reshape(codBBIncoherent(~eye(6)),[5,6]))';

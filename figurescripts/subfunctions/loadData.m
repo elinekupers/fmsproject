@@ -1,10 +1,10 @@
-function [data, badChannels] = loadData(dataDir, whichSubject, type)
+function [data, badChannels] = loadData(dataDir, whichSession, type)
 
 
 switch type
     case 'SNR'
-        bb = load(sprintf(fullfile(dataDir, 's%02d_denoisedData_bb.mat'),whichSubject));
-        sl = load(sprintf(fullfile(dataDir, 's%02d_denoisedData_sl.mat'),whichSubject));
+        bb = load(sprintf(fullfile(dataDir, 's%02d_denoisedData_bb.mat'),whichSession));
+        sl = load(sprintf(fullfile(dataDir, 's%02d_denoisedData_sl.mat'),whichSession));
 
         data = {bb, sl};
         
@@ -30,10 +30,10 @@ switch type
 
 
         %% Load data
-        load(sprintf(fullfile(dataDir, 's%02d_conditions.mat'),whichSubject));
-        load(sprintf(fullfile(dataDir, 's%02d_sensorData.mat'),whichSubject));
-        load(sprintf(fullfile(dataDir, 's%02d_denoisedData_bb.mat'),whichSubject));
-        load(sprintf(fullfile(dataDir, 's%02d_denoisedts.mat'),whichSubject));
+        load(sprintf(fullfile(dataDir, 's%02d_conditions.mat'),whichSession));
+        load(sprintf(fullfile(dataDir, 's%02d_sensorData.mat'),whichSession));
+        load(sprintf(fullfile(dataDir, 's%02d_denoisedData_bb.mat'),whichSession));
+        load(sprintf(fullfile(dataDir, 's%02d_denoisedts.mat'),whichSession));
 
 
         % preprocessing parameters (see nppPreprocessData)
@@ -51,7 +51,7 @@ switch type
 
         % Make sure bad epochs and bad sensors are the same across two datasets
         assert(isequal(badEpochs,badEpochs0))
-        assert(isequal(badChannels,badChannels0))
+%         assert(isequal(badChannels,badChannels0))
 
         % Remove bad channels and bad epochs from data and conditions
         sensorData = sensorData(:,~badEpochs, ~badChannels);
