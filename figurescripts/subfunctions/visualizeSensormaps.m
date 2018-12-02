@@ -69,7 +69,7 @@ for ii = 1:size(data,1)
 
     % Plot data or predictions
     figure(fH1);
-    subplot(2,2,ii);
+    subplot(2,1,ii);
     [~,ch] = megPlotMap(dataToPlot,colormapLims,fH1,'bipolar',[],[],[], ...
         'isolines', contourmapLims, ...
     ...    'chanindx', dataToPlot > max(contourmapLims), ...
@@ -84,7 +84,6 @@ for ii = 1:size(data,1)
     % Check if a contour lines are a matrix, if so, plot contour lines based on these data   
     elseif ~isempty(contourmapPercentile) && length(contourmapPercentile)>1        
         
-        if ii < 3; idx = 1; else idx = 3; end
         fHP = figure(99); clf; subplot(211);
         external_contourmapLims1 = [1 1]*prctile(contourmapPercentile(idx,:), 93.6);
         external_colormapLims1   = [-1 1]*prctile(contourmapPercentile(idx,:), colormapPercentile);
@@ -97,7 +96,7 @@ for ii = 1:size(data,1)
         megPlotMap(contourmapPercentile(idx+1,:),external_colormapLims2,[],bipolar,[],[],[],'isolines', external_contourmapLims2);
         cP2 = findobj(gca,'Type','Contour');
         
-        % Plot them in actual mesh
+         % Plot them in actual mesh
         set(0, 'currentfigure', fH1);
         contour(cP1.XData, cP1.YData, cP1.ZData, external_contourmapLims1, 'LineColor','k', 'Fill','off','LineWidth',2);
         contour(cP2.XData, cP2.YData, cP2.ZData, external_contourmapLims2, 'LineColor','w', 'Fill','off','LineWidth',2);

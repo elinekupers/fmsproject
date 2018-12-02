@@ -6,7 +6,18 @@ switch type
         bb = load(sprintf(fullfile(dataDir, 's%02d_denoisedData_bb.mat'),whichSession));
         sl = load(sprintf(fullfile(dataDir, 's%02d_denoisedData_sl.mat'),whichSession));
 
-        data = {bb, sl};
+        % Pick full field condition (first one, or the only one)
+        if whichSession >8; whichCondition = 1; else whichCondition = [1 0 0]; end
+    
+        % get stimulus-locked snr
+        snr_sl.coh = getsignalnoise(sl.results.finalmodel(1), whichCondition, 'SNR',sl.badChannels);
+        snr_sl.coh = to157chan(snr_sl,~sl.badChannels,'nans');
+       
+        % get broadband snr for before
+        snr_bb = getsignalnoise(bb.results.finalmodel(1), whichCondition, 'SNR',bb.badChannels);
+        snr_bb = to157chan(snr_bb,~bb.badChannels,'nans');
+     
+        data = {snr_sl, snr_bb};
         
     case 'amplitudes'
         
@@ -98,15 +109,29 @@ switch type
         bb.blank = bb_ts(:,:,condEpochsBlank);
 
         % Compute log power for full and blank epochs at specified frequencies
-        sl.full = getstimlocked(sl.full,slFreq+1);  % Amplitude (so not squared). Square values to get units of power
-        sl.blank = getstimlocked(sl.blank,slFreq+1); % Amplitude (so not squared). Square values to get units of power
-
-        sl.full_coherent = getstimlocked_coherent(sl_ts,slFreq+1, condEpochsFull);  % Amplitude (so not squared). Square values to get units of power
-        sl.blank_coherent = getstimlocked_coherent(sl_ts,slFreq+1, condEpochsBlank); % Amplitude (so not squared). Square values to get units of power
         
-        bb.full  = getbroadband(bb.full ,keepFrequencies,fs); % Broadband data is already in units of power
-        bb.blank  = getbroadband(bb.blank,keepFrequencies,fs); % Broadband data is already in units of power
+        % Stimulus locked using incoherent spectrum
+        sl.full = getstimlocked(sl.full,slFreq+1);  % Amplitude (so not squared). Square values to get units of power
+        sl.full = to157chan(sl.full, ~badChannels,'nans');
 
+        sl.blank = getstimlocked(sl.blank,slFreq+1); % Amplitude (so not squared). Square values to get units of power
+        sl.blank = to157chan(sl.blank, ~badChannels,'nans');
+
+        % Stimulus locked using coherent spectrum
+        sl.full_coherent  = getstimlocked_coherent(sl_ts,slFreq+1, condEpochsFull);  % Amplitude (so not squared). Square values to get units of power
+        sl.full_coherent  = to157chan(sl.full_coherent, ~badChannels,'nans');
+
+        sl.blank_coherent = getstimlocked_coherent(sl_ts,slFreq+1, condEpochsBlank); % Amplitude (so not squared). Square values to get units of power
+        sl.blank_coherent = to157chan(sl.blank_coherent, ~badChannels,'nans');
+
+        % Broadband
+        bb.full   = getbroadband(bb.full ,keepFrequencies,fs); % Broadband data is already in units of power
+        bb.full   = to157chan(bb.full, ~badChannels,'nans');
+
+        bb.blank  = getbroadband(bb.blank,keepFrequencies,fs); % Broadband data is already in units of power       
+        bb.blank   = to157chan(bb.blank, ~badChannels,'nans');
+        
+        % Put in data struct
         data.sl = sl;
         data.bb = bb;
 

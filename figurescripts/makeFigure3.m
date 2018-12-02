@@ -17,7 +17,7 @@ function makeFigure3()
 %     addpath(genpath('~/matlab/git/toolboxes/meg_utils'))
 
 %% 0. Define paths and variables
-bsDB            = '/Volumes/server/Projects/MEG/brainstorm_db/';
+bsDB            = '/Users/kupers/projects/brainstorm_db/'; %'/Volumes/server/Projects/MEG/brainstorm_db/';
 figureDir       = fullfile(fmsRootPath, 'figures'); % Where to save images?
 saveFigures     = true;     % Save figures in the figure folder?
 dataDir         = fullfile(fmsRootPath, 'data');    % Where to get data?
@@ -31,14 +31,15 @@ projectName    = 'SSMEG';
 subject         = {'wl_subj002','wl_subj004','wl_subj005','wl_subj006','wl_subj010','wl_subj011'};
 
 % What's the plotting range
+dataType = 'SNR'; % can also be 'amplitudes' 
 climsSL = [-20,20];
 climsBB = [-6,6];
 climsPred = [-1 1]*1E-4;
 
 % Number of iterations for the random coherence prediction of the forward
 % model
-n        = 1000;     % number of timepoints (ms)
-nrEpochs = 1;        % number of epochs
+n        = 10;     % number of timepoints (ms)
+nrEpochs = 100;        % number of epochs
 
 % Define vector that can truncate number of sensors 
 keep_sensors = logical([ones(157,1); zeros(192-157,1)]); % Note: Figure out a more generic way to define keep_sensors
@@ -50,8 +51,7 @@ fH3 = figure(3); clf; set(fH3, 'Position', [1 1 1600 800], 'Name','Figure 3B, Da
 for s = 1:length(subject)
     
     d = dir(fullfile(bsDB, projectName, 'data', subject{s}, 'R*'));
-    if strcmp(subject{s},'wl_subj059'); idx =2; else idx = 1; end
-    BSdataDir = fullfile(d(idx).folder, d(idx).name);    
+    BSdataDir = fullfile(d(1).folder, d(1).name);    
     BSanatDir = fullfile(bsDB, projectName, 'anat', subject{s});
     
     %% 1. Load relevant matrices
@@ -99,55 +99,31 @@ for s = 1:length(subject)
     end
     
     % Load denoised data of example subject
-    data = loadData(fullfile(dataDir, subject{s}),whichSession, 'SNR');
-    bb = data{1};
-    sl = data{2};
-    
-    % Pick full field condition (first one, or the only one)
-    if whichSession >8; whichCondition = 1; else whichCondition = [1 0 0]; end
-    
-    % get stimulus-locked snr
-    sl_signal = getsignalnoise(sl.results.origmodel(1),whichCondition, 'SNR',sl.badChannels);
-    % get broadband snr for before and after denoising
-    bb_signal = getsignalnoise(bb.results.origmodel(1),  whichCondition, 'SNR',bb.badChannels);
-    
-    % Account for NaNs in the data
-    sl_signal = to157chan(sl_signal,~sl.badChannels,'nans');
-    bb_signal = to157chan(bb_signal,~bb.badChannels,'nans');
-    
-    
+    data = loadData(fullfile(dataDir, subject{s}),whichSession, dataType);
+    sl = data{1};
+    bb = data{2};
+
+       
     %% 4. Plotting to get contour lines
     figure(2); clf;
     ax1 =subplot(211);
     megPlotMap(abs(w.V1c(s,:)),climsPred,[],bipolar,[],[],[],'isolines', 3);
     c1 = findobj(ax1.Children,'Type','Contour');
     
-%     ax2 =subplot(212);
-%     megPlotMap(abs(w.V1i(s,:)),0.5*climsPred,[],bipolar,[],[],[],'isolines', 3);
-%     c2 = findobj(ax2.Children,'Type','Contour');
+    ax2 =subplot(212);
+    megPlotMap(abs(w.V1i(s,:)),0.5*climsPred,[],bipolar,[],[],[],'isolines', 3);
+    c2 = findobj(ax2.Children,'Type','Contour');
     
     figure(1);
     subplot(2,length(subject),s)
-    [~,ch] = megPlotMap(sl_signal,climsSL,gcf,'bipolar');
+    [~,ch] = megPlotMap(sl,climsSL,gcf,'bipolar');
     hold on; contour(c1.XData,c1.YData, c1.ZData,3, 'k-'); colormap(bipolar);
     set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
     
-%     subplot(2,length(subject),s+length(subject))
-%     [~,ch] = megPlotMap(bb_signal,climsBB,gcf,'bipolar');
-%     hold on; contour(c2.XData,c2.YData, c2.ZData,3, 'k-'); colormap(bipolar);
-%     set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
-%     
-%     figure(3);
-%     subplot(2,length(subject),s)
-%     [~,ch] = megPlotMap(sl_signal,climsSL,gcf,'bipolar');
-%     hold on; contour(c2.XData,c2.YData, c2.ZData,3, 'k-'); colormap(bipolar);
-%     set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
-    
-%     subplot(2,length(subject),s+length(subject))
-%     [~,ch] = megPlotMap(bb_signal,climsBB,gcf,'bipolar');
-%     hold on; contour(c1.XData,c1.YData, c1.ZData,3, 'k-'); colormap(bipolar);
-%     set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
-%     
+    subplot(2,length(subject),s+length(subject))
+    [~,ch] = megPlotMap(bb,climsBB,gcf,'bipolar');
+    hold on; contour(c2.XData,c2.YData, c2.ZData,3, 'k-'); colormap(bipolar);
+    set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);   
     
     %% Calculate COD
     
@@ -181,9 +157,6 @@ if saveFigures % use different function to save figures, since figurewrite crash
     set(0, 'currentfigure', fH1);
 %     figurewrite(fullfile(figureDir,'Figure3A_predictionV123VsDataIndividuals_matched'),[],0,'.',1);
     hgexport(fH1, fullfile(figureDir, 'Figure3A_predictionV123VsDataIndividuals_matched.eps'))
-    set(0, 'currentfigure', fH3);
-%     figurewrite(fullfile(figureDir,'Figure3B_predictionV123VsDataIndividuals_matched'),[],0,'.',1);
-    hgexport(fH3, fullfile(figureDir, 'Figure3B_predictionV123VsDataIndividuals_unmatched.eps'))
     
 end
 
@@ -214,35 +187,18 @@ for d = 1:length(subject)
     
 end
 
-
-%%
-
+% Plot bar graph
 slDataCoherentPred_subjectsMatched = diag(codSLCoherent);
 slDataCoherentPred_subjectsNotMatched = mean(reshape(codSLCoherent(~eye(length(subject))),[length(subject)-1,length(subject)]))';
-
-% bbDataIncoherentPred_subjectMatched = diag(codBBIncoherent);
-% bbDataIncoherentPred_subjectNotMatched = mean(reshape(codBBIncoherent(~eye(6)),[5,6]))';
-
 slDataIncoherentPred_subjectsMatched = diag(codSLIncoherent);
-% bbDataCoherentPred_subjectsMatched = diag(codBBCoherent);
-
 
 allData = cat(2, slDataCoherentPred_subjectsMatched, ...
                  slDataIncoherentPred_subjectsMatched, ...
                  slDataCoherentPred_subjectsNotMatched);                 
-%                  bbDataIncoherentPred_subjectMatched, ...
-%                  bbDataIncoherentPred_subjectNotMatched, ...                 
-%                  bbDataCoherentPred_subjectsMatched);
                  
 labels = {'Same subject - SL & Uniform', ...
           'Same subject - SL & Random', ...
           'Diff subject - SL & Uniform'};
-%       , ... 
-%           'Same subject - BB & Random', ...
-%           'Diff subject - BB & Random', ...          
-%            ...
-%           'Same subject - BB & Uniform'};
-          
 colors = [0 0 0];
 
 figure; set(gcf, 'Color', 'w', 'Position', [ 1000, 781, 335, 557])

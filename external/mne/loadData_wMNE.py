@@ -45,3 +45,6 @@ mne.viz.plot_alignment(raw.info, trans=trans, subject='wlsubj048',
                        show_axes=True, dig=True, eeg=[], meg='sensors',
                        coord_frame='meg')
 
+
+mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
+                 brain_surfaces='white', orientation='coronal')
