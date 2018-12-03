@@ -11,13 +11,13 @@ switch type
     
         % get stimulus-locked snr
         snr_sl.coh = getsignalnoise(sl.results.finalmodel(1), whichCondition, 'SNR',sl.badChannels);
-        snr_sl.coh = to157chan(snr_sl,~sl.badChannels,'nans');
+        snr_sl.coh = to157chan(snr_sl.coh,~sl.badChannels,'nans');
        
         % get broadband snr for before
         snr_bb = getsignalnoise(bb.results.finalmodel(1), whichCondition, 'SNR',bb.badChannels);
         snr_bb = to157chan(snr_bb,~bb.badChannels,'nans');
      
-        data = {snr_sl, snr_bb};
+        data = {snr_sl.coh, snr_bb};
         
     case 'amplitudes'
         

@@ -26,17 +26,14 @@ subject         = {'wlsubj048', 'wlsubj046','wl_subj039','wl_subj059', 'wl_subj0
 if nargin < 1; exampleSubject  = 1; end % Which example subject to show if not defined
 
 % Set up paths
-figureDir          = fullfile(fmsRootPath, 'figures', subject{exampleSubject}); % Where to save images?
-dataDir            = fullfile(fmsRootPath, 'data');    % Where to get data?
-saveFigures        = true;     % Save figures in the figure folder?
-plotMeanSubject    = false;     % Plot average subject?
-useSLIncohSpectrum = true;     % Plot SL amplitudes from incoherent spectrum (default: true)
+figureDir              = fullfile(fmsRootPath, 'figures', subject{exampleSubject}); % Where to save images?
+dataDir                = fullfile(fmsRootPath, 'data');    % Where to get data?
+saveFigures            = true;      % Save figures in the figure folder?
+plotMeanSubject        = false;     % Plot average subject?
+useSLIncohSpectrum     = true;      % Plot SL amplitudes from incoherent spectrum (default: true)
+doSOIcomparison        = false;     % Compare the signal for the two types of SOI (sensors of interest, requires makeFigure1 to be executed)
 
-% What's the plotting range for individual example and average across
-% subjects?
-% tmp = load(fullfile(dataDir, subject{exampleSubject}, sprintf('%s_prediction', subject{exampleSubject})));
-% contourmapPercentile = tmp.dataToPlot;
-
+% What contour and color map percentile to use to define the limits
 contourmapPercentile   = 93.6; % draw contour line at what fraction of the colormap?
 colormapPercentile     = 97.5; % percentile of data to use for max/min limits of colorbar
 snrThresh              = 1;    % Threshold amplitudes by 1 SD of SNR
@@ -50,28 +47,6 @@ nboot = 1000;
 
 %% 1. Load subject's data
 
-% Get sensors of interest based on forward model predictions
-% sensorsOfInterest is booloean of 2x157
-
-% Row 1 SOI based on single subject uniform forward model prediction,
-% Row 2 SOI based on single subject random forward model prediction,
-tmp = load(fullfile(dataDir, subject{exampleSubject}, sprintf('%s_sensorsOfInterestFromPrediction', subject{exampleSubject})));
-soi = logical(tmp.sensorsOfInterest); clear sensorsOfInterest; clear tmp;
-
-% Find the sensors for the single subject for uniform and random phase
-% forward model predictions
-uniformSensors = find(soi(1,:));
-randomSensors  = find(soi(2,:));
-
-% Get union and separate sensors for only uniform or random phase predictions
-singleSubject.unionUR       = intersect(uniformSensors, randomSensors);
-singleSubject.onlyUniform   = uniformSensors(~ismember(uniformSensors,singleSubject.unionUR));
-singleSubject.onlyRandom    = randomSensors(~ismember(randomSensors,singleSubject.unionUR));
-
-clear uniformSensors randomSensors;
-
-
-%% Get data by looping over subjects
 for s = 1:length(subject)
     switch subject{s}
         % Go from subject to session nr
@@ -125,12 +100,32 @@ for s = 1:length(subject)
 
     clear data bb sl snr_sl snr_bb data;
     
+    if doSOIcomparison
+        
+        %  Get sensors of interest based on forward model predictions
+        %  (sensorsOfInterest is booloean of 2x157)
+
+        % Row 1 SOI based on single subject uniform forward model prediction,
+        % Row 2 SOI based on single subject random forward model prediction,
+        tmp = load(fullfile(dataDir, subject{exampleSubject}, sprintf('%s_sensorsOfInterestFromPrediction', subject{exampleSubject})));
+        soi = logical(tmp.sensorsOfInterest); clear sensorsOfInterest; clear tmp;
+
+        % Find the sensors for the single subject for uniform and random phase
+        % forward model predictions
+        uniformSensors = find(soi(1,:));
+        randomSensors  = find(soi(2,:));
+
+        % Get union and separate sensors for only uniform or random phase predictions
+        singleSubject.unionUR       = intersect(uniformSensors, randomSensors);
+        singleSubject.onlyUniform   = uniformSensors(~ismember(uniformSensors,singleSubject.unionUR));
+        singleSubject.onlyRandom    = randomSensors(~ismember(randomSensors,singleSubject.unionUR));
+
+        clear uniformSensors randomSensors;
+    end
 end
 
 
-%% Bootstrap across epochs
-
-fns = fieldnames(singleSubject);
+%% Get contrast between full and blank for SL and BB data
 
 % Init matrices
 diffFullBlankSL = NaN(length(subject),size(ampl{s}.sl.full,2));
@@ -144,25 +139,33 @@ for s = 1:length(subject)
 end
 
 
-% Loop over fieldnames (sensors of interest)
-for ii = 1:numel(fns)
-    
-    % Example subject
-    bootstat{1}.sl.full.(fns{ii})  = bootstrp(nboot, @(x) nanmean(x,1), ampl{1}.sl.full(:,singleSubject.(fns{ii})));
-    bootstat{1}.sl.blank.(fns{ii})  = bootstrp(nboot, @(x) nanmean(x,1), ampl{1}.sl.blank(:,singleSubject.(fns{ii})));
-    
-    % take difference between full and blank
-    bootstat{1}.sl.diff.(fns{ii}) = mean([bootstat{1}.sl.full.(fns{ii}) - bootstat{1}.sl.blank.(fns{ii})],2);
-    
-    bootstat{1}.bb.full.(fns{ii})  = bootstrp(nboot, @(x) nanmean(x,1), ampl{1}.bb.full(:,singleSubject.(fns{ii})));
-    bootstat{1}.bb.blank.(fns{ii})  = bootstrp(nboot, @(x) nanmean(x,1), ampl{1}.bb.blank(:,singleSubject.(fns{ii})));
-    
-    bootstat{1}.bb.diff.(fns{ii}) = mean([bootstat{1}.bb.full.(fns{ii}) - bootstat{1}.bb.blank.(fns{ii})],2);
-    
-    if plotMeanSubject
-        % Group average
-        bootstatGroup.sl.(fns{ii}) = bootstrp(nboot, @(x) nanmean(x,2), diffFullBlankSL(:,averageSubject.(fns{ii})));
-        bootstatGroup.bb.(fns{ii}) = bootstrp(nboot, @(x) nanmean(x,2), diffFullBlankBB(:,averageSubject.(fns{ii})));
+%% Bootstrap across epochs if requested
+
+if doSOIcomparison 
+
+    fns = fieldnames(singleSubject);
+
+    % Loop over fieldnames (sensors of interest)
+    for ii = 1:numel(fns)
+
+        % Example subject
+        bootstat{1}.sl.full.(fns{ii})  = bootstrp(nboot, @(x) nanmean(x,1), ampl{1}.sl.full(:,singleSubject.(fns{ii})));
+        bootstat{1}.sl.blank.(fns{ii})  = bootstrp(nboot, @(x) nanmean(x,1), ampl{1}.sl.blank(:,singleSubject.(fns{ii})));
+
+        % take difference between full and blank
+        bootstat{1}.sl.diff.(fns{ii}) = mean([bootstat{1}.sl.full.(fns{ii}) - bootstat{1}.sl.blank.(fns{ii})],2);
+
+        bootstat{1}.bb.full.(fns{ii})  = bootstrp(nboot, @(x) nanmean(x,1), ampl{1}.bb.full(:,singleSubject.(fns{ii})));
+        bootstat{1}.bb.blank.(fns{ii})  = bootstrp(nboot, @(x) nanmean(x,1), ampl{1}.bb.blank(:,singleSubject.(fns{ii})));
+
+        bootstat{1}.bb.diff.(fns{ii}) = mean([bootstat{1}.bb.full.(fns{ii}) - bootstat{1}.bb.blank.(fns{ii})],2);
+
+        if plotMeanSubject
+            % Group average
+            bootstatGroup.sl.(fns{ii}) = bootstrp(nboot, @(x) nanmean(x,2), diffFullBlankSL(:,averageSubject.(fns{ii})));
+            bootstatGroup.bb.(fns{ii}) = bootstrp(nboot, @(x) nanmean(x,2), diffFullBlankBB(:,averageSubject.(fns{ii})));
+        end
+
     end
     
 end
@@ -176,12 +179,12 @@ snrThreshMask.bb.single = abs(squeeze(snr(exampleSubject,2,:))) > snrThresh;
 dataToPlot   = cat(1, diffFullBlankSL(1,:) .* snrThreshMask.sl.single', ...
                  diffFullBlankBB(1,:) .* snrThreshMask.bb.single');
 
-fig_ttl      = {'Figure2_Observed_MEG_Data', 'Figure2_Sl_and_Broadband_Compared'};
+fig_ttl      = {sprintf('Figure2_Observed_MEG_Data_%d', useSLIncohSpectrum), sprintf('Figure2_Sl_and_Broadband_Compared_%d', useSLIncohSpectrum)};
 sub_ttl      = {sprintf('Stimulus locked S%d', exampleSubject), ...
                 sprintf('Broadband S%d', exampleSubject)};
 
 % Plot it!
-visualizeSensormaps(dataAllMesh, colormapPercentile, contourmapPercentile, [], [], fig_ttl, sub_ttl, saveFigures, figureDir);
+visualizeSensormaps(dataToPlot, colormapPercentile, contourmapPercentile, [], [], fig_ttl, sub_ttl, saveFigures, figureDir);
 
 
 %% 3. Plot average across subjects if requested
@@ -223,33 +226,34 @@ if plotMeanSubject
 
 
     %% 4. Make barplot of bootstrapped data of sensors that fall within contour lines and compare across subjects anatomy and forward model phase
+    if doSOIcomparison
+        
+        % Make figure
+        figure; set(gcf, 'Position', [509, 238, 672, 1072], 'Color','w')
+        labels = {'Union', 'Only Uniform', 'Only Random'};
+        ttls   = {'SL one subject',  'SL group average', 'BB one subject', 'BB group average'};
 
-    % Make figure
-    figure; set(gcf, 'Position', [509, 238, 672, 1072], 'Color','w')
-    labels = {'Union', 'Only Uniform', 'Only Random'};
-    ttls   = {'SL one subject',  'SL group average', 'BB one subject', 'BB group average'};
+        dataAllBox = {bootstat{1}.sl.diff, bootstatGroup.sl, bootstat{1}.bb.diff, bootstatGroup.bb};
 
-    dataAllBox = {bootstat{1}.sl.diff, bootstatGroup.sl, bootstat{1}.bb.diff, bootstatGroup.bb};
+        ylims = [-10 50; -10 50; -2 3; -2 3];
 
-    ylims = [-10 50; -10 50; -2 3; -2 3];
+        for dd = 1:4
+            subplot(2,2,dd)
 
-    for dd = 1:4
-        subplot(2,2,dd)
+            boxplot([nanmean(dataAllBox{dd}.unionUR,2), nanmean(dataAllBox{dd}.onlyUniform,2), nanmean(dataAllBox{dd}.onlyRandom,2)], ...
+                'PlotStyle','traditional', 'Widths',0.2,'MedianStyle','line','Colors','mrb'); hold on
+            plot([-0.5 4.5], [0 0],'k', 'LineWidth',2)
 
-        boxplot([nanmean(dataAllBox{dd}.unionUR,2), nanmean(dataAllBox{dd}.onlyUniform,2), nanmean(dataAllBox{dd}.onlyRandom,2)], ...
-            'PlotStyle','traditional', 'Widths',0.2,'MedianStyle','line','Colors','mrb'); hold on
-        plot([-0.5 4.5], [0 0],'k', 'LineWidth',2)
+            box off; ylabel('Amplitudes (fT)');
+            set(gca,'TickDir','out', 'XTickLabel', labels, 'XTickLabelRotation',45, 'FontSize',12,'LineWidth',2, 'YLim', ylims(dd,:));
+            title(ttls{dd});
 
-        box off; ylabel('Amplitudes (fT)');
-        set(gca,'TickDir','out', 'XTickLabel', labels, 'XTickLabelRotation',45, 'FontSize',12,'LineWidth',2, 'YLim', ylims(dd,:));
-        title(ttls{dd});
+        end
 
+        if saveFigures
+            hgexport(gcf,fullfile(figureDir,'Figure2_SOI_boxplot'))
+        end
     end
-
-    if saveFigures
-        hgexport(gcf,fullfile(figureDir,'Figure2_SOI_boxplot'))
-    end
-
 end
 
 return

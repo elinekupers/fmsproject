@@ -32,7 +32,7 @@ plotMeanSubject = false;     % Plot average subject?
 
 % What's the plotting range for individual example and average across
 % subjects?
-contourmapPercentile   = 93.6; % draw contour line at what fraction of the colormap?
+contourmapPercentile   = 93.6; % top 15, or for top 10: 93.6; % draw contour line at what fraction of the colormap?
 colormapPercentile     = 97.5; % percentile of data to use for max/min limits of colorbar
 
 % Number of iterations for the random coherence prediction of the forward
@@ -55,12 +55,17 @@ for s = 1:length(subject)
     G_constrained = getGainMatrix(bsData, keep_sensors);
 
     % Get V1 template limited to 11 degrees eccentricity
-    template = getTemplate(bsAnat, 'V1', 11);
+    area = 'V1';
+    template = getTemplate(bsAnat, area, 11);
 
     % Simulate coherent and incoherent source time series and compute
     % predictions from forward model (w)
-    tmp = getForwardModelPredictions(G_constrained, template.V1StimEccen, [], n, nrEpochs);
-   
+    if strcmp(area, 'all')
+        tmp = getForwardModelPredictions(G_constrained, template.V123StimEccen, [], n, nrEpochs);
+    else
+       tmp = getForwardModelPredictions(G_constrained, template.V1StimEccen, [], n, nrEpochs);
+    end
+    
     % Take mean amplitude across epochs
     amps.c = abs(fft(tmp.c,[],2));
     amps.i = abs(fft(tmp.i,[],2));
@@ -77,7 +82,7 @@ dataToPlot   = cat(1,w.V1c(exampleSubject,:), w.V1i(exampleSubject,:));
 colorMarkers = {'r','b', 'r', 'b'};
 sub_ttl      = {sprintf('Uniform phase S%d', exampleSubject), ...
                 sprintf('Random phase S%d', exampleSubject)};                
-fig_ttl      = {'Figure1_V1_model_predictions', 'Figure1_Uniform_and_Random_Compared'};
+fig_ttl      = {sprintf('Figure1_V1_model_predictions_%s', area), sprintf('Figure1_Uniform_and_Random_Compared_%s', area)};
 markerType   = '.';
 
 % Make figure and data dir for subject, if non-existing             
@@ -102,9 +107,9 @@ if plotMeanSubject
     w.V1c_mn = mean(w.V1c,1);
     w.V1i_mn = mean(w.V1i,1);
     
-    dataToPlot = cat(w.V1c_mn, w.V1i_mn);
+    dataToPlot = [w.V1c_mn; w.V1i_mn];
     
-    fig_ttl    = {'Figure1_V1_model_predictions', 'Figure1_Uniform_and_Random_Compared'};
+    fig_ttl    = {sprintf('Figure1_V1_model_predictions_%s', area), sprintf('Figure1_Uniform_and_Random_Compared_%s', area)};
     sub_ttl    = {sprintf('Uniform phase Average N = %d', length(subject)), ...
                   sprintf('Random phase Average N = %d', length(subject))};
     markerType = '.';
@@ -122,7 +127,7 @@ if plotMeanSubject
     sensorsOfInterest = logical(sensorsOfInterest);
 
     % Save sensors of interest falling within the contour lines
-    save(fullfile(dataDir, 'Average_sensorsOfInterestFromPrediction'), 'sensorsOfInterest');
-    save(fullfile(dataDir, 'Average_prediction'), 'dataToPlot');           
+    save(fullfile(dataDir, sprintf('Average_sensorsOfInterestFromPrediction_%s', area)), 'sensorsOfInterest');
+    save(fullfile(dataDir, sprintf('Average_prediction_%s',area)), 'dataToPlot');           
             
 end
