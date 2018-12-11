@@ -25,13 +25,13 @@
 
 %% 0. Define paths and variables
 
-if ~exist('MRIread'), 
+if ~exist('MRIread') 
     addpath(genpath('/Applications/freesurfer/matlab'));
     addpath(genpath('/Applications/freesurfer/fsfast/toolbox'))
 end
 
-bssubject = 'wlsubj048';
-fssubject = 'wlsubj048';
+bssubject = 'wlsubj070';
+fssubject = 'wlsubj070';
 exp     = 'SSMEG';
 
 % Freesurfer, brainstorm database and data/anatomy directories
@@ -39,7 +39,7 @@ fsdir     = '/Volumes/server/Freesurfer_subjects';
 bsDB     = '/Volumes/server/Projects/MEG/brainstorm_db';
 
 d = dir(fullfile(bsDB, exp, 'data', bssubject));
-if strcmp(bssubject,'wl_subj002')
+if strcmp(bssubject,'wlsubj002')
     datadir = fullfile(bsDB, exp, 'data', bssubject, d(end-1).name);
 else
     datadir = fullfile(bsDB, exp, 'data', bssubject, d(end).name);
@@ -48,4 +48,4 @@ end
 anatdir = fullfile(bsDB, exp, 'anat', bssubject);
 
 %% 1.1 Create downsampled amplitude template
-interp_retinotopy([], [], fssubject, bssubject, exp)
+interp_retinotopy(bsDB, fsdir, fssubject, bssubject, exp)
