@@ -26,12 +26,12 @@ dataDir         = fullfile(fmsRootPath, 'data');    % Where to get data?
 projectName     = 'SSMEG';
 
 % Which subjects to average?
-%   Full  only: 'wlsubj048', 'wlsubj046','wl_subj039','wl_subj059', 'wl_subj067'
-%   Full, Left, Right: 'wl_subj002','wl_subj004','wl_subj005','wl_subj006','wl_subj010','wl_subj011'
-subject         = {'wlsubj048', 'wlsubj046','wl_subj039','wl_subj059', 'wl_subj067'};
+%   Full  only: 'wlsubj048', 'wlsubj046','wlsubj039','wlsubj059', 'wlsubj067'
+%   Full, Left, Right: 'wlsubj002','wlsubj004','wlsubj005','wlsubj006','wlsubj010','wlsubj011'
+subject         = {'wlsubj002','wlsubj004','wlsubj005','wlsubj006','wlsubj010','wlsubj011','wlsubj048', 'wlsubj046','wlsubj039','wlsubj059', 'wlsubj067', 'wlsubj070'};
 
 % What type of data to use? 
-dataType        = 'SNR'; % can be 'SNR" or 'amplitudes'
+dataType        = 'amplitudes'; % can be 'SNR" or 'amplitudes'
 area            = 'all'; % can be all = V1-V3, or 'V1' 
 
 % What's the plotting range
@@ -47,8 +47,8 @@ nrEpochs        = 1;      % number of epochs
 keep_sensors    = logical([ones(157,1); zeros(192-157,1)]); % Note: Figure out a more generic way to define keep_sensors
 
 % Predefine figures
-fH1 = figure(1); clf; set(fH1, 'Position', [1 1 1600 800], 'Name','Figure 3A, Data against model predictions V1 - matched');
-fH3 = figure(3); clf; set(fH3, 'Position', [1 1 1600 800], 'Name','Figure 3B, Data against model predictions V1 - unmatched');
+fH1 = figure(1); clf; set(fH1, 'Position', [1 1 2550 1300], 'Name','Figure 3A, Data against model predictions V1 - matched');
+if length(subject) <= 6; nrows = 2; ncols = 6; else; nrows = 4; ncols = 6; end
 
 % Loop over subjects to get predictions and data
 for s = 1:length(subject)
@@ -81,28 +81,30 @@ for s = 1:length(subject)
     % Get stimulus locked and broadband response
     switch subject{s}
         % Go from subject to session nr
-        case 'wl_subj002'
+        case 'wlsubj002'
             whichSession = 2;
-        case 'wl_subj004'
+        case 'wlsubj004'
             whichSession = 7;
-        case 'wl_subj005'
+        case 'wlsubj005'
             whichSession = 8;
-        case 'wl_subj006'
+        case 'wlsubj006'
             whichSession = 1;
-        case 'wl_subj010'
+        case 'wlsubj010'
             whichSession = 6;
-        case 'wl_subj011'
+        case 'wlsubj011'
             whichSession = 5;
         case 'wlsubj048'
             whichSession = 9; % Full field Only
         case 'wlsubj046'
             whichSession = 10; % Full field Only
-        case 'wl_subj039'
+        case 'wlsubj039'
             whichSession = 11; % Full field Only
-        case 'wl_subj059'
+        case 'wlsubj059'
             whichSession = 12; % Full field Only
-        case 'wl_subj067'
+        case 'wlsubj067'
             whichSession = 13; % Full field Only
+        case 'wlsubj070'
+            whichSession = 14; % Full field Only
     end
     
     % Load denoised data of example subject
@@ -128,16 +130,16 @@ for s = 1:length(subject)
     c2 = findobj(ax2.Children,'Type','Contour');
     
     figure(1);
-    subplot(2,length(subject),s)
+    subplot(nrows,ncols,s)
     [~,ch] = megPlotMap(sl,climsSL,gcf,'bipolar');
     hold on; contour(c1.XData,c1.YData, c1.ZData,3, 'k-'); 
-    colormap(bipolar);
+    colormap(bipolar); title(sprintf('SL: S%d',s));
     set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
     
-    subplot(2,length(subject),s+length(subject))
+    subplot(nrows,ncols,s+length(subject))
     [~,ch] = megPlotMap(bb,climsBB,gcf,'bipolar');
     hold on; contour(c2.XData,c2.YData, c2.ZData,3, 'k-');
-    colormap(bipolar);
+    colormap(bipolar); title(sprintf('BB: S%d',s));
     set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);   
     
     %% Calculate COD
