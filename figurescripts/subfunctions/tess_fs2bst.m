@@ -30,13 +30,13 @@ sub = bst_get('Subject', bst_subject);
 % And the protocol
 proto = bst_get('ProtocolInfo');
 % Find the FreeSurfer subject directory:
-if ~exist(fs_subject, 'dir')
-    subsdir = getenv('SUBJECTS_DIR');
-    if isempty(subsdir)
-        error(sprintf('Could not find given freesurfer subject: %s', fs_subject));
-    end
-    fs_subject = fullfile(subsdir, fs_subject);
+subsdir = getenv('SUBJECTS_DIR');
+fs_subject = fullfile(subsdir, fs_subject);
+
+if ~exist(fs_subject, 'dir')   
+    error(sprintf('Could not find given freesurfer subject: %s', fs_subject));
 end
+
 if ~exist(fs_subject, 'dir')
     error(sprintf('FreeSurfer subject directory not found: %s', fs_subject));
 end
