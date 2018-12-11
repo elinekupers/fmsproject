@@ -20,9 +20,9 @@ function makeFigure2(exampleSubject)
 %% 0. Set up paths and define parameters
 
 % Which subjects to average?
-%   Full  only: 'wlsubj048', 'wlsubj046','wl_subj039','wl_subj059', 'wl_subj067'
-%   Full, Left, Right: 'wl_subj002','wl_subj004','wl_subj005','wl_subj006','wl_subj010','wl_subj011'
-subject         = {'wlsubj070'};%{'wl_subj002','wl_subj004','wl_subj005','wl_subj006','wl_subj010','wl_subj011','wlsubj048', 'wlsubj046','wl_subj039','wl_subj059', 'wl_subj067'};
+%   Full  only: 'wlsubj048', 'wlsubj046','wlsubj039','wlsubj059', 'wlsubj067'
+%   Full, Left, Right: 'wlsubj002','wlsubj004','wlsubj005','wlsubj006','wlsubj010','wlsubj011'
+subject         = {'wlsubj002','wlsubj004','wlsubj005','wlsubj006','wlsubj010','wlsubj011','wlsubj048', 'wlsubj046','wlsubj039','wlsubj059', 'wlsubj067'};
 if nargin < 1; exampleSubject  = 1; end % Which example subject to show if not defined
 
 % Set up paths
