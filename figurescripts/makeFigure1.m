@@ -19,11 +19,11 @@ function makeFigure1(exampleSubject)
 % Which subjects to average?
 %   Full  only: 'wlsubj048', 'wlsubj046','wl_subj039','wl_subj059', 'wl_subj067'
 %   Full, Left, Right: 'wl_subj002','wl_subj004','wl_subj005','wl_subj006','wl_subj010','wl_subj011'
-subject         = {'wlsubj048', 'wlsubj046','wl_subj039','wl_subj059', 'wl_subj067'};
+subject         = {'wlsubj048', 'wlsubj046','wl_subj039','wl_subj059', 'wl_subj067', 'wlsubj070'};
 if nargin < 1; exampleSubject  = 1; end
 
 % Path to brainstorm database and project name
-bsDB            = '/Users/kupers/projects/brainstorm_db/'; %'/Volumes/server/Projects/MEG/brainstorm_db/';
+bsDB            = '/Volumes/server/Projects/MEG/brainstorm_db/';
 projectName     = 'SSMEG';
 figureDir       = fullfile(fmsRootPath,'figures', subject{exampleSubject}); % Where to save images?
 dataDir         = fullfile(fmsRootPath,'data', subject{exampleSubject}); % Where to save images?
