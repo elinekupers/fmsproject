@@ -22,7 +22,7 @@ function makeFigure2(exampleSubject)
 % Which subjects to average?
 %   Full  only: 'wlsubj048', 'wlsubj046','wl_subj039','wl_subj059', 'wl_subj067'
 %   Full, Left, Right: 'wl_subj002','wl_subj004','wl_subj005','wl_subj006','wl_subj010','wl_subj011'
-subject         = {'wlsubj048', 'wlsubj046','wl_subj039','wl_subj059', 'wl_subj067'};
+subject         = {'wlsubj070'};%{'wl_subj002','wl_subj004','wl_subj005','wl_subj006','wl_subj010','wl_subj011','wlsubj048', 'wlsubj046','wl_subj039','wl_subj059', 'wl_subj067'};
 if nargin < 1; exampleSubject  = 1; end % Which example subject to show if not defined
 
 % Set up paths
@@ -72,6 +72,8 @@ for s = 1:length(subject)
             whichSession = 12; % Full field Only
         case 'wl_subj067'
             whichSession = 13; % Full field Only
+        case 'wlsubj070'
+            whichSession = 14; % Full field Only
     end
     
     
@@ -178,7 +180,8 @@ snrThreshMask.bb.single = abs(squeeze(snr(exampleSubject,2,:))) > snrThresh;
 
 dataToPlot   = cat(1, diffFullBlankSL(1,:) .* snrThreshMask.sl.single', ...
                  diffFullBlankBB(1,:) .* snrThreshMask.bb.single');
-
+% dataToPlot(:,98)=NaN; % Check if this is always a bad channel, or only
+% for a certain subject
 fig_ttl      = {sprintf('Figure2_Observed_MEG_Data_%d', useSLIncohSpectrum), sprintf('Figure2_Sl_and_Broadband_Compared_%d', useSLIncohSpectrum)};
 sub_ttl      = {sprintf('Stimulus locked S%d', exampleSubject), ...
                 sprintf('Broadband S%d', exampleSubject)};
