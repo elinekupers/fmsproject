@@ -50,7 +50,7 @@ fH1 = figure; clf; set(fH1,'position',[1,600,1400,800], 'Name', fig_ttl{1}, 'Num
 if ~isempty(contourmapPercentile) && length(contourmapPercentile)==1
     fH2 = figure; clf; set(fH2,'position',[1400,600,700,800], 'Name', fig_ttl{2}, 'NumberTitle', 'off');
                    subplot(2,1,1); megPlotMap(zeros(1,157)); colormap(cmap);
-                   subplot(2,1,2); megPlotMap(zeros(1,157)); colormap(cmap);
+%                    subplot(2,1,2); megPlotMap(zeros(1,157)); colormap(cmap);
 end
 
 % Save sensors of interest that fall within the contour lines
