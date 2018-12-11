@@ -174,12 +174,11 @@ end
 
 
 %% 2. Plot one subject
-
 snrThreshMask.sl.single = abs(squeeze(snr(exampleSubject,1,:))) > snrThresh;
 snrThreshMask.bb.single = abs(squeeze(snr(exampleSubject,2,:))) > snrThresh;
 
-dataToPlot   = cat(1, diffFullBlankSL(1,:) .* snrThreshMask.sl.single', ...
-                 diffFullBlankBB(1,:) .* snrThreshMask.bb.single');
+dataToPlot   = cat(1, diffFullBlankSL(exampleSubject,:) .* snrThreshMask.sl.single', ...
+                 diffFullBlankBB(exampleSubject,:) .* snrThreshMask.bb.single');
 % dataToPlot(:,98)=NaN; % Check if this is always a bad channel, or only
 % for a certain subject
 fig_ttl      = {sprintf('Figure2_Observed_MEG_Data_%d', useSLIncohSpectrum), sprintf('Figure2_Sl_and_Broadband_Compared_%d', useSLIncohSpectrum)};
@@ -188,7 +187,6 @@ sub_ttl      = {sprintf('Stimulus locked S%d', exampleSubject), ...
 
 % Plot it!
 visualizeSensormaps(dataToPlot, colormapPercentile, contourmapPercentile, [], [], fig_ttl, sub_ttl, saveFigures, figureDir);
-
 
 %% 3. Plot average across subjects if requested
 
