@@ -50,27 +50,27 @@ nboot = 1000;
 for s = 1:length(subject)
     switch subject{s}
         % Go from subject to session nr
-        case 'wl_subj002'
+        case 'wlsubj002'
             whichSession = 2;
-        case 'wl_subj004'
+        case 'wlsubj004'
             whichSession = 7;
-        case 'wl_subj005'
+        case 'wlsubj005'
             whichSession = 8;
-        case 'wl_subj006'
+        case 'wlsubj006'
             whichSession = 1;
-        case 'wl_subj010'
+        case 'wlsubj010'
             whichSession = 6;
-        case 'wl_subj011'
+        case 'wlsubj011'
             whichSession = 5;
         case 'wlsubj048'
             whichSession = 9; % Full field Only
         case 'wlsubj046'
             whichSession = 10; % Full field Only
-        case 'wl_subj039'
+        case 'wlsubj039'
             whichSession = 11; % Full field Only
-        case 'wl_subj059'
+        case 'wlsubj059'
             whichSession = 12; % Full field Only
-        case 'wl_subj067'
+        case 'wlsubj067'
             whichSession = 13; % Full field Only
         case 'wlsubj070'
             whichSession = 14; % Full field Only
