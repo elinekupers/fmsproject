@@ -12,14 +12,15 @@ function makeFigure1(exampleSubject)
 %     tbUse('ForwardModelSynchrony');
 %        or to only add the MEG_utils toolbox:
 %     addpath(genpath('~/matlab/git/toolboxes/meg_utils'))
+% (3) Run the s_visualAreasFS2BS script from this repository
 
 
 %% 0. Set up paths and define parameters
 
 % Which subjects to average?
-%   Full  only: 'wlsubj048', 'wlsubj046','wl_subj039','wl_subj059', 'wl_subj067'
-%   Full, Left, Right: 'wl_subj002','wl_subj004','wl_subj005','wl_subj006','wl_subj010','wl_subj011'
-subject         = {'wlsubj048', 'wlsubj046','wl_subj039','wl_subj059', 'wl_subj067', 'wlsubj070'};
+%   Full  only: 'wlsubj048', 'wlsubj046','wlsubj039','wlsubj059', 'wlsubj067'
+%   Full, Left, Right: 'wlsubj002','wlsubj004','wlsubj005','wlsubj006','wlsubj010','wlsubj011'
+subject         = {'wlsubj002','wlsubj004','wlsubj005','wlsubj006','wlsubj010','wlsubj011','wlsubj048', 'wlsubj046','wlsubj039','wlsubj059', 'wlsubj067', 'wlsubj070'};
 if nargin < 1; exampleSubject  = 1; end
 
 % Path to brainstorm database and project name
@@ -29,6 +30,9 @@ figureDir       = fullfile(fmsRootPath,'figures', subject{exampleSubject}); % Wh
 dataDir         = fullfile(fmsRootPath,'data', subject{exampleSubject}); % Where to save images?
 saveFigures     = true;     % Save figures in the figure folder?
 plotMeanSubject = false;     % Plot average subject?
+
+% What visual area to use?
+area            = 'all'; % Choose between 'V1' or 'all' (=V1-V3);
 
 % What's the plotting range for individual example and average across
 % subjects?
@@ -55,7 +59,6 @@ for s = 1:length(subject)
     G_constrained = getGainMatrix(bsData, keep_sensors);
 
     % Get V1 template limited to 11 degrees eccentricity
-    area = 'V1';
     template = getTemplate(bsAnat, area, 11);
 
     % Simulate coherent and incoherent source time series and compute
@@ -82,7 +85,7 @@ dataToPlot   = cat(1,w.V1c(exampleSubject,:), w.V1i(exampleSubject,:));
 colorMarkers = {'r','b', 'r', 'b'};
 sub_ttl      = {sprintf('Uniform phase S%d', exampleSubject), ...
                 sprintf('Random phase S%d', exampleSubject)};                
-fig_ttl      = {sprintf('Figure1_V1_model_predictions_%s', area), sprintf('Figure1_Uniform_and_Random_Compared_%s', area)};
+fig_ttl      = {sprintf('Figure1_model_predictions_%s', area), sprintf('Figure1_Uniform_and_Random_Compared_%s', area)};
 markerType   = '.';
 
 % Make figure and data dir for subject, if non-existing             
@@ -109,7 +112,7 @@ if plotMeanSubject
     
     dataToPlot = [w.V1c_mn; w.V1i_mn];
     
-    fig_ttl    = {sprintf('Figure1_V1_model_predictions_%s', area), sprintf('Figure1_Uniform_and_Random_Compared_%s', area)};
+    fig_ttl    = {sprintf('Figure1_model_predictions_%s', area), sprintf('Figure1_Uniform_and_Random_Compared_%s', area)};
     sub_ttl    = {sprintf('Uniform phase Average N = %d', length(subject)), ...
                   sprintf('Random phase Average N = %d', length(subject))};
     markerType = '.';
