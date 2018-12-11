@@ -1,4 +1,4 @@
-function makeFigure4()
+function makeFigure4(exampleSubject)
 
 % This is a function to make Figure 4 from the manuscript using a forward
 % model to predict coherent and incoherent neural sources to MEG responses, WITHOUT CANCELLATION.
@@ -15,6 +15,14 @@ function makeFigure4()
 
 %% 0. Set up paths and define parameters
 
+% Which subjects to average?
+%   Full  only: 'wlsubj048', 'wlsubj046','wlsubj039','wlsubj059','wlsubj067',' wlsubj070'
+%   Full, Left, Right: 'wlsubj002','wlsubj004','wlsubj005','wlsubj006','wlsubj010','wlsubj011'
+subject = {'wlsubj002','wlsubj004','wlsubj005','wlsubj006','wlsubj010','wlsubj011','wlsubj048', 'wlsubj046','wlsubj039','wlsubj059', 'wlsubj067','wlsubj070'};
+
+% Which subjects to show as example?
+if nargin < 1; exampleSubject  = 1; end % Which example subject to show if not defined
+
 % Set up paths
 figureDir       = fullfile(fmsRootPath, 'figures', subject{exampleSubject}); % Where to save images?
 saveFigures     = true;         % Save figures in the figure folder?
@@ -24,20 +32,12 @@ bsDB            = '/Volumes/server/Projects/MEG/brainstorm_db/'; % Path to brain
 % Define project name, subject and data/anatomy folders
 projectName = 'SSMEG';
 
-% Which subjects to average?
-%   Full  only: 'wlsubj048', 'wlsubj046','wlsubj039','wlsubj059', 'wlsubj067'
-%   Full, Left, Right: 'wlsubj002','wlsubj004','wlsubj005','wlsubj006','wlsubj010','wlsubj011'
-subject = {'wlsubj002','wlsubj004','wlsubj005','wlsubj006','wlsubj010','wlsubj011'};
-
-% Which subjects to show as example?
-exampleSubject  = 1;
-
 % What visual area?
-area    = 'V1'; % Choose from 'V1', or 'all' (V1-V3)
+area    = 'all'; % Choose from 'V1', or 'all' (V1-V3)
 
 % What's the plotting range for individual example and average across
 % subjects?
-contourmapPercentile   = 93.6; % draw contour line at what fraction of the colormap?
+contourmapPercentile   = 90.4; %Choose 90.4 for top 15, or 93.6 for top 10; % draw contour line at what fraction of the colormap?
 colormapPercentile     = 97.5; % percentile of data to use for max/min limits of colorbar
 
 % Number of iterations for the random coherence prediction of the forward
