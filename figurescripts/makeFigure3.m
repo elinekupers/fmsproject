@@ -31,8 +31,8 @@ projectName     = 'SSMEG';
 subject         = {'wlsubj002','wlsubj004','wlsubj005','wlsubj006','wlsubj010','wlsubj011','wlsubj048', 'wlsubj046','wlsubj039','wlsubj059', 'wlsubj067', 'wlsubj070'};
 
 % What type of data to use? 
-dataType        = 'amplitudes'; % can be 'SNR" or 'amplitudes'
-area            = 'all'; % can be all = V1-V3, or 'V1' 
+dataType        = 'amplitudes'; % can be 'SNR' or 'amplitudes'
+area            = 'all'; % can be 'all' (= V1-V3), or 'V1' 
 
 % What's the plotting range
 climsSL         = [-20,20];
