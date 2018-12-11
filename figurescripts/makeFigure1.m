@@ -29,14 +29,14 @@ projectName     = 'SSMEG';
 figureDir       = fullfile(fmsRootPath,'figures', subject{exampleSubject}); % Where to save images?
 dataDir         = fullfile(fmsRootPath,'data', subject{exampleSubject}); % Where to save images?
 saveFigures     = true;     % Save figures in the figure folder?
-plotMeanSubject = false;     % Plot average subject?
+plotMeanSubject = true;     % Plot average subject?
 
 % What visual area to use?
 area            = 'all'; % Choose between 'V1' or 'all' (=V1-V3);
 
 % What's the plotting range for individual example and average across
 % subjects?
-contourmapPercentile   = 93.6; % top 15, or for top 10: 93.6; % draw contour line at what fraction of the colormap?
+contourmapPercentile   = 90.4;%93.6; % top 15: 90.4, or for top 10: 93.6; % draw contour line at what fraction of the colormap?
 colormapPercentile     = 97.5; % percentile of data to use for max/min limits of colorbar
 
 % Number of iterations for the random coherence prediction of the forward
