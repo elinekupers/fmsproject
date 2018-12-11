@@ -22,14 +22,14 @@ function makeFigure2(exampleSubject)
 % Which subjects to average?
 %   Full  only: 'wlsubj048', 'wlsubj046','wlsubj039','wlsubj059', 'wlsubj067'
 %   Full, Left, Right: 'wlsubj002','wlsubj004','wlsubj005','wlsubj006','wlsubj010','wlsubj011'
-subject         = {'wlsubj002','wlsubj004','wlsubj005','wlsubj006','wlsubj010','wlsubj011','wlsubj048', 'wlsubj046','wlsubj039','wlsubj059', 'wlsubj067'};
+subject         = {'wlsubj002','wlsubj004','wlsubj005','wlsubj006','wlsubj010','wlsubj011','wlsubj048', 'wlsubj046','wlsubj039','wlsubj059', 'wlsubj067', 'wlsubj070'};
 if nargin < 1; exampleSubject  = 1; end % Which example subject to show if not defined
 
 % Set up paths
 figureDir              = fullfile(fmsRootPath, 'figures', subject{exampleSubject}); % Where to save images?
 dataDir                = fullfile(fmsRootPath, 'data');    % Where to get data?
 saveFigures            = true;      % Save figures in the figure folder?
-plotMeanSubject        = false;     % Plot average subject?
+plotMeanSubject        = true;     % Plot average subject?
 useSLIncohSpectrum     = true;      % Plot SL amplitudes from incoherent spectrum (default: true)
 doSOIcomparison        = false;     % Compare the signal for the two types of SOI (sensors of interest, requires makeFigure1 to be executed)
 
@@ -193,9 +193,10 @@ visualizeSensormaps(dataToPlot, colormapPercentile, contourmapPercentile, [], []
 %% 3. Plot average across subjects if requested
 
 if plotMeanSubject
+    area = 'all';
     
     % Get sensors of interest from forward model
-    tmp = load(fullfile(dataDir, subject{exampleSubject}, 'Average_sensorsOfInterestFromPrediction'));
+    tmp = load(fullfile(dataDir, 'average', sprintf('Average_sensorsOfInterestFromPrediction_%s', area)));
     soi = logical(tmp.sensorsOfInterest); clear sensorsOfInterest; clear tmp;
     
     % And again based on the average across subjects
