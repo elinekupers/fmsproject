@@ -17,7 +17,7 @@ function makeFigure3()
 %     addpath(genpath('~/matlab/git/toolboxes/meg_utils'))
 
 %% 0. Define paths and variables
-bsDB            = '/Users/kupers/projects/brainstorm_db/'; %'/Volumes/server/Projects/MEG/brainstorm_db/';
+bsDB            = '/Volumes/server/Projects/MEG/brainstorm_db/';
 figureDir       = fullfile(fmsRootPath, 'figures'); % Where to save images?
 saveFigures     = true;     % Save figures in the figure folder?
 dataDir         = fullfile(fmsRootPath, 'data');    % Where to get data?
@@ -31,7 +31,7 @@ projectName     = 'SSMEG';
 subject         = {'wlsubj048', 'wlsubj046','wl_subj039','wl_subj059', 'wl_subj067'};
 
 % What type of data to use? 
-dataType        = 'amplitudes'; % can be 'SNR" or 'amplitudes'
+dataType        = 'SNR'; % can be 'SNR" or 'amplitudes'
 area            = 'all'; % can be all = V1-V3, or 'V1' 
 
 % What's the plotting range
@@ -226,18 +226,18 @@ box off; set(gca, 'TickDir', 'out', 'TickLength',[0.015 0.015],'FontSize',20)
 ylabel('Coefficient of Determination','FontSize',20); 
 set(gca,'XTickLabel',labels); set(gca,'XTickLabelRotation',45);
 
-hgexport(gcf, fullfile(figureDir, sprintf('Figure3C_CoD_SL_UniformPrediction_%s_%s_S7-11.eps', area, dataType)))
+hgexport(gcf, fullfile(figureDir, sprintf('Figure3C_CoD_SL_UniformPrediction_%s_%s.eps', area, dataType)))
 
 fprintf('\nEFFECT OF SYNCHRONY when MATCHED:\n')
-fprintf('CoD SL w/ coherent phase: Median: %1.3f, Mean (+se) = %1.3f (+ %1.3f)\n', median(slDataCoherentPred_subjectsMatched), mean(slDataCoherentPred_subjectsMatched), (std(slDataCoherentPred_subjectsMatched))./sqrt(length(slDataCoherentPred_subjectsMatched)))
-fprintf('CoD BB w/ incoherent phase: Median: %1.3f, Mean (+se) = %1.3f (+ %1.3f)\n', median(bbDataInCoherentPred_subjectsMatched), mean(bbDataInCoherentPred_subjectsMatched), (std(bbDataInCoherentPred_subjectsMatched))./sqrt(length(bbDataInCoherentPred_subjectsMatched)))
+fprintf('CoD SL w/ coherent phase: Median: %1.3f, Mean (+/- se) = %1.3f (+/- %1.3f)\n', median(slDataCoherentPred_subjectsMatched), mean(slDataCoherentPred_subjectsMatched), (std(slDataCoherentPred_subjectsMatched))./sqrt(length(slDataCoherentPred_subjectsMatched)))
+fprintf('CoD BB w/ incoherent phase: Median: %1.3f, Mean (+/- se) = %1.3f (+/- %1.3f)\n', median(bbDataInCoherentPred_subjectsMatched), mean(bbDataInCoherentPred_subjectsMatched), (std(bbDataInCoherentPred_subjectsMatched))./sqrt(length(bbDataInCoherentPred_subjectsMatched)))
 
 fprintf('\nEFFECT OF SYNCHRONY when NOT MATCHED:\n')
-fprintf('CoD SL w/ incoherent phase: Median: %1.3f, Mean (+se) = %1.3f (+ %1.3f)\n', median(slDataIncoherentPred_subjectsMatched), mean(slDataIncoherentPred_subjectsMatched), (std(slDataIncoherentPred_subjectsMatched))./sqrt(length(slDataIncoherentPred_subjectsMatched)))
+fprintf('CoD SL w/ incoherent phase: Median: %1.3f, Mean (+/- se) = %1.3f (+/- %1.3f)\n', median(slDataIncoherentPred_subjectsMatched), mean(slDataIncoherentPred_subjectsMatched), (std(slDataIncoherentPred_subjectsMatched))./sqrt(length(slDataIncoherentPred_subjectsMatched)))
 
 
 fprintf('\nEFFECT OF ANATOMY when NOT MATCHED:\n')
-fprintf('CoD SL w/ coherent phase, but wrong anatomy: Median: %1.3f, Mean (+se) = %1.3f (+ %1.3f)\n', median(slDataCoherentPred_subjectsNotMatched), mean(slDataCoherentPred_subjectsNotMatched), (std(slDataCoherentPred_subjectsNotMatched))./sqrt(length(slDataCoherentPred_subjectsNotMatched)))
+fprintf('CoD SL w/ coherent phase, but wrong anatomy: Median: %1.3f, Mean (+/- se) = %1.3f (+/- %1.3f)\n', median(slDataCoherentPred_subjectsNotMatched), mean(slDataCoherentPred_subjectsNotMatched), (std(slDataCoherentPred_subjectsNotMatched))./sqrt(length(slDataCoherentPred_subjectsNotMatched)))
 
 
 
