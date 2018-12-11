@@ -5,7 +5,7 @@ if ~exist('fast_fileexists')
 end
 
 
-pth = '/Volumes/server/Freesurfer_subjects/wl_subj004/surf';
+pth = '/Volumes/server/Freesurfer_subjects/wlsubj004/surf';
 hemi = 'l';
 stimEccen = 11; % stimulus had 11 degrees of visual angle
 
@@ -32,8 +32,12 @@ ni       = MRIread(retArea);  mshcolor.areas = abs(ni.vol(:));
 
 % Get V1 and restrict to stimulus eccentricity
 mshcolor.v1 = mshcolor.areas==1;
+mshcolor.v123 = mshcolor.areas>0;
+
 mshcolor.v1StimEccen = mshcolor.v1.*mshcolor.eccen;
-idx      = mshcolor.v1StimEccen > 0;
+mshcolor.v123StimEccen = mshcolor.v123.*mshcolor.eccen;
+
+idx      = mshcolor.v123StimEccen > 0;
 
 cmap = parula(256); clim = [0 1];
 
@@ -50,7 +54,7 @@ set(fH, 'Color', 'w', 'Position', pos); clf;
 
 % Mesh
 c = mshcolor.curv;
-c(idx) = round(mshcolor.v1StimEccen(idx)/clim(2)*60);
+c(idx) = mshcolor.v123StimEccen(idx).*150;
 
 mx = vertices(:,1);%+surf_offsets(1);
 my = vertices(:,2);%+surf_offsets(2);
