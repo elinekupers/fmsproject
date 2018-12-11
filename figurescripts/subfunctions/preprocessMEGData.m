@@ -94,6 +94,7 @@ end
 % --------------------------------------
 
 if saveTimeSeries
+    if ~exist(fullfile(projectPth, subFolder, subjectPths(whichSubject).name, 'processed'), 'dir'); mkdir(fullfile(projectPth, subFolder, subjectPths(whichSubject).name, 'processed')); end
     save(fullfile(projectPth, subFolder, subjectPths(whichSubject).name, 'processed', sprintf('s%02d_sensorData', whichSubject)), 'sensorData');
     save(fullfile(projectPth, subFolder, subjectPths(whichSubject).name, 'processed', sprintf('s%02d_conditions', whichSubject)), 'conditions');    
 end
