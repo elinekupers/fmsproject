@@ -14,10 +14,10 @@ function interp_retinotopy(bsdir, fsdir, sub_fs, sub_bs, proj_bs)
 %   proj_bs:    name of project in brainstorm folder
 %
 % example:
-%   interp_retinotopy([], [], 'wl_subj010', 'wl_subj010', 'SSMEG')
-%   interp_retinotopy([], [], 'wl_subj011', 'wl_subj011', 'SSMEG')
-%   interp_retinotopy([], [], 'wl_subj011', 'wl_subj011', 'SSMEG')
-%   interp_retinotopy([], [], 'wl_subj014', 'wl_subj014', 'GAMMA')
+%   interp_retinotopy([], [], 'wlsubj010', 'wlsubj010', 'SSMEG')
+%   interp_retinotopy([], [], 'wlsubj011', 'wlsubj011', 'SSMEG')
+%   interp_retinotopy([], [], 'wlsubj011', 'wlsubj011', 'SSMEG')
+%   interp_retinotopy([], [], 'wl_subj014', 'wlsubj014', 'GAMMA')
 %
 % Notes:
 %  - the occipital_atlas Docker usually names its files *.template_*.mgz;
