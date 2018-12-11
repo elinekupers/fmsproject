@@ -13,23 +13,27 @@ function makeFigure4()
 %        or to only add the MEG_utils toolbox:
 %     addpath(genpath('~/matlab/git/toolboxes/meg_utils'))
 
-% Set up paths
-figureDir       = fullfile(fmsRootPath, 'figures'); % Where to save images?
-saveFigures     = true;     % Save figures in the figure folder?
-
-
 %% 0. Set up paths and define parameters
-% Path to brainstorm database
-bsDB = '/Volumes/server/Projects/MEG/brainstorm_db/';
+
+% Set up paths
+figureDir       = fullfile(fmsRootPath, 'figures', subject{exampleSubject}); % Where to save images?
+saveFigures     = true;         % Save figures in the figure folder?
+plotMeanSubject = false;        % Plot average subject?
+bsDB            = '/Volumes/server/Projects/MEG/brainstorm_db/'; % Path to brainstorm database
 
 % Define project name, subject and data/anatomy folders
 projectName = 'SSMEG';
 
 % Which subjects to average?
-subject = {'wl_subj002','wl_subj004','wl_subj005','wl_subj006','wl_subj010','wl_subj011'};
+%   Full  only: 'wlsubj048', 'wlsubj046','wlsubj039','wlsubj059', 'wlsubj067'
+%   Full, Left, Right: 'wlsubj002','wlsubj004','wlsubj005','wlsubj006','wlsubj010','wlsubj011'
+subject = {'wlsubj002','wlsubj004','wlsubj005','wlsubj006','wlsubj010','wlsubj011'};
 
 % Which subjects to show as example?
 exampleSubject  = 1;
+
+% What visual area?
+area    = 'V1'; % Choose from 'V1', or 'all' (V1-V3)
 
 % What's the plotting range for individual example and average across
 % subjects?
@@ -55,7 +59,7 @@ for s = 1:length(subject)
     G_constrained = getGainMatrix(dataDir, keep_sensors);
 
     % Get V1 template limited to 11 degrees eccentricity
-    template = getTemplate(anatDir, 'V1', 11);
+    template = getTemplate(anatDir, area, 11);
 
     % Simulate coherent and incoherent source time series and compute
     % predictions from forward model (w)
@@ -72,24 +76,40 @@ for s = 1:length(subject)
     
 end
 
-%% 3. Visualize predictions from forward model
+%% 3. Visualize predictions from forward model for requested individual subject
 
-w.V1c_mn = mean(w.V1c,1);
-w.V1i_mn = mean(w.V1i,1);
-
-%% Visualize predictions
-
-dataAll      = cat(1, w.V1c(exampleSubject,:), w.V1i(exampleSubject,:), w.V1c_mn, w.V1i_mn);
-colorMarkers = {'r','b', 'r', 'b'};
+% Define plotting data and labels
+dataToPlot   = cat(1, w.V1c(exampleSubject,:), w.V1i(exampleSubject,:));
+colorMarkers = {'r','b'};
 fig_ttl      = {'Figure4_V1_model_predictions-No_cancellation', ...
-                'Figure4_Sl_and_Broadband_Compared'};
+                'Figure4_Sl_and_Broadband_Compared-No_cancellation'};
 sub_ttl      = {'Coherent phase S1', ...
-                'Incoherent phase S2', ...
-                'Coherent phase Average S1-S6', ...
-                'Incoherent phase Average S1-S6'};
+                'Incoherent phase S2'};
 markerType   = '.';
 
+% Plot it!
+visualizeSensormaps(dataToPlot, colormapPercentile, contourmapPercentile, colorMarkers, markerType, fig_ttl, sub_ttl, saveFigures, figureDir);
 
-sensorsOfInterest = visualizeSensormaps(dataAll, colormapPercentile, contourmapPercentile, colorMarkers, markerType, fig_ttl, sub_ttl, saveFigures, figureDir);
+%% Visualize prediction for across subjects
+if plotMeanSubject
+    
+    % Redefine figure dir
+    figureDir    = fullfile(fmsRootPath, 'figures'); % Where to save images?
+
+    % Take the average across subjects
+    w.V1c_mn     = mean(w.V1c,1);
+    w.V1i_mn     = mean(w.V1i,1);
+
+    % Define plotting data and labels
+    dataToPlot   = cat(1, w.V1c_mn, w.V1i_mn);
+    colorMarkers = {'r','b'};
+    fig_ttl      = {'Figure4_V1_model_predictions-No_cancellation', ...
+                    'Figure4_Sl_and_Broadband_Compared-No_cancellation'};
+    sub_ttl      = {sprintf('No cancellation: Coherent phase Average N=%d', length(subject)), ...
+                    sprintf('No cancellation: Incoherent phase Average N=%d', length(subject))};
+    markerType   = '.';
+
+    % Plot it!
+    visualizeSensormaps(dataToPlot, colormapPercentile, contourmapPercentile, colorMarkers, markerType, fig_ttl, sub_ttl, saveFigures, figureDir);
 
 end
