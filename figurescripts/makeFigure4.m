@@ -26,7 +26,7 @@ if nargin < 1; exampleSubject  = 1; end % Which example subject to show if not d
 % Set up paths
 figureDir       = fullfile(fmsRootPath, 'figures', subject{exampleSubject}); % Where to save images?
 saveFigures     = true;         % Save figures in the figure folder?
-plotMeanSubject = false;        % Plot average subject?
+plotMeanSubject = true;        % Plot average subject?
 bsDB            = '/Volumes/server/Projects/MEG/brainstorm_db/'; % Path to brainstorm database
 
 % Define project name, subject and data/anatomy folders
@@ -83,8 +83,8 @@ dataToPlot   = cat(1, w.V1c(exampleSubject,:), w.V1i(exampleSubject,:));
 colorMarkers = {'r','b'};
 fig_ttl      = {'Figure4_V1_model_predictions-No_cancellation', ...
                 'Figure4_Sl_and_Broadband_Compared-No_cancellation'};
-sub_ttl      = {'Coherent phase S1', ...
-                'Incoherent phase S2'};
+sub_ttl      = {sprintf('No cancellation: Coherent phase S%d',exampleSubject), ...
+                sprintf('No cancellation: Incoherent phase S%d',exampleSubject)};
 markerType   = '.';
 
 % Plot it!
@@ -94,7 +94,7 @@ visualizeSensormaps(dataToPlot, colormapPercentile, contourmapPercentile, colorM
 if plotMeanSubject
     
     % Redefine figure dir
-    figureDir    = fullfile(fmsRootPath, 'figures'); % Where to save images?
+    figureDir    = fullfile(fmsRootPath, 'figures', 'average'); % Where to save images?
 
     % Take the average across subjects
     w.V1c_mn     = mean(w.V1c,1);
