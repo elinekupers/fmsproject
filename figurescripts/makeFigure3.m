@@ -113,7 +113,11 @@ for s = 1:length(subject)
         sl = data{1};
         bb = data{2};
     else
-        sl = nanmean(data.sl.full_coherent,1) - nanmean(data.sl.blank_coherent,1);
+        if strcmp(subject{s},'wlsubj059')
+            sl = nanmean(data.sl.full_coherent,1) - nanmean(data.sl.blank_coherent,1);
+        else
+            sl = nanmean(data.sl.full,1) - nanmean(data.sl.blank,1);
+        end
         bb = nanmean(data.bb.full,1) - nanmean(data.bb.blank,1);
         climsSL = [-1 1]*prctile(sl, 97.5);
         climsBB = [-1 1]*prctile(bb, 97.5);
