@@ -21,7 +21,7 @@ function makeFigure1(exampleSubject)
 %   Full  only: 'wlsubj048', 'wlsubj046','wlsubj039','wlsubj059', 'wlsubj067'
 %   Full, Left, Right: 'wlsubj002','wlsubj004','wlsubj005','wlsubj006','wlsubj010','wlsubj011'
 subject         = {'wlsubj002','wlsubj004','wlsubj005','wlsubj006','wlsubj010','wlsubj011','wlsubj048', 'wlsubj046','wlsubj039','wlsubj059', 'wlsubj067', 'wlsubj070'};
-if nargin < 1; exampleSubject  = 1; end
+if nargin < 1; exampleSubject  = 12; end
 
 % Path to brainstorm database and project name
 bsDB            = '/Volumes/server/Projects/MEG/brainstorm_db/';
@@ -42,7 +42,7 @@ colormapPercentile     = 97.5; % percentile of data to use for max/min limits of
 % Number of iterations for the random coherence prediction of the forward
 % model
 n        = 10;         % number of timepoints (ms)
-nrEpochs = 100;        % number of epochs
+nrEpochs = 1;        % number of epochs
 
 % Define vector that can truncate number of sensors 
 keep_sensors = logical([ones(157,1); zeros(192-157,1)]); % Note: Figure out a more generic way to define keep_sensors
@@ -82,7 +82,7 @@ end
 %% Visualize predictions
 
 dataToPlot   = cat(1,w.V1c(exampleSubject,:), w.V1i(exampleSubject,:));
-colorMarkers = {'r','b', 'r', 'b'};
+colorMarkers = {'r','b'};
 sub_ttl      = {sprintf('Uniform phase S%d', exampleSubject), ...
                 sprintf('Random phase S%d', exampleSubject)};                
 fig_ttl      = {sprintf('Figure1_model_predictions_%s', area), sprintf('Figure1_Uniform_and_Random_Compared_%s', area)};
