@@ -138,6 +138,14 @@ diffFullBlankBB = diffFullBlankSL;
 for s = 1:length(subject)
     diffFullBlankSL(s,:) = nanmean(ampl{s}.sl.full,1) - nanmean(ampl{s}.sl.blank,1);
     diffFullBlankBB(s,:) = nanmean(ampl{s}.bb.full,1) - nanmean(ampl{s}.bb.blank,1);
+    
+    % there is a difference between the datasets in terms of scaling units
+    % session 1-6 are in fempto Tesla  whereas 7-12 are in Tesla
+    % TODO: handle this more gracefully? Maybe just mark the sessions?
+    if max(diffFullBlankSL(s,:)) < 1^-14
+        diffFullBlankSL(s,:) = diffFullBlankSL(s,:) .* 10^15;
+        diffFullBlankBB(s,:) = diffFullBlankBB(s,:) .* 10^15 .* 10^15;
+    end
 end
 
 
