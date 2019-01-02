@@ -110,17 +110,26 @@ for s = 1:length(subject)
     % Load denoised data of example subject
     data = loadData(fullfile(dataDir, subject{s}),whichSession, dataType);
     if strcmp(dataType, 'SNR')
-        sl = data{1};
-        bb = data{2};
+        sl(s,:) = data{1};
+        bb(s,:) = data{2};
     else
         if strcmp(subject{s},'wlsubj059')
-            sl = nanmean(data.sl.full_coherent,1) - nanmean(data.sl.blank_coherent,1);
+            sl(s,:) = nanmean(data.sl.full_coherent,1) - nanmean(data.sl.blank_coherent,1);
         else
-            sl = nanmean(data.sl.full,1) - nanmean(data.sl.blank,1);
+            sl(s,:) = nanmean(data.sl.full,1) - nanmean(data.sl.blank,1);
         end
-        bb = nanmean(data.bb.full,1) - nanmean(data.bb.blank,1);
-        climsSL = [-1 1]*prctile(sl, 97.5);
-        climsBB = [-1 1]*prctile(bb, 97.5);
+        bb(s,:) = nanmean(data.bb.full,1) - nanmean(data.bb.blank,1);
+        
+        % Check for range (fT versus T)
+        if max(sl(s,:)) < 1^-14
+            sl(s,:) = sl(s,:) .* 10^15; % from T -> fT
+            bb(s,:) = bb(s,:) .* 10^15 .* 10^15; % from T^2 -> fT.^2
+        end
+        
+        climsSL = [-1 1]*prctile(sl(s,:), 97.5);
+        climsBB = [-1 1]*prctile(bb(s,:), 97.5);
+        
+        
     end
        
     %% 4. Plotting to get contour lines
@@ -135,14 +144,14 @@ for s = 1:length(subject)
     
     figure(1);
     subplot(nrows,ncols,s)
-    [~,ch] = megPlotMap(sl,climsSL,gcf,'bipolar');
-    hold on; contour(c1.XData,c1.YData, c1.ZData,3, 'k-'); 
+    [~,ch] = megPlotMap(sl(s,:),climsSL,gcf,'bipolar');
+    hold on; contour(c1.XData,c1.YData, c1.ZData,3, 'k-');  drawnow;
     colormap(bipolar); title(sprintf('SL: S%d',s));
     set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
     
     subplot(nrows,ncols,s+length(subject))
-    [~,ch] = megPlotMap(bb,climsBB,gcf,'bipolar');
-    hold on; contour(c2.XData,c2.YData, c2.ZData,3, 'k-');
+    [~,ch] = megPlotMap(bb(s,:),climsBB,gcf,'bipolar');
+    hold on; contour(c2.XData,c2.YData, c2.ZData,3, 'k-'); drawnow;
     colormap(bipolar); title(sprintf('BB: S%d',s));
     set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);   
     
@@ -154,15 +163,15 @@ for s = 1:length(subject)
     calcod = @(x, y, idx) 1 - sum((y(idx)-x(idx)).^2)./(sum(x(idx).^2));
     
     % Grab subject's data
-    idx_d = isfinite(sl);
-    assert(isequal(idx_d, isfinite(bb)));
+    idx_d = isfinite(sl(s,:));
+    assert(isequal(idx_d, isfinite(bb(s,:))));
     
     idx_p = isfinite(w.V1c(s,1:157));
     assert(isequal(idx_p, isfinite(w.V1i(s,1:157))));
 
     % Normalize data
-    allDataSL_norm(s,:) = sl./norm(sl(idx_d));
-    allDataBB_norm(s,:) = bb./norm(bb(idx_d));
+    allDataSL_norm(s,:) = sl(s,:)./norm(sl(s,idx_d));
+    allDataBB_norm(s,:) = bb(s,:)./norm(bb(s,idx_d));
     
     allPredictionCoherent_norm(s,:) = normP(w.V1c(s,1:157), w.V1i(s,1:157), idx_p);
     allPredictionIncoherent_norm(s,:) = normP(w.V1i(s,1:157), w.V1c(s,1:157), idx_p);
@@ -170,7 +179,7 @@ for s = 1:length(subject)
     
 end
 
-%% SAVING
+%% SAVE Figure
 
 if saveFigures % use different function to save figures, since figurewrite crashes with many subplots containing many data points
     
@@ -182,7 +191,45 @@ end
 
 close all;
 
-%% Calculate CoD
+%% Plot average across subjects
+figure(4); clf;
+ax1 = subplot(211);
+megPlotMap(nanmean(abs(w.V1c),1),climsPred,[],bipolar,[],[],[],'isolines', 3);
+c1 = findobj(ax1.Children,'Type','Contour');
+
+ax2 =subplot(212);
+megPlotMap(nanmean(abs(w.V1i),1),0.5*climsPred,[],bipolar,[],[],[],'isolines', 3);
+c2 = findobj(ax2.Children,'Type','Contour');
+
+figure(5);
+subplot(211)
+[~,ch] = megPlotMap(nanmean(sl,1),climsSL,gcf,'bipolar');
+hold on; contour(c1.XData,c1.YData, c1.ZData,3, 'k-');  drawnow;
+colormap(bipolar); title(sprintf('SL: N = %d',length(subject)));
+set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
+
+subplot(212)
+[~,ch] = megPlotMap(nanmean(bb,1),climsBB,gcf,'bipolar');
+hold on; contour(c2.XData,c2.YData, c2.ZData,3, 'k-'); drawnow;
+colormap(bipolar); title(sprintf('BB N = %d',length(subject)));
+set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);  
+
+
+mnDataSL_norm = nanmean(allDataSL_norm,1);
+mnDataBB_norm = nanmean(allDataBB_norm,1);
+mnPredictionCoherent = nanmean(allPredictionCoherent_norm,1);
+mnPredictionIncoherent = nanmean(allPredictionIncoherent_norm,1);
+
+if saveFigures % use different function to save figures, since figurewrite crashes with many subplots containing many data points    
+    set(0, 'currentfigure', 5);
+%     figurewrite(fullfile(figureDir,'Figure3A_predictionV123VsDataIndividuals_matched'),[],0,'.',1);
+    hgexport(5, fullfile(figureDir, sprintf('Figure3A_prediction_%s_VsDataAVERAGE_matched_%s.eps', area, dataType)))
+    
+end
+
+close all;
+
+%% Calculate CoD for individual subjects
     
 for d = 1:length(subject)
     
@@ -190,7 +237,6 @@ for d = 1:length(subject)
     thisDataBB = allDataBB_norm(d,:);
     
     idx = isfinite(thisDataSL);
-
     
     for p = 1:length(subject)
         
@@ -207,7 +253,15 @@ for d = 1:length(subject)
     
 end
 
-% Plot bar graph
+%% for mean across subjects:
+idx = isfinite(mnDataSL_norm);
+mn_codSLCoherent   =  calcod(mnDataSL_norm, mnPredictionCoherent, idx);
+mn_codSLIncoherent =  calcod(mnDataSL_norm, mnPredictionIncoherent, idx);
+mn_codBBCoherent   =  calcod(mnDataBB_norm, mnPredictionCoherent, idx);
+mn_codBBIncoherent =  calcod(mnDataBB_norm, mnPredictionIncoherent, idx);
+
+
+%% Plot bar graph
 slDataCoherentPred_subjectsMatched = diag(codSLCoherent);
 bbDataInCoherentPred_subjectsMatched = diag(codBBIncoherent);
 
@@ -246,6 +300,15 @@ fprintf('\nEFFECT OF ANATOMY when NOT MATCHED:\n')
 fprintf('CoD SL w/ coherent phase, but wrong anatomy: Median: %1.3f, Mean (+/- se) = %1.3f (+/- %1.3f)\n', median(slDataCoherentPred_subjectsNotMatched), mean(slDataCoherentPred_subjectsNotMatched), (std(slDataCoherentPred_subjectsNotMatched))./sqrt(length(slDataCoherentPred_subjectsNotMatched)))
 
 
+fprintf('\nMEAN SUBJECT:\n')
+fprintf('\nEFFECT OF SYNCHRONY when MATCHED:\n')
+fprintf('CoD SL w/ coherent phase: %1.3f\n', mn_codSLCoherent)
+fprintf('CoD BB w/ incoherent phase: %1.3f\n', mn_codBBIncoherent)
+
+fprintf('\nMEAN SUBJECT:\n')
+fprintf('\nEFFECT OF SYNCHRONY when NOT MATCHED:\n')
+fprintf('CoD SL w/ incoherent phase: %1.3f\n', mn_codSLIncoherent)
+fprintf('CoD BB w/ coherent phase: %1.3f\n', mn_codBBCoherent)
 
 
 
