@@ -36,13 +36,13 @@ area            = 'all'; % Choose between 'V1' or 'all' (=V1-V3);
 
 % What's the plotting range for individual example and average across
 % subjects?
-contourmapPercentile   = 90.4;%93.6; % top 15: 90.4, or for top 10: 93.6; % draw contour line at what fraction of the colormap?
+contourmapPercentile   = 93.6;%93.6; % top 15: 90.4, or for top 10: 93.6; % draw contour line at what fraction of the colormap?
 colormapPercentile     = 97.5; % percentile of data to use for max/min limits of colorbar
 
 % Number of iterations for the random coherence prediction of the forward
 % model
 n        = 10;         % number of timepoints (ms)
-nrEpochs = 1;        % number of epochs
+nrEpochs = 1000;        % number of epochs
 
 % Define vector that can truncate number of sensors 
 keep_sensors = logical([ones(157,1); zeros(192-157,1)]); % Note: Figure out a more generic way to define keep_sensors

@@ -23,7 +23,7 @@ function makeFigure2(exampleSubject)
 %   Full  only: 'wlsubj048', 'wlsubj046','wlsubj039','wlsubj059', 'wlsubj067'
 %   Full, Left, Right: 'wlsubj002','wlsubj004','wlsubj005','wlsubj006','wlsubj010','wlsubj011'
 subject         = {'wlsubj002','wlsubj004','wlsubj005','wlsubj006','wlsubj010','wlsubj011','wlsubj048', 'wlsubj046','wlsubj039','wlsubj059', 'wlsubj067', 'wlsubj070'};
-if nargin < 1; exampleSubject  = 1; end % Which example subject to show if not defined
+if nargin < 1; exampleSubject  = 12; end % Which example subject to show if not defined
 
 % Set up paths
 figureDir              = fullfile(fmsRootPath, 'figures', subject{exampleSubject}); % Where to save images?
@@ -149,6 +149,32 @@ for s = 1:length(subject)
 end
 
 
+% %% Get contrast by bootstrapping over epochs
+%     bootstat = cell(1,length(subject));
+% 
+%     % Loop over fieldnames (sensors of interest)
+%     for s = 1:length(subject)
+% 
+%         % Example subject
+%         bootstat{s}.sl.full.all  = bootstrp(nboot, @(x) nanmean(x,1), ampl{s}.sl.full);
+%         bootstat{s}.sl.blank.all = bootstrp(nboot, @(x) nanmean(x,1), ampl{s}.sl.blank);
+% 
+%         % take difference between full and blank
+%         bootstat{s}.sl.diff.all  = mean([bootstat{s}.sl.full.all - bootstat{s}.sl.blank.all],1);
+% 
+%         bootstat{s}.bb.full.all  = bootstrp(nboot, @(x) nanmean(x,1), ampl{s}.bb.full);
+%         bootstat{s}.bb.blank.all = bootstrp(nboot, @(x) nanmean(x,1), ampl{s}.bb.blank);
+% 
+%         bootstat{s}.bb.diff.all  = mean([bootstat{s}.bb.full.all - bootstat{s}.bb.blank.all],1);
+% 
+%     end
+%     
+%     if plotMeanSubject
+%         % Group average
+%         bootstatGroup.sl.all = bootstrp(nboot, @(x) nanmean(x,1), diffFullBlankSL);
+%         bootstatGroup.bb.all = bootstrp(nboot, @(x) nanmean(x,1), diffFullBlankBB);
+%     end
+   
 %% Bootstrap across epochs if requested
 
 if doSOIcomparison 

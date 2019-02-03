@@ -30,19 +30,20 @@ figureDir       = fullfile(fmsRootPath,'figures', subject{exampleSubject}); % Wh
 % dataDir         = fullfile(fmsRootPath,'data', subject{exampleSubject}); % Where to save images?
 saveFigures     = true;     % Save figures in the figure folder?
 plotMeanSubject = true;     % Plot average subject?
+plotWithVsWithoutCancellation = true;
 
 % What visual area?
 area    = 'all'; % Choose from 'V1', or 'all' (V1-V3)
 
 % What's the plotting range for individual example and average across
 % subjects?
-contourmapPercentile   = 90.4; %Choose 90.4 for top 15, or 93.6 for top 10; % draw contour line at what fraction of the colormap?
+contourmapPercentile   = 93.6; %Choose 90.4 for top 15, or 93.6 for top 10; % draw contour line at what fraction of the colormap?
 colormapPercentile     = 97.5; % percentile of data to use for max/min limits of colorbar
 
 % Number of iterations for the random coherence prediction of the forward
 % model
 n        = 10;     % number of timepoints (ms)
-nrEpochs = 1;        % number of epochs
+nrEpochs = 1000;        % number of epochs
 
 % Define vector that can truncate number of sensors 
 keep_sensors = logical([ones(157,1); zeros(192-157,1)]); % Note: Figure out a more generic way to define keep_sensors
@@ -65,24 +66,33 @@ for s = 1:length(subject)
 
     % NOTE: Take absolute values of G_contrained - no cancellation possible
     if strcmp(area, 'all')
-        tmp = getForwardModelPredictions(abs(G_constrained), template.V123StimEccen, [], n, nrEpochs);
+        tmp.woC = getForwardModelPredictions(abs(G_constrained), template.V123StimEccen, [], n, nrEpochs);
+        tmp.wC = getForwardModelPredictions(G_constrained, template.V123StimEccen, [], n, nrEpochs);
     else
-       tmp = getForwardModelPredictions(abs(G_constrained), template.V1StimEccen, [], n, nrEpochs);
+       tmp.woC = getForwardModelPredictions(abs(G_constrained), template.V1StimEccen, [], n, nrEpochs);
+       tmp.wC = getForwardModelPredictions(G_constrained, template.V1StimEccen, [], n, nrEpochs);
     end
     
-    % Take mean amplitude across epochs
-    amps.c = abs(fft(tmp.c,[],2));
-    amps.i = abs(fft(tmp.i,[],2));
+    % Compute amplitude at freq
+    amps.woC.c = abs(fft(tmp.woC.c,[],2));
+    amps.woC.i = abs(fft(tmp.woC.i,[],2));
     
-    w.V1c(s,:) = mean(amps.c(:,2,:),3);
-    w.V1i(s,:) = mean(amps.i(:,2,:),3);
+    amps.wC.c = abs(fft(tmp.wC.c,[],2));
+    amps.wC.i = abs(fft(tmp.wC.i,[],2));
+    
+    % Take mean across epochs
+    w.woC.V1c(s,:) = mean(amps.woC.c(:,2,:),3);
+    w.woC.V1i(s,:) = mean(amps.woC.i(:,2,:),3);
+    
+    w.wC.V1c(s,:) = mean(amps.wC.c(:,2,:),3);
+    w.wC.V1i(s,:) = mean(amps.wC.i(:,2,:),3);
     
 end
 
 %% 3. Visualize predictions from forward model for requested individual subject
 
 % Define plotting data and labels
-dataToPlot   = cat(1, w.V1c(exampleSubject,:), w.V1i(exampleSubject,:));
+dataToPlot   = cat(1, w.woC.V1c(exampleSubject,:), w.woC.V1i(exampleSubject,:));
 colorMarkers = {'r','b'};
 fig_ttl      = {'Figure4_V1_model_predictions-No_cancellation', ...
                 'Figure4_Sl_and_Broadband_Compared-No_cancellation'};
@@ -100,11 +110,11 @@ if plotMeanSubject
     figureDir    = fullfile(fmsRootPath, 'figures', 'average'); % Where to save images?
 
     % Take the average across subjects
-    w.V1c_mn     = mean(w.V1c,1);
-    w.V1i_mn     = mean(w.V1i,1);
+    w.woC.V1c_mn     = mean(w.woC.V1c,1);
+    w.woC.V1i_mn     = mean(w.woC.V1i,1);
 
     % Define plotting data and labels
-    dataToPlot   = cat(1, w.V1c_mn, w.V1i_mn);
+    dataToPlot   = cat(1, w.woC.V1c_mn, w.woC.V1i_mn);
     colorMarkers = {'r','b'};
     fig_ttl      = {'Figure4_V1_model_predictions-No_cancellation', ...
                     'Figure4_Sl_and_Broadband_Compared-No_cancellation'};
@@ -114,5 +124,46 @@ if plotMeanSubject
 
     % Plot it!
     visualizeSensormaps(dataToPlot, colormapPercentile, contourmapPercentile, colorMarkers, markerType, fig_ttl, sub_ttl, saveFigures, figureDir);
+
+    
+    %% Plot ratio of with vs without cancellation
+    if plotWithVsWithoutCancellation
+
+        % Take the average across subjects
+        w.wC.V1c_mn     = mean(w.wC.V1c,1);
+        w.wC.V1i_mn     = mean(w.wC.V1i,1);
+                
+        % Take ratio
+        ratioCoh = w.wC.V1c_mn ./ w.woC.V1c_mn;
+        ratioInCoh = w.wC.V1i_mn ./ w.woC.V1i_mn;
+
+       clims = [-1 1].*10^-2;
+
+       figure; 
+       subplot(311); 
+       megPlotMap(w.wC.V1c_mn, 0.1*clims, [], 'bipolar', 'Coh: With cancellation'); 
+       
+       subplot(312); 
+       megPlotMap(w.woC.V1c_mn, 2*clims, [], 'bipolar', 'Coh: Without cancellation'); 
+       
+       subplot(313); 
+       megPlotMap(ratioCoh, [-1 1], [], 'bipolar', 'Coh: Ratio with / without'); 
+       
+       figure; 
+       subplot(311); 
+       megPlotMap(w.wC.V1i_mn, 0.1*clims, [], 'bipolar', 'InCoh: With cancellation'); 
+       
+       subplot(312); 
+       megPlotMap(w.woC.V1i_mn, 0.1*clims, [], 'bipolar', 'InCoh: Without cancellation'); 
+       
+       subplot(313); 
+       megPlotMap(ratioInCoh, [-1 1], [], 'bipolar', 'InCoh: Ratio with / without'); 
+
+        % Or just the two ratio's:
+       fig_ttl = {'Fig4_ratioWithVsWithoutCancellation','Fig4_ratioWithVsWithoutCancellation_Overlap'};
+       sub_ttl = {'Coh: Ratio with / without', 'InCoh: Ratio with / without'};
+       visualizeSensormaps([ratioCoh; ratioInCoh], 100, contourmapPercentile, colorMarkers, markerType, fig_ttl, sub_ttl, saveFigures, figureDir);
+
+    end
 
 end
