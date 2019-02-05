@@ -36,7 +36,7 @@ doSOIcomparison        = false;     % Compare the signal for the two types of SO
 % What contour and color map percentile to use to define the limits
 contourmapPercentile   = 93.6; % draw contour line at what fraction of the colormap?
 colormapPercentile     = 97.5; % percentile of data to use for max/min limits of colorbar
-snrThresh              = 1;    % Threshold amplitudes by 1 SD of SNR
+snrThresh              = 0;    % Threshold amplitudes by 1 SD of SNR
 
 % Number of bootstraps
 nboot = 1000;
