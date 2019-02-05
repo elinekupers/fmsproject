@@ -28,7 +28,7 @@ bsDB            = '/Volumes/server/Projects/MEG/brainstorm_db/';
 projectName     = 'SSMEG';
 figureDir       = fullfile(fmsRootPath,'figures', subject{exampleSubject}); % Where to save images?
 dataDir         = fullfile(fmsRootPath,'data', subject{exampleSubject}); % Where to save images?
-saveFigures     = true;     % Save figures in the figure folder?
+saveFigures     = false;     % Save figures in the figure folder?
 plotMeanSubject = true;     % Plot average subject?
 
 % What visual area to use?
@@ -69,39 +69,43 @@ for s = 1:length(subject)
        tmp = getForwardModelPredictions(G_constrained, template.V1StimEccen, [], n, nrEpochs);
     end
     
-    % Take mean amplitude across epochs
+    % Compute amplitude across time
     amps.c = abs(fft(tmp.c,[],2));
     amps.i = abs(fft(tmp.i,[],2));
+    amps.m = abs(fft(tmp.m,[],2));
     
+    % Compute mean weights across epochs at input frequency
     w.V1c(s,:) = mean(amps.c(:,2,:),3);
     w.V1i(s,:) = mean(amps.i(:,2,:),3);
+    w.V1m(s,:) = mean(amps.m(:,2,:),3);
     
 end
 
 
 %% Visualize predictions
+for exampleSubject = 1:12
+    dataToPlot   = cat(1,w.V1c(exampleSubject,:), w.V1i(exampleSubject,:), w.V1m(exampleSubject,:));
+    colorMarkers = {'r','b', 'g'};
+    sub_ttl      = {sprintf('Uniform phase S%d', exampleSubject), ...
+                    sprintf('Random phase S%d', exampleSubject),...
+                    sprintf('Mixed phase S%d', exampleSubject)};                
+    fig_ttl      = {sprintf('Figure1_model_predictions_mixture_%s', area), sprintf('Figure1_Uniform_and_Random_Compared_mixture_%s', area)};
+    markerType   = '.';
 
-dataToPlot   = cat(1,w.V1c(exampleSubject,:), w.V1i(exampleSubject,:));
-colorMarkers = {'r','b'};
-sub_ttl      = {sprintf('Uniform phase S%d', exampleSubject), ...
-                sprintf('Random phase S%d', exampleSubject)};                
-fig_ttl      = {sprintf('Figure1_model_predictions_%s', area), sprintf('Figure1_Uniform_and_Random_Compared_%s', area)};
-markerType   = '.';
+    % Make figure and data dir for subject, if non-existing             
+    if ~exist(figureDir,'dir'); mkdir(figureDir); end
+    if ~exist(dataDir,'dir'); mkdir(dataDir); end
 
-% Make figure and data dir for subject, if non-existing             
-if ~exist(figureDir,'dir'); mkdir(figureDir); end
-if ~exist(dataDir,'dir'); mkdir(dataDir); end
+    sensorsOfInterest = visualizeSensormaps(dataToPlot, colormapPercentile, contourmapPercentile, colorMarkers, markerType, fig_ttl, sub_ttl, saveFigures, figureDir);
 
-sensorsOfInterest = visualizeSensormaps(dataToPlot, colormapPercentile, contourmapPercentile, colorMarkers, markerType, fig_ttl, sub_ttl, saveFigures, figureDir);
+    % Make them logicals so we can use them later as indices
+%     sensorsOfInterest = logical(sensorsOfInterest);
 
-% Make them logicals so we can use them later as indices
-sensorsOfInterest = logical(sensorsOfInterest);
+    % Save sensors of interest falling within the contour lines
+%     save(fullfile(dataDir, sprintf('%s_sensorsOfInterestFromPrediction.mat', subject{exampleSubject})), 'sensorsOfInterest');
+%     save(fullfile(dataDir, sprintf('%s_prediction.mat', subject{exampleSubject})), 'dataToPlot');
 
-% Save sensors of interest falling within the contour lines
-save(fullfile(dataDir, sprintf('%s_sensorsOfInterestFromPrediction.mat', subject{exampleSubject})), 'sensorsOfInterest');
-save(fullfile(dataDir, sprintf('%s_prediction.mat', subject{exampleSubject})), 'dataToPlot');
-
-
+end
 
 
 %% Take mean across subjects and plot if requested
@@ -109,12 +113,14 @@ if plotMeanSubject
     
     w.V1c_mn = mean(w.V1c,1);
     w.V1i_mn = mean(w.V1i,1);
+    w.V1m_mn = mean(w.V1m,1);
     
-    dataToPlot = [w.V1c_mn; w.V1i_mn];
+    dataToPlot = [w.V1c_mn; w.V1i_mn; w.V1m_mn];
     
-    fig_ttl    = {sprintf('Figure1_model_predictions_%s', area), sprintf('Figure1_Uniform_and_Random_Compared_%s', area)};
+    fig_ttl    = {sprintf('Figure1_model_predictions_mixture_%s', area), sprintf('Figure1_Uniform_and_Random_Compared_mixture_%s', area)};
     sub_ttl    = {sprintf('Uniform phase Average N = %d', length(subject)), ...
-                  sprintf('Random phase Average N = %d', length(subject))};
+                  sprintf('Random phase Average N = %d', length(subject)),...
+                  sprintf('Mixed phase Average N = %d', length(subject))};
     markerType = '.';
     
     figureDir       = fullfile(fmsRootPath,'figures', 'average'); % Where to save images?

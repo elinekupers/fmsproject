@@ -34,27 +34,60 @@ end
 % Create time vector
 t  = (1:n)/n;   % s
 
-signalCoherent  = zeros([size(template,2), n, nrEpochs]);
+% Preallocate space
+signalCoherent   = zeros([size(template,2), n, nrEpochs]);
 signalIncoherent = zeros(size(signalCoherent));
+signalMix        = zeros(size(signalCoherent));
 
+% Get nr of vertices in template that are actually used
+nrVertices = sum(template);
+
+% Define von Mises params
+theta = 0; % mean preferred phase
+kappa.incoh = 0;
+kappa.coh = 20*pi;
+kappa.mix = pi;
+
+% Sample phases from three different von Mises 
+phase.coh   = circ_vmrnd(theta, kappa.coh, nrEpochs);
+phase.incoh = circ_vmrnd(theta, kappa.incoh, [nrEpochs, nrVertices]);
+phase.mix   = circ_vmrnd(theta, kappa.mix, [nrEpochs, nrVertices]);
+
+% Create time series, add different phases sampled from von Mises later
+ts = repmat((2*pi*f*t), nrEpochs, nrVertices);
+ts = reshape(ts, [nrEpochs, n, nrVertices]);
+
+% Coherent signal contains the same phase per vertex, but differs
+% slightly per epoch (depending on the width of the von Mises
+% distribution)
+tsCoherent = sin(ts+phase.coh);
+tsCoherent = permute(tsCoherent, [3, 2, 1]);
+
+signalCoherent(find(template),:,:) =  tsCoherent;
+
+% Incoherent signal gets a random phase every vertex and every epoch
+phase.incoh = reshape(phase.incoh, [nrEpochs, nrVertices]);
+
+ts = permute(ts, [1,3,2]);
+tsIncoherent = sin(ts + phase.incoh); 
+tsIncoherent = permute(tsIncoherent, [2, 3, 1]); 
+
+signalIncoherent(find(template),:,:) = tsIncoherent;
+        
+% Signal mix 
+tsMix = sin(ts + phase.mix);
+tsMix = permute(tsMix, [2, 3, 1]); 
+signalMix(find(template),:,:) = tsMix;
+
+    
+%% Predicted sensor time series
 for epoch = 1:nrEpochs
-    
-    % Coherent signal gets a fixed phase for each vertex, in one epoch (but
-    % different across epochs)
-    thisEpochCoherentPhase = rand*2*pi;
-    signalCoherent(:,:,epoch) = template' * sin(2*pi*f*t + thisEpochCoherentPhase);
-    
-    % Incoherent signal gets a random phase every vertex and every epoch
-    for ii = find(template)
-        signalIncoherent(ii,:,epoch) = sin(2*pi*f*t + rand*2*pi);
-    end
-    
-    %% Predicted sensor time series
     w.c(:,:,epoch) = G*signalCoherent(:,:,epoch);
     w.i(:,:,epoch) = G*signalIncoherent(:,:,epoch);
-    
+    w.m(:,:,epoch) = G*signalMix(:,:,epoch);
 end
 
+    
 return
 
 %% Note: other way simulating coherent/incoherent signal (w/ complex numbers)
