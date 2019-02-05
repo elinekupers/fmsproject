@@ -19,7 +19,7 @@ if ~exist('contourmapPercentile','var') || isempty(contourmapPercentile)
 end
 
 if ~exist('colorMarkers','var') || isempty(colorMarkers)
-    colorMarkers = {'r','b', 'r', 'b'};
+    colorMarkers =  repmat({'r','b','g'},1,2);
 end
 
 if ~exist('markerType','var') || isempty(markerType)
@@ -69,7 +69,7 @@ for ii = 1:size(data,1)
 
     % Plot data or predictions
     figure(fH1);
-    subplot(2,1,ii);
+    subplot(size(data,1),1,ii);
     [~,ch] = megPlotMap(dataToPlot,colormapLims,fH1,'bipolar',[],[],[], ...
         'isolines', contourmapLims, ...
     ...    'chanindx', dataToPlot > max(contourmapLims), ...
@@ -84,24 +84,34 @@ for ii = 1:size(data,1)
     % Check if a contour lines are a matrix, if so, plot contour lines based on these data   
     elseif ~isempty(contourmapPercentile) && length(contourmapPercentile)>1        
         
-        fHP = figure(99); clf; subplot(211);
+        fHP = figure(99); clf; subplot(3,1,1);
         external_contourmapLims1 = [1 1]*prctile(contourmapPercentile(idx,:), 93.6);
         external_colormapLims1   = [-1 1]*prctile(contourmapPercentile(idx,:), colormapPercentile);
         megPlotMap(contourmapPercentile(idx,:),external_colormapLims1,[],bipolar,[],[],[],'isolines', external_contourmapLims1);
         cP1 = findobj(gca,'Type','Contour');
         
-        subplot(212);
+        subplot(3,1,2);
         external_contourmapLims2 = [1 1]*prctile(contourmapPercentile(idx+1,:), 93.6);
         external_colormapLims2   = [-1 1]*prctile(contourmapPercentile(idx+1,:), colormapPercentile);
         megPlotMap(contourmapPercentile(idx+1,:),external_colormapLims2,[],bipolar,[],[],[],'isolines', external_contourmapLims2);
         cP2 = findobj(gca,'Type','Contour');
         
+        subplot(3,1,3);
+        external_contourmapLims3 = [1 1]*prctile(contourmapPercentile(idx+2,:), 93.6);
+        external_colormapLims3   = [-1 1]*prctile(contourmapPercentile(idx+2,:), colormapPercentile);
+        megPlotMap(contourmapPercentile(idx+2,:),external_colormapLims3,[],bipolar,[],[],[],'isolines', external_contourmapLims3);
+        cP3 = findobj(gca,'Type','Contour');
+        
          % Plot them in actual mesh
         set(0, 'currentfigure', fH1);
         contour(cP1.XData, cP1.YData, cP1.ZData, external_contourmapLims1, 'LineColor','k', 'Fill','off','LineWidth',2);
         contour(cP2.XData, cP2.YData, cP2.ZData, external_contourmapLims2, 'LineColor','w', 'Fill','off','LineWidth',2);
+        contour(cP3.XData, cP3.YData, cP3.ZData, external_contourmapLims3, 'LineColor','w', 'Fill','off','LineWidth',2);
+
         sensorsOfInterest(idx,:) = contourmapPercentile(idx,:) > max(external_contourmapLims1);
-        sensorsOfInterest(idx+1,:) = contourmapPercentile(idx+1,:) > max(external_contourmapLims2);        
+        sensorsOfInterest(idx+1,:) = contourmapPercentile(idx+1,:) > max(external_contourmapLims2);     
+        sensorsOfInterest(idx+2,:) = contourmapPercentile(idx+2,:) > max(external_contourmapLims3);        
+
     end
     
     % Make figure pretty
@@ -109,8 +119,7 @@ for ii = 1:size(data,1)
         
     % Plot overlap
     if ~isempty(contourmapLims)
-        figure(fH2);
-        subplot(2,1,ceil(ii/2)); hold all;   
+        figure(fH2); hold all;   
         contourf(c.XData, c.YData, c.ZData, contourmapLims, 'LineColor',colorMarkers{ii}, 'Fill','off','LineWidth',4);
         %%scatter(pp(1).XData,pp(1).YData, 150, colorMarkers{ii},'*'); 
         colorbar off;
