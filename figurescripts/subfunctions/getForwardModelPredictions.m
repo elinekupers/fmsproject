@@ -1,4 +1,4 @@
-function w = getForwardModelPredictions(G, template, f, n, nrEpochs)
+function w = getForwardModelPredictions(G, template, f, n, nrEpochs, theta, kappa)
 
 % Function to compute forward model predictions from gain matrix and templates. 
 % Templates will contain coherent and incoherent simulated signals. 
@@ -28,6 +28,15 @@ if ~exist('nrEpochs', 'var') || isempty(nrEpochs)
     nrEpochs = 1;
 end
 
+if ~exist('theta', 'var') || isempty(theta)
+    theta = 0;  % mean preferred phase of von Mises (same across all three)
+end
+
+if ~exist('kappa', 'var') || isempty(kappa)
+    kappa.incoh = 0; % (inverse) width of distribution
+    kappa.coh = 20*pi;
+    kappa.mix = pi;
+end
 
 %% Create cycles of a sine wave
 
@@ -41,12 +50,6 @@ signalMix        = zeros(size(signalCoherent));
 
 % Get nr of vertices in template that are actually used
 nrVertices = sum(template);
-
-% Define von Mises params
-theta = 0; % mean preferred phase
-kappa.incoh = 0;
-kappa.coh = 20*pi;
-kappa.mix = pi;
 
 % Sample phases from three different von Mises 
 phase.coh   = circ_vmrnd(theta, kappa.coh, nrEpochs);
