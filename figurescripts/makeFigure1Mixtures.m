@@ -1,4 +1,4 @@
-function makeFigure1Mixtures(exampleSubject)
+function makeFigure1Mixtures(subjectToPlot)
 
 % This is a function to make Figure 1 from the manuscript about forward
 % modeling coherent and incoherent neural sources to MEG responses.
@@ -14,6 +14,12 @@ function makeFigure1Mixtures(exampleSubject)
 %     addpath(genpath('~/matlab/git/toolboxes/meg_utils'))
 % (3) Run the s_visualAreasFS2BS script from this repository
 
+if ~exist('subjectToPlot', 'var') || isempty(subjectToPlot)
+    subjectToPlot = 1:12;
+    plotMeanSubject = true;     % Plot average subject?
+else
+    plotMeanSubject = false;     % Plot average subject?
+end
 
 %% 0. Set up paths and define parameters
 
@@ -21,15 +27,11 @@ function makeFigure1Mixtures(exampleSubject)
 %   Full  only: 'wlsubj048', 'wlsubj046','wlsubj039','wlsubj059', 'wlsubj067'
 %   Full, Left, Right: 'wlsubj002','wlsubj004','wlsubj005','wlsubj006','wlsubj010','wlsubj011'
 subject         = {'wlsubj002','wlsubj004','wlsubj005','wlsubj006','wlsubj010','wlsubj011','wlsubj048', 'wlsubj046','wlsubj039','wlsubj059', 'wlsubj067', 'wlsubj070'};
-if nargin < 1; exampleSubject  = 12; end
 
 % Path to brainstorm database and project name
 bsDB            = '/Volumes/server/Projects/MEG/brainstorm_db/';
 projectName     = 'SSMEG';
-figureDir       = fullfile(fmsRootPath,'figures', subject{exampleSubject}); % Where to save images?
-dataDir         = fullfile(fmsRootPath,'data', subject{exampleSubject}); % Where to save images?
 saveFigures     = true;     % Save figures in the figure folder?
-plotMeanSubject = true;     % Plot average subject?
 
 % What visual area to use?
 area            = 'all'; % Choose between 'V1' or 'all' (=V1-V3);
@@ -41,21 +43,30 @@ nrEpochs    = 1000;       % number of epochs
 theta       = 0;          % von mises mean of three distributions
 kappa.coh   = 10*pi;
 kappa.incoh = 0;
-allKappas   = pi.*[0.125, linspace(0.25, 5, 20)];
+allMixedKappas   = [pi*0.125, pi.*linspace(0.25, 5, 20)];
 
 % Define vector that can truncate number of sensors
 keep_sensors = logical([ones(157,1); zeros(192-157,1)]); % Note: Figure out a more generic way to define keep_sensors
 
-for s = 1:length(subject)
+% Plotting variables
+nrMixedKappas = length(allMixedKappas);
+labels = cellstr(sprintfc('Kappa = %1.2f *pi', allMixedKappas./pi));
+clims =  10^-3.*[-1 1];
+nrows = 3;
+ncols = ceil(nrMixedKappas/3)+1;
+
+for s = subjectToPlot
     
-    for k = 1:length(allKappas)
+     d = dir(fullfile(bsDB, projectName, 'data', subject{s}, 'R*'));
+     bsData = fullfile(d(1).folder, d(1).name);
+     bsAnat = fullfile(bsDB, projectName, 'anat', subject{s});
+     
+     figure(1); set(gcf, 'Color', 'w', 'Position', [1, 1, 1680, 999]); clf; hold all;
+    
+    for k = 1:length(allMixedKappas)
         
-        kappa.mix   = allKappas(k);
-        
-        d = dir(fullfile(bsDB, projectName, 'data', subject{s}, 'R*'));
-        bsData = fullfile(d(1).folder, d(1).name);
-        bsAnat = fullfile(bsDB, projectName, 'anat', subject{s});
-        
+        kappa.mix   = allMixedKappas(k);
+              
         %% 1. Load relevant matrices
         
         G_constrained = getGainMatrix(bsData, keep_sensors);
@@ -83,68 +94,58 @@ for s = 1:length(subject)
         
     end
     
-end
-
-%% Visualize predictions
-
-labels = cellstr(sprintfc('%1.2f *pi', allKappas/pi));
-nrKappas = length(allKappas);
-for s = 1:length(subject)
+    % Visualize predictions
+    subplot(nrows, ncols,1);
+    megPlotMap(squeeze(w.V1i(s,1,:)), clims, [], 'bipolar', 'Kappa = 0');
     
-    figure(1); clf;
-    subplot(nrKappas,1,1);
-    megPlotMap(w.V1c(s,1,:), [1E-4, 1E4], [], 'bipolar', labels(1));
-    
-    subplot(nrKappas,1,nrKappas);
-    megPlotMap(w.V1c(s,nrKappas,:), [1E-4, 1E4], [], 'bipolar', labels(nrKappas));
+    subplot(nrows, ncols,nrMixedKappas+2);
+    megPlotMap(squeeze(w.V1c(s,1,:)), clims, [], 'bipolar', 'Kappa = 10*pi');
 
-    for k = 2:nrKappas-1
-        subplot(nrKappas,1,k)
-        megPlotMap(w.V1c(s,k,:), [1E-4, 1E4], [], 'bipolar', labels(k));
+    for k = 1:nrMixedKappas
+        subplot(nrows, ncols,k+1)
+        megPlotMap(squeeze(w.V1m(s,k,:)), clims, [], 'bipolar', labels(k));
     end
+        
+    dataDir       = fullfile(fmsRootPath,'data', subject{s}); % Where to save images?
+    figureDir       = fullfile(fmsRootPath,'figures', subject{s}); % Where to save images?
     
-    
-%     dataDir       = fullfile(fmsRootPath,'data', subject{exampleSubject}); % Where to save images?
-%     figureDir       = fullfile(fmsRootPath,'figures', subject{exampleSubject}); % Where to save images?
-%     
-%     % Make figure and data dir for subject, if non-existing
-%     if ~exist(figureDir,'dir'); mkdir(figureDir); end
-%     if ~exist(dataDir,'dir'); mkdir(dataDir); end
-%         
-%     save(fullfile(dataDir, sprintf('%s_prediction.mat', subject{exampleSubject})), 'dataToPlot');
-    
+    % Make figure and data dir for subject, if non-existing
+    if ~exist(figureDir,'dir'); mkdir(figureDir); end
+    if ~exist(dataDir,'dir'); mkdir(dataDir); end
+        
+    save(fullfile(dataDir, sprintf('%s_mixturePredictions.mat', subject{s})), 'w');
+    figurewrite(fullfile(figureDir, sprintf('%s_mixturePredictions_%s', subject{s}, area)),[],0,'.',1);
+
 end
 
 
-% %% Take mean across subjects and plot if requested
-% if plotMeanSubject
-%     
-%     w.V1c_mn = mean(w.V1c,1);
-%     w.V1i_mn = mean(w.V1i,1);
-%     w.V1m_mn = mean(w.V1m,1);
-%     
-%     dataToPlot = [w.V1c_mn; w.V1i_mn; w.V1m_mn];
-%     
-%     fig_ttl    = {sprintf('Figure1_model_predictions_mixture_%s', area), sprintf('Figure1_Uniform_and_Random_Compared_mixture_%s', area)};
-%     sub_ttl    = {sprintf('Uniform phase Average N = %d', length(subject)), ...
-%         sprintf('Random phase Average N = %d', length(subject)),...
-%         sprintf('Mixed phase Average N = %d', length(subject))};
-%     markerType = '.';
-%     
-%     figureDir       = fullfile(fmsRootPath,'figures', 'average'); % Where to save images?
-%     dataDir       = fullfile(fmsRootPath,'data', 'average'); % Where to save images?
-%     
-%     if ~exist(figureDir,'dir'); mkdir(figureDir); end
-%     if ~exist(dataDir,'dir'); mkdir(dataDir); end
-%     
-%     % Plot data and save channels that are located inside the contour lines
-%     sensorsOfInterest = visualizeSensormaps(dataToPlot, colormapPercentile, contourmapPercentile, colorMarkers, markerType, fig_ttl, sub_ttl, saveFigures, figureDir);
-%     
-%     % Make them logicals so we can use them later as indices
-%     %     sensorsOfInterest = logical(sensorsOfInterest);
-%     
-%     % Save sensors of interest falling within the contour lines
-%     %     save(fullfile(dataDir, sprintf('Average_sensorsOfInterestFromPrediction_%s', area)), 'sensorsOfInterest');
-%     save(fullfile(dataDir, sprintf('Average_prediction_%s',area)), 'dataToPlot');
-%     
-% end
+%% Take mean across subjects and plot if requested
+if plotMeanSubject
+    
+    w.V1c_mn = mean(w.V1c,1);
+    w.V1i_mn = mean(w.V1i,1);
+    w.V1m_mn = mean(w.V1m,1);
+    
+    figure(1); set(gcf, 'Color', 'w', 'Position', [1, 1, 1680, 999]); clf; hold all;
+    subplot(nrows, ncols,1);
+    megPlotMap(w.V1c_mn(1,:), clims, [], 'bipolar', 'Kappa = 0');
+    
+    subplot(nrows, ncols,nrMixedKappas+2);
+    megPlotMap(w.V1i_mn(1,:), clims, [], 'bipolar', 'Kappa = 10*pi');
+
+    for k = 1:nrMixedKappas
+        subplot(nrows, ncols,k+1)
+        megPlotMap(w.V1m(k,:), clims, [], 'bipolar', labels(k));
+    end
+        
+    figureDir       = fullfile(fmsRootPath,'figures', 'average'); % Where to save images?
+    dataDir       = fullfile(fmsRootPath,'data', 'average'); % Where to save images?
+    
+    if ~exist(figureDir,'dir'); mkdir(figureDir); end
+    if ~exist(dataDir,'dir'); mkdir(dataDir); end
+    
+    % Plot data and save data
+    save(fullfile(dataDir, 'mixturePredictions_averge.mat'), 'w');
+    figurewrite(fullfile(figureDir, sprintf('mixturePredictions_%s', area)),[],0,'.',1);
+
+end

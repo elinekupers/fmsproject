@@ -28,7 +28,7 @@ bsDB            = '/Volumes/server/Projects/MEG/brainstorm_db/';
 projectName     = 'SSMEG';
 figureDir       = fullfile(fmsRootPath,'figures', subject{exampleSubject}); % Where to save images?
 dataDir         = fullfile(fmsRootPath,'data', subject{exampleSubject}); % Where to save images?
-saveFigures     = false;     % Save figures in the figure folder?
+saveFigures     = true;     % Save figures in the figure folder?
 plotMeanSubject = true;     % Plot average subject?
 
 % What visual area to use?
@@ -43,6 +43,10 @@ colormapPercentile     = 97.5; % percentile of data to use for max/min limits of
 % model
 n        = 10;         % number of timepoints (ms)
 nrEpochs = 1000;        % number of epochs
+theta = 0; % von mises mean of three distributions
+kappa.coh = 10*pi; 
+kappa.incoh = 0; 
+kappa.mix = pi; 
 
 % Define vector that can truncate number of sensors 
 keep_sensors = logical([ones(157,1); zeros(192-157,1)]); % Note: Figure out a more generic way to define keep_sensors
@@ -61,12 +65,12 @@ for s = 1:length(subject)
     % Get V1 template limited to 11 degrees eccentricity
     template = getTemplate(bsAnat, area, 11);
 
-    % Simulate coherent and incoherent source time series and compute
-    % predictions from forward model (w)
+    % Simulate coherent, in between or mixture, adn incoherent source time 
+    % series and compute predictions from forward model (w)
     if strcmp(area, 'all')
-        tmp = getForwardModelPredictions(G_constrained, template.V123StimEccen, [], n, nrEpochs);
+        tmp = getForwardModelPredictions(G_constrained, template.V123StimEccen, [], n, nrEpochs, theta, kappa);
     else
-       tmp = getForwardModelPredictions(G_constrained, template.V1StimEccen, [], n, nrEpochs);
+       tmp = getForwardModelPredictions(G_constrained, template.V1StimEccen, [], n, nrEpochs, theta, kappa);
     end
     
     % Compute amplitude across time
@@ -92,6 +96,9 @@ for exampleSubject = 1:12
     fig_ttl      = {sprintf('Figure1_model_predictions_mixture_%s', area), sprintf('Figure1_Uniform_and_Random_Compared_mixture_%s', area)};
     markerType   = '.';
 
+    dataDir       = fullfile(fmsRootPath,'data', subject{exampleSubject}); % Where to save images?
+    figureDir       = fullfile(fmsRootPath,'figures', subject{exampleSubject}); % Where to save images?
+
     % Make figure and data dir for subject, if non-existing             
     if ~exist(figureDir,'dir'); mkdir(figureDir); end
     if ~exist(dataDir,'dir'); mkdir(dataDir); end
@@ -103,7 +110,7 @@ for exampleSubject = 1:12
 
     % Save sensors of interest falling within the contour lines
 %     save(fullfile(dataDir, sprintf('%s_sensorsOfInterestFromPrediction.mat', subject{exampleSubject})), 'sensorsOfInterest');
-%     save(fullfile(dataDir, sprintf('%s_prediction.mat', subject{exampleSubject})), 'dataToPlot');
+    save(fullfile(dataDir, sprintf('%s_prediction.mat', subject{exampleSubject})), 'dataToPlot');
 
 end
 
@@ -133,10 +140,10 @@ if plotMeanSubject
     sensorsOfInterest = visualizeSensormaps(dataToPlot, colormapPercentile, contourmapPercentile, colorMarkers, markerType, fig_ttl, sub_ttl, saveFigures, figureDir);
 
     % Make them logicals so we can use them later as indices
-    sensorsOfInterest = logical(sensorsOfInterest);
+%     sensorsOfInterest = logical(sensorsOfInterest);
 
     % Save sensors of interest falling within the contour lines
-    save(fullfile(dataDir, sprintf('Average_sensorsOfInterestFromPrediction_%s', area)), 'sensorsOfInterest');
+%     save(fullfile(dataDir, sprintf('Average_sensorsOfInterestFromPrediction_%s', area)), 'sensorsOfInterest');
     save(fullfile(dataDir, sprintf('Average_prediction_%s',area)), 'dataToPlot');           
             
 end
