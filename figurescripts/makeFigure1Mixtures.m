@@ -43,7 +43,7 @@ nrEpochs    = 1000;       % number of epochs
 theta       = 0;          % von mises mean of three distributions
 kappa.coh   = 10*pi;
 kappa.incoh = 0;
-allMixedKappas   = [pi*0.125, pi.*linspace(0.25, 5, 20)];
+allMixedKappas   = logspace(log10(.1),log10(2),10);
 
 % Define vector that can truncate number of sensors
 keep_sensors = logical([ones(157,1); zeros(192-157,1)]); % Note: Figure out a more generic way to define keep_sensors
@@ -55,13 +55,15 @@ clims =  10^-3.*[-1 1];
 nrows = 3;
 ncols = ceil(nrMixedKappas/3)+1;
 
+contourPercentile = 90.4; % for one line: use one number representing the percentile of data to draw your contour at. Else use one number under 10, like 3 means 25, 50 and 75th percentile
+
 for s = subjectToPlot
     
      d = dir(fullfile(bsDB, projectName, 'data', subject{s}, 'R*'));
      bsData = fullfile(d(1).folder, d(1).name);
      bsAnat = fullfile(bsDB, projectName, 'anat', subject{s});
      
-     figure(1); set(gcf, 'Color', 'w', 'Position', [1, 1, 1680, 999]); clf; hold all;
+     figure(1); set(1, 'Color', 'w', 'Position', [1, 1, 1680, 999]); clf; hold all;
     
     for k = 1:length(allMixedKappas)
         
@@ -94,16 +96,24 @@ for s = subjectToPlot
         
     end
     
-    % Visualize predictions
-    subplot(nrows, ncols,1);
-    megPlotMap(squeeze(w.V1i(s,1,:)), clims, [], 'bipolar', 'Kappa = 0');
+    % Visualize most incoherent signals
+    subplot(nrows, ncols,1);    
+    dataToPlot = squeeze(w.V1i(s,1,:));
+    if contourPercentile>10; contourLines = [1 1]*prctile(dataToPlot, contourPercentile); else contourLines = contourPercentile; end
+    megPlotMap(dataToPlot, clims, [], 'bipolar', 'Kappa = 0', [],[], 'isolines', contourLines);
     
+    % Visualize most coherent signals
     subplot(nrows, ncols,nrMixedKappas+2);
-    megPlotMap(squeeze(w.V1c(s,1,:)), clims, [], 'bipolar', 'Kappa = 10*pi');
+    dataToPlot = squeeze(w.V1c(s,1,:));
+    if contourPercentile>10; contourLines = [1 1]*prctile(dataToPlot, contourPercentile); else contourLines = contourPercentile; end
+    megPlotMap(dataToPlot, clims, [], 'bipolar', 'Kappa = 10*pi', [],[], 'isolines', contourLines);
 
+    % Visualize all mixtures
     for k = 1:nrMixedKappas
         subplot(nrows, ncols,k+1)
-        megPlotMap(squeeze(w.V1m(s,k,:)), clims, [], 'bipolar', labels(k));
+        dataToPlot = squeeze(w.V1m(s,k,:));
+        if contourPercentile>10; contourLines = [1 1]*prctile(dataToPlot, contourPercentile); else contourLines = contourPercentile; end
+        megPlotMap(dataToPlot, clims, [], 'bipolar', labels(k), [],[], 'isolines', contourLines);
     end
         
     dataDir       = fullfile(fmsRootPath,'data', subject{s}); % Where to save images?
@@ -114,7 +124,7 @@ for s = subjectToPlot
     if ~exist(dataDir,'dir'); mkdir(dataDir); end
         
     save(fullfile(dataDir, sprintf('%s_mixturePredictions.mat', subject{s})), 'w');
-    figurewrite(fullfile(figureDir, sprintf('%s_mixturePredictions_%s', subject{s}, area)),[],0,'.',1);
+    figurewrite(fullfile(figureDir, sprintf('%s_mixturePredictions_%s', subject{s}, area)),[],[1 300],'.',1);
 
 end
 
@@ -128,14 +138,20 @@ if plotMeanSubject
     
     figure(1); set(gcf, 'Color', 'w', 'Position', [1, 1, 1680, 999]); clf; hold all;
     subplot(nrows, ncols,1);
-    megPlotMap(w.V1c_mn(1,:), clims, [], 'bipolar', 'Kappa = 0');
+    dataToPlot = w.V1i_mn(1,:);
+    if contourPercentile>10; contourLines = [1 1]*prctile(dataToPlot, contourPercentile); else contourLines = contourPercentile; end
+    megPlotMap(dataToPlot, clims, [], 'bipolar', 'Kappa = 0', [],[], 'isolines', contourLines);
     
     subplot(nrows, ncols,nrMixedKappas+2);
-    megPlotMap(w.V1i_mn(1,:), clims, [], 'bipolar', 'Kappa = 10*pi');
+    dataToPlot = w.V1c_mn(1,:);
+    if contourPercentile>10; contourLines = [1 1]*prctile(dataToPlot, contourPercentile); else contourLines = contourPercentile; end
+    megPlotMap(dataToPlot, clims, [], 'bipolar', 'Kappa = 10*pi', [],[], 'isolines', contourLines);
 
     for k = 1:nrMixedKappas
-        subplot(nrows, ncols,k+1)
-        megPlotMap(w.V1m(k,:), clims, [], 'bipolar', labels(k));
+        subplot(nrows, ncols,k+1);
+        dataToPlot = w.V1m(k,:);
+        if contourPercentile>10; contourLines = [1 1]*prctile(dataToPlot, contourPercentile); else contourLines = contourPercentile; end
+        megPlotMap(dataToPlot, clims, [], 'bipolar', labels(k), [],[], 'isolines', contourLines);
     end
         
     figureDir       = fullfile(fmsRootPath,'figures', 'average'); % Where to save images?
@@ -146,6 +162,6 @@ if plotMeanSubject
     
     % Plot data and save data
     save(fullfile(dataDir, 'mixturePredictions_averge.mat'), 'w');
-    figurewrite(fullfile(figureDir, sprintf('mixturePredictions_%s', area)),[],0,'.',1);
+    figurewrite(fullfile(figureDir, sprintf('mixturePredictions_%s', area)),[],[1 300],'.',1);
 
 end
