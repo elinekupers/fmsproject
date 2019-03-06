@@ -43,7 +43,7 @@ nrEpochs    = 1000;       % number of epochs
 theta       = 0;          % von mises mean of three distributions
 kappa.coh   = 10*pi;
 kappa.incoh = 0;
-allMixedKappas   = logspace(log10(.1),log10(2),10);
+allMixedKappas   = pi.*logspace(log10(.1),log10(2),10);
 
 % Define vector that can truncate number of sensors
 keep_sensors = logical([ones(157,1); zeros(192-157,1)]); % Note: Figure out a more generic way to define keep_sensors
