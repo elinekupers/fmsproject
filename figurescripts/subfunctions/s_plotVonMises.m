@@ -1,8 +1,8 @@
 % s_plotVonMises
 
-allKappas = sort([linspace(0, 5*pi, 21), 0.125*pi, 10*pi]);
-thetahat = 0;
-alpha = linspace(-pi, pi, 1000);
+allKappas = pi.*[ 0, logspace(log10(.1),log10(2),10), 10];
+thetahat  = 0;
+alpha     = linspace(-pi, pi, 1000);
 
 cmap = parula(length(allKappas));
 figure(1); clf; set(gcf, 'Color', 'w'); hold all;
