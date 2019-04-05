@@ -22,19 +22,19 @@ individuals viewing a full-field high contrast-reversing checkerboard stimulus.
 
 ## Repository overview
 
-Content:
 - external 			: functions from other repositories
 - figurescripts		: contains separate functions to make manuscript figures 1-4:
-						makeFigure1 - compute and plot the forward model prediction for 1 or average across all subjects
-						makeFigure1Mixtures - same as makeFigure1, but to compute many in between model predictions with different values for von Mises kappa (width of the distribution) 
-						makeFigure2 - load and plot measured MEG data for 1 or average across all subjects
-						makeFigure3 - load and plot measured MEG data and overlay with contourlines of model predictions for all subjects
-						makeFigure4 - compute adjusted forward model, that does not allow for responses to cancel					
-	- subfunctions 	: functions needed to run makeFigureXX
+	- subfunctions 	: additional functions needed to run figure scripts
+		- makeFigure1 - compute and plot the forward model prediction for 1 or average across all subjects
+		- makeFigure1Mixtures - same as makeFigure1, but to compute many in between model predictions with different values for von Mises kappa (width of the distribution) 
+		- makeFigure2 - load and plot measured MEG data for 1 or average across all subjects
+		- makeFigure3 - load and plot measured MEG data and overlay with contourlines of model predictions for all subjects
+		- makeFigure4 - compute adjusted forward model, that does not allow for responses to cancel					
+	
 - mne_alignment		: folder with Python script to check MRI/MEG data alignment
 
-fmsMakeAllFigures.m : master script that calls all makeFigureX functions
-fmsRootPath.m 		: function to call local path of this repository folder
+- fmsMakeAllFigures.m : master script that calls all makeFigureX functions
+- fmsRootPath.m 		: function to call local path of this repository folder
 
 ## Data
 - headmodel from brainstorm:
@@ -49,27 +49,27 @@ fmsRootPath.m 		: function to call local path of this repository folder
 
 ## Workflow and examples
 1. How to get downsampled V1-V3 Templates?
-	1.1 Compute FreeSurfer's recon-all of subject's T1w image (https://surfer.nmr.mgh.harvard.edu/fswiki/recon-all)
-	1.2 Use Benson Docker on Freesurfer subject to create V1-V3 (https://github.com/noahbenson/neuropythy/)
-	1.3 Combine and downsample FS hemispheres to BS with this repository script 's_visualAreasFS2BS'
+	_1.1 Compute FreeSurfer's recon-all of subject's T1w image (https://surfer.nmr.mgh.harvard.edu/fswiki/recon-all)_
+	_1.2 Use Benson Docker on Freesurfer subject to create V1-V3 (https://github.com/noahbenson/neuropythy/)_
+	_1.3 Combine and downsample FS hemispheres to BS with this repository script 's_visualAreasFS2BS'_
 
 2. How to get V1 template prediction for a particular subject and visualize it?
-	2.1 Have access to the SSMEG folder in Brainstorm database
-	2.2 Run figure script: makeFigure1('exampleSubject', subjectnr)
+	_2.1 Have access to the SSMEG folder in Brainstorm database_
+	_2.2 Run figure script: makeFigure1('exampleSubject', subjectnr)_
 
 3. How to get SSMEG data for particular subject and visualize?
-	3.1 Copy following matlab files from /Projects/MEG/SSMEG on server to data/wlsubjXXX folder in repository:
-		sXX_conditions.m
-		sXX_denoisedData_bb.mat
-		sXX_denoiseData_sl.mat
-		sXX_denoisedts.mat
-		sXX_sensorData.mat
-	3.2 Run figure script: makeFigure2('exampleSubject', subjectnr)
+	_3.1 Copy following matlab files from /Projects/MEG/SSMEG on server to data/wlsubjXXX folder in repository:_
+		- sXX_conditions.m
+		- sXX_denoisedData_bb.mat
+		- sXX_denoiseData_sl.mat
+		- sXX_denoisedts.mat
+		- sXX_sensorData.mat
+	_3.2 Run figure script: makeFigure2('exampleSubject', subjectnr)_
 
 4. How to plot data against model prediction for all subjects?
-	4.1 Run figure script: makeFigure3()
+	_4.1 Run figure script: makeFigure3()_
 
 5. How to plot model prediction with alternative forward model (no cancellation allowed)
-	5.1 Run figure script: makeFigure4()
+	_5.1 Run figure script: makeFigure4()_
 
 
