@@ -30,8 +30,8 @@ if ~exist('MRIread')
     addpath(genpath('/Applications/freesurfer/fsfast/toolbox'))
 end
 
-bssubject = 'wlsubj070';
-fssubject = 'wlsubj070';
+bssubject = 'wlsubj005';
+fssubject = bssubject;
 exp     = 'SSMEG';
 
 % Freesurfer, brainstorm database and data/anatomy directories
@@ -39,11 +39,8 @@ fsdir     = '/Volumes/server/Freesurfer_subjects';
 bsDB     = '/Volumes/server/Projects/MEG/brainstorm_db';
 
 d = dir(fullfile(bsDB, exp, 'data', bssubject));
-if strcmp(bssubject,'wlsubj002')
-    datadir = fullfile(bsDB, exp, 'data', bssubject, d(end-1).name);
-else
-    datadir = fullfile(bsDB, exp, 'data', bssubject, d(end).name);
-end
+datadir = fullfile(bsDB, exp, 'data', bssubject, d(end).name);
+
 
 anatdir = fullfile(bsDB, exp, 'anat', bssubject);
 
