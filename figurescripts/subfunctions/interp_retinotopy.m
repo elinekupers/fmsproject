@@ -57,12 +57,30 @@ setenv('SUBJECTS_DIR', fsdir);
 
 %% Load Retinotopy Data
 
-retino_fname = @(hem, type)(sprintf('%s/surf/%s.template_%s.mgz', sub_fsdir, hem, type));
-surfdat      = @(lh, rh, rc)(setfield(setfield([], 'lh', lh.vol(:)), 'rh', rc*rh.vol(:)));
+d = dir(fullfile(sprintf('%s/surf/*benson14_varea*', sub_fsdir)));
 
-sub_fs_angle = surfdat(MRIread(retino_fname('lh', 'angle')), MRIread(retino_fname('rh', 'angle')), -1);
-sub_fs_eccen = surfdat(MRIread(retino_fname('lh', 'eccen')), MRIread(retino_fname('rh', 'eccen')),  1);
-sub_fs_areas = surfdat(MRIread(retino_fname('lh', 'areas')), MRIread(retino_fname('rh', 'areas')),  1);
+if regexp(d(1).name, 'mgz', 'ONCE')
+    retino_fname = @(hem, type)(sprintf('%s/surf/%s.benson14_%s.mgz', sub_fsdir, hem, type));
+    % retino_fname = @(hem, type)(sprintf('%s/surf/%s.template_%s.mgz', sub_fsdir, hem, type));  
+    surfdat      = @(lh, rh, rc)(setfield(setfield([], 'lh', lh.vol(:)), 'rh', rc*rh.vol(:)));
+
+    sub_fs_angle = surfdat(MRIread(retino_fname('lh', 'angle')), MRIread(retino_fname('rh', 'angle')), -1);
+    sub_fs_eccen = surfdat(MRIread(retino_fname('lh', 'eccen')), MRIread(retino_fname('rh', 'eccen')),  1);
+%     sub_fs_areas = surfdat(MRIread(retino_fname('lh', 'areas')), MRIread(retino_fname('rh', 'areas')),  1);
+    sub_fs_areas = surfdat(MRIread(retino_fname('lh', 'varea')), MRIread(retino_fname('rh', 'varea')),  1);
+
+    
+else
+    retino_fname = @(hem, type)(sprintf('%s/surf/%s.benson14_%s', sub_fsdir, hem, type));
+    surfdat      = @(lh, rh, rc)(setfield(setfield([], 'lh', lh(:)), 'rh', rc*rh(:)));
+
+    sub_fs_angle = surfdat(read_curv(retino_fname('lh', 'angle')), read_curv(retino_fname('rh', 'angle')), -1);
+    sub_fs_eccen = surfdat(read_curv(retino_fname('lh', 'eccen')), read_curv(retino_fname('rh', 'eccen')),  1);
+    sub_fs_areas = surfdat(read_curv(retino_fname('lh', 'varea')), read_curv(retino_fname('rh', 'varea')),  1);
+end
+
+% 
+
 
 
 %% Apply the interpolation
@@ -73,13 +91,13 @@ sub_bs_angle = sub_fs_interp(sub_fs_angle);
 sub_bs_eccen = sub_fs_interp(sub_fs_eccen);
 sub_bs_areas = sub_fs_interp(sub_fs_areas);
 
-sub_bs_angle_mgzfile = sprintf('%s/angle_overlay.mgz', sub_bsdir);
-sub_bs_eccen_mgzfile = sprintf('%s/eccen_overlay.mgz', sub_bsdir);
-sub_bs_areas_mgzfile = sprintf('%s/areas_overlay.mgz', sub_bsdir);
+sub_bs_angle_mgzfile = sprintf('%s/benson14angle_overlay.mgz', sub_bsdir);
+sub_bs_eccen_mgzfile = sprintf('%s/benson14eccen_overlay.mgz', sub_bsdir);
+sub_bs_areas_mgzfile = sprintf('%s/benson14areas_overlay.mgz', sub_bsdir);
 
-sub_bs_angle_matfile = sprintf('%s/angle_overlay.mat', sub_bsdir);
-sub_bs_eccen_matfile = sprintf('%s/eccen_overlay.mat', sub_bsdir);
-sub_bs_areas_matfile = sprintf('%s/areas_overlay.mat', sub_bsdir);
+sub_bs_angle_matfile = sprintf('%s/benson14angle_overlay.mat', sub_bsdir);
+sub_bs_eccen_matfile = sprintf('%s/benson14eccen_overlay.mat', sub_bsdir);
+sub_bs_areas_matfile = sprintf('%s/benson14areas_overlay.mat', sub_bsdir);
 
 MRIwrite(struct('vol', sub_bs_angle), sub_bs_angle_mgzfile);
 MRIwrite(struct('vol', sub_bs_eccen), sub_bs_eccen_mgzfile);
