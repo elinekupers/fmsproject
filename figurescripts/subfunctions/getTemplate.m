@@ -9,7 +9,7 @@ function template = getTemplate(anatDir, whichVisualAreas, stimEccen)
 % anatDir            : [str] path to subject's anatomy folder in Brainstorm database
 % whichVisualAreas   : [str] string to define whether you want templates
 %                            from all visual areas [V1-V3] or just V1
-% stimEccen          : [int] eccentricity in degrees to limit vertices in template
+% stimEccen          : [int] or [vect] eccentricity in degrees to limit vertices in template.
 
 % OUTPUTS:
 % template           :  [struct] contrains downsampled brainstorm meshes with
@@ -28,38 +28,48 @@ end
 %%
 
 % Load V1-3 template with unitized phases in downsampled brainstorm format (computed by interp_retinotopy.m)
-areas    = load(fullfile(anatDir, 'areas_overlay.mat')); % [1xNsources] Every value between [-3,3] is inside V1-3, zeros refer to outside of visual cortex. CHECK: Positive values represent LH (?) Negative values RH (?)
-eccen    = load(fullfile(anatDir, 'eccen_overlay.mat')); % [1xNsources] Nonzero value represents vertex preferred eccentricity in degrees, zeros refer to outside of visual cortex
-polarang = load(fullfile(anatDir, 'angle_overlay.mat')); % [1xNsources] Nonzero value represents vertex preferred polar angle in degrees, zeros refer to outside of visual cortex
+% areas    = load(fullfile(anatDir, 'areas_overlay.mat')); % [1xNsources] Every value between [-3,3] is inside V1-3, zeros refer to outside of visual cortex. Positive values represent dorsal, negative values ventral
+% eccen    = load(fullfile(anatDir, 'eccen_overlay.mat')); % [1xNsources] Nonzero value represents vertex preferred eccentricity in degrees, zeros refer to outside of visual cortex
+% polarang = load(fullfile(anatDir, 'angle_overlay.mat')); % [1xNsources] Nonzero value represents vertex preferred polar angle in degrees, zeros refer to outside of visual cortex
+
+areas    = load(fullfile(anatDir, 'benson14areas_overlay.mat')); % [1xNsources] Every value between [-3,3] is inside V1-3, zeros refer to outside of visual cortex. Positive values represent dorsal, negative values ventral
+eccen    = load(fullfile(anatDir, 'benson14eccen_overlay.mat')); % [1xNsources] Nonzero value represents vertex preferred eccentricity in degrees, zeros refer to outside of visual cortex
+polarang = load(fullfile(anatDir, 'benson14angle_overlay.mat')); % [1xNsources] Nonzero value represents vertex preferred polar angle in degrees, zeros refer to outside of visual cortex
+
 
 switch whichVisualAreas
-    case 'all'
-        % Get only vertices in V1
-        template.V123     = abs(areas.sub_bs_areas)>0;
-        template.V1       = abs(areas.sub_bs_areas)==1;
-        template.V2       = abs(areas.sub_bs_areas)==2;
-        template.V3       = abs(areas.sub_bs_areas)==3;
+    case 'V123'
+        % Get vertices in V1-V3
+        template.(whichVisualAreas)     = abs(areas.sub_bs_areas)>0;
     
     case 'V1'
         % Get only vertices in V1
-        template.V1     = abs(areas.sub_bs_areas)==1;     
+        template.(whichVisualAreas)     = abs(areas.sub_bs_areas)==1; 
+        
+    case 'V2'
+         % Get only vertices in V2
+        template.(whichVisualAreas)     = abs(areas.sub_bs_areas)==2;
+        
+    case 'V3'
+        % Get only vertices in V3
+        template.(whichVisualAreas)     = abs(areas.sub_bs_areas)==3;
+
 end
 
-% For reference, get polar angle of each vertex in degrees (not used yet)
+% For reference, get polar angle of each vertex in degrees (not used for now)
 polarang.sub_bs_angle_rad = pi/180*(90-polarang.sub_bs_angle);
 
 % Limit to stimulus eccentricity
-if ~isempty(stimEccen) 
+if ~isempty(stimEccen)
     
-    % Get original names
-    names = fieldnames(template); 
-   
-    % For each name, add new data to new field with extension
-    for ii = 1:length(names)        
-        tmpName = strcat(names{ii},'StimEccen');      
-        template.(tmpName) = template.(names{ii}).*(eccen.sub_bs_eccen<=stimEccen);
+    % Add new data to new field with extension    
+    tmpName = 'StimEccen';
+    
+    if length(stimEccen)==1     
+        template.([whichVisualAreas '_' tmpName]) = template.(whichVisualAreas).*(eccen.sub_bs_eccen<=stimEccen);
+    elseif length(stimEccen)==2
+        template.([whichVisualAreas '_' tmpName]) = template.(whichVisualAreas).*(stimEccen(1)<=eccen.sub_bs_eccen<=stimEccen(2));
     end
-    
 end
 
 return
