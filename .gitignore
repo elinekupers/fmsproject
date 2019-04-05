@@ -2,6 +2,8 @@
 data/*.mat
 data/*
 *.m~
+stimulus/*
+figures/*
 
 
 
