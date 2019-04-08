@@ -50,7 +50,7 @@ for tt = 1:size(colors,2)
     light('Position',pos,'Style','local')
     lighting gouraud
     material shiny; %dull
-    title(sprintf('%s, timepoint %d', ttl, tt)); 
+    title(sprintf('%s', ttl)); 
 
     drawnow;
     pause(.1);
