@@ -223,6 +223,8 @@ fig_ttl      = {sprintf('Figure2_Observed_MEG_Data_%d', useSLIncohSpectrum), spr
 sub_ttl      = {sprintf('Stimulus locked S%d', exampleSubject), ...
                 sprintf('Broadband S%d', exampleSubject)};
 
+if contourPercentile>10; contourLines = [1 1]*prctile(dataToPlot, contourPercentile); else contourLines = contourPercentile; end
+
 % Plot it!
 visualizeSensormaps(dataToPlot, colormapPercentile, contourmapPercentile, [], [], fig_ttl, sub_ttl, saveFigures, figureDir);
 
@@ -260,6 +262,8 @@ if plotMeanSubject
     % Make figure dir for average subject, if non-existing             
     if ~exist(fullfile(fmsRootPath, 'figures', 'average'),'dir'); mkdir(fullfile(fmsRootPath, 'figures', 'average')); end
     figureDir       = fullfile(fmsRootPath,'figures', 'average'); % Where to save images?
+
+   if contourPercentile>10; contourLines = [1 1]*prctile(dataToPlot, contourPercentile); else contourLines = contourPercentile; end
 
     % Plot it!
     visualizeSensormaps(dataToPlot, colormapPercentile, contourmapPercentile, [], [], fig_ttl, sub_ttl, saveFigures, figureDir);
