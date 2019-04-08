@@ -33,8 +33,12 @@ plotMeanSubject        = true;     % Plot average subject?
 useSLIncohSpectrum     = true;      % Plot SL amplitudes from incoherent spectrum (default: true)
 doSOIcomparison        = false;     % Compare the signal for the two types of SOI (sensors of interest, requires makeFigure1 to be executed)
 
-% What contour and color map percentile to use to define the limits
-contourmapPercentile   = 93.6; % draw contour line at what fraction of the colormap?
+% Two ways of plotting contours
+% (1) one contour line at the percentile of data (say 90.4/100).
+% (2) number of contour lines, dividing data into equal groups (use one number under 10)
+%   for example, if contourPercentile=3, you draw 3 lines at the 25, 50 and 75th percentile
+% contourPercentile = 90.4;
+contourPercentile = 3;
 colormapPercentile     = 97.5; % percentile of data to use for max/min limits of colorbar
 snrThresh              = 0;    % Threshold amplitudes by 1 SD of SNR
 
