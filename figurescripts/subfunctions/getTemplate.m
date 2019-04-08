@@ -69,7 +69,7 @@ if ~isempty(stimEccen)
     if length(stimEccen)==1     
         eccenMask(find((eccen.sub_bs_eccen<=stimEccen(1)))) = 1;
     elseif length(stimEccen)==2
-        eccenMask(find((stimEccen(1)<=eccen.sub_bs_eccen) & (eccen.sub_bs_eccen<=stimEccen(2)))) = 1;        
+        eccenMask(find((eccen.sub_bs_eccen>=stimEccen(1)) & (eccen.sub_bs_eccen<=stimEccen(2)))) = 1;        
     end
     template.([whichVisualAreas '_' tmpName]) = template.(whichVisualAreas).*eccenMask;
 end
