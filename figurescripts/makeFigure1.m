@@ -19,8 +19,10 @@ function makeFigure1(varargin)
 %   [plotMeanSubject] :  (bool) plot average across all 12 subjets or not?
 %   [saveFig]         :  (bool) save figures or not?
 %
-% Example:
+% Example 1:
 %  makeFigure1('exampleSubject', 1, 'plotMeanSubject', false, 'saveFig', true)
+% Example 2:
+%  makeFigure1('exampleSubject', 12, 'plotMeanSubject', false, 'saveFig', true)
 
 %% 0. Set up paths and define parameters
 
@@ -56,8 +58,8 @@ projectName     = 'SSMEG';
 
 % What visual area to use?
 area            = 'V123'; % Choose between 'V1', 'V2', 'V3', or 'V123'
-eccenLimitDeg   = [2 6]; % what is the eccentricity limit (deg) for the template, supposingly matching the stimulus aperture. 
-                       % (Can be a single int x, to get [0 x] or a vector limiting between [x,y])
+eccenLimitDeg   = [.18 11]; % what is the eccentricity limit (deg) for the template, supposingly matching the stimulus aperture. 
+                       % (Can be a single int x, to get [0 x] or a vector [x,y] limiting eccentricity to larger/equal to x and smaller/equal to y)
 
 % Define colormap and contour lines
 contourmapPercentile   = 93.6; % draw contour line at what fraction of the colormap?  top 15 channels: 90.4, or for top 10 channels: 93.6, 
@@ -97,7 +99,7 @@ for s = subjectsToPlot
 
     % Simulate coherent, in between or mixture, adn incoherent source time 
     % series and compute predictions from forward model (w)
-    tmp = getForwardModelPredictions(G_constrained, template.(area), [], n, nrEpochs, theta, kappa);
+    tmp = getForwardModelPredictions(G_constrained, template.([area '_StimEccen']), [], n, nrEpochs, theta, kappa);
     
     % Compute amplitude across time
     amps.c = abs(fft(tmp.c,[],2));
@@ -118,7 +120,7 @@ for exampleSubject = subjectsToPlot
     sub_ttl      = {sprintf('Uniform phase S%d', exampleSubject), ...
                     sprintf('Random phase S%d', exampleSubject),...
                     sprintf('Mixed phase S%d', exampleSubject)};                
-    fig_ttl      = {sprintf('Figure1_model_predictions_mixture_%s_%d-%d', area, eccenLimitDeg(1),eccenLimitDeg(2)), sprintf('Figure1_Uniform_and_Random_Compared_mixture_%s_%d-%d', area, eccenLimitDeg(1),eccenLimitDeg(2))};
+    fig_ttl      = {sprintf('Figure1_model_predictions_mixture_%s_%1.2f-%d', area, eccenLimitDeg(1),eccenLimitDeg(2)), sprintf('Figure1_Uniform_and_Random_Compared_mixture_%s_%1.2f-%d', area, eccenLimitDeg(1),eccenLimitDeg(2))};
     markerType   = '.';
 
     dataDir       = fullfile(fmsRootPath,'data', subject{exampleSubject}); % Where to save images?
@@ -134,7 +136,7 @@ for exampleSubject = subjectsToPlot
 %     sensorsWithinContours = logical(sensorsWithinContours);
 
     % Save sensors of interest falling within the contour lines
-    if saveFig; save(fullfile(dataDir, sprintf('%s_prediction_%s_%d-%d.mat', subject{exampleSubject}, area, eccenLimitDeg(1),eccenLimitDeg(2))), 'dataToPlot'); end
+    if saveFig; save(fullfile(dataDir, sprintf('%s_prediction_%s_%1.2f-%d.mat', subject{exampleSubject}, area, eccenLimitDeg(1),eccenLimitDeg(2))), 'dataToPlot'); end
 
 end
 
@@ -147,7 +149,7 @@ if plotMeanSubject
     
     dataToPlot = [w.V1c_mn; w.V1i_mn; w.V1m_mn];
     
-    fig_ttl    = {sprintf('Figure1_model_predictions_mixture_%s_%d-%d', area, eccenLimitDeg(1),eccenLimitDeg(2)), sprintf('Figure1_Uniform_and_Random_Compared_mixture_%s_%d-%d', area, eccenLimitDeg(1),eccenLimitDeg(2))};
+    fig_ttl    = {sprintf('Figure1_model_predictions_mixture_%s_%1.2f-%d', area, eccenLimitDeg(1),eccenLimitDeg(2)), sprintf('Figure1_Uniform_and_Random_Compared_mixture_%s_%1.2f-%d', area, eccenLimitDeg(1),eccenLimitDeg(2))};
     sub_ttl    = {sprintf('Uniform phase Average N = %d', length(subject)), ...
                   sprintf('Random phase Average N = %d', length(subject)), ...
                   sprintf('Mixed phase Average N = %d', length(subject))};
@@ -166,6 +168,6 @@ if plotMeanSubject
 %     sensorsWithinContours = logical(sensorsWithinContours);
 
     % Save sensors of interest falling within the contour lines
-    if saveFig; save(fullfile(dataDir, sprintf('Average_prediction_%s_%d-%d.mat',area,eccenLimitDeg(1),eccenLimitDeg(2))), 'dataToPlot'); end       
+    if saveFig; save(fullfile(dataDir, sprintf('Average_prediction_%s_%1.2f-%d.mat',area,eccenLimitDeg(1),eccenLimitDeg(2))), 'dataToPlot'); end       
             
 end
