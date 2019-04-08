@@ -26,7 +26,7 @@ function makeFigure1(varargin)
 
 p = inputParser;
 p.KeepUnmatched = true;
-p.addParameter('exampleSubject', 12, @isfloat);
+p.addParameter('exampleSubject', 12);
 p.addParameter('plotMeanSubject', false, @islogical)
 p.addParameter('saveFig', false, @islogical);
 p.parse(varargin{:});
@@ -56,7 +56,7 @@ projectName     = 'SSMEG';
 
 % What visual area to use?
 area            = 'V123'; % Choose between 'V1', 'V2', 'V3', or 'V123'
-eccenLimitDeg   = 11; % what is the eccentricity limit (deg) for the template, supposingly matching the stimulus aperture. 
+eccenLimitDeg   = [2 6]; % what is the eccentricity limit (deg) for the template, supposingly matching the stimulus aperture. 
                        % (Can be a single int x, to get [0 x] or a vector limiting between [x,y])
 
 % Define colormap and contour lines
@@ -112,12 +112,13 @@ for s = subjectsToPlot
 end
     %% Visualize predictions
 
+for exampleSubject = subjectsToPlot
     dataToPlot   = cat(1,w.V1c(exampleSubject,:), w.V1i(exampleSubject,:), w.V1m(exampleSubject,:));
     colorMarkers = {'r','b', 'g'};
     sub_ttl      = {sprintf('Uniform phase S%d', exampleSubject), ...
                     sprintf('Random phase S%d', exampleSubject),...
                     sprintf('Mixed phase S%d', exampleSubject)};                
-    fig_ttl      = {sprintf('Figure1_model_predictions_mixture_%s', area), sprintf('Figure1_Uniform_and_Random_Compared_mixture_%s', area)};
+    fig_ttl      = {sprintf('Figure1_model_predictions_mixture_%s_%d-%d', area, eccenLimitDeg(1),eccenLimitDeg(2)), sprintf('Figure1_Uniform_and_Random_Compared_mixture_%s_%d-%d', area, eccenLimitDeg(1),eccenLimitDeg(2))};
     markerType   = '.';
 
     dataDir       = fullfile(fmsRootPath,'data', subject{exampleSubject}); % Where to save images?
@@ -133,9 +134,9 @@ end
 %     sensorsWithinContours = logical(sensorsWithinContours);
 
     % Save sensors of interest falling within the contour lines
-    if saveFig; save(fullfile(dataDir, sprintf('%s_prediction.mat', subject{exampleSubject})), 'dataToPlot'); end
+    if saveFig; save(fullfile(dataDir, sprintf('%s_prediction_%s_%d-%d.mat', subject{exampleSubject}, area, eccenLimitDeg(1),eccenLimitDeg(2))), 'dataToPlot'); end
 
-
+end
 
 %% Take mean across subjects and plot if requested
 if plotMeanSubject
@@ -146,9 +147,9 @@ if plotMeanSubject
     
     dataToPlot = [w.V1c_mn; w.V1i_mn; w.V1m_mn];
     
-    fig_ttl    = {sprintf('Figure1_model_predictions_mixture_%s', area), sprintf('Figure1_Uniform_and_Random_Compared_mixture_%s', area)};
+    fig_ttl    = {sprintf('Figure1_model_predictions_mixture_%s_%d-%d', area, eccenLimitDeg(1),eccenLimitDeg(2)), sprintf('Figure1_Uniform_and_Random_Compared_mixture_%s_%d-%d', area, eccenLimitDeg(1),eccenLimitDeg(2))};
     sub_ttl    = {sprintf('Uniform phase Average N = %d', length(subject)), ...
-                  sprintf('Random phase Average N = %d', length(subject)),...
+                  sprintf('Random phase Average N = %d', length(subject)), ...
                   sprintf('Mixed phase Average N = %d', length(subject))};
     markerType = '.';
     
@@ -165,6 +166,6 @@ if plotMeanSubject
 %     sensorsWithinContours = logical(sensorsWithinContours);
 
     % Save sensors of interest falling within the contour lines
-    if saveFig; save(fullfile(dataDir, sprintf('Average_prediction_%s',area)), 'dataToPlot'); end       
+    if saveFig; save(fullfile(dataDir, sprintf('Average_prediction_%s_%d-%d.mat',area,eccenLimitDeg(1),eccenLimitDeg(2))), 'dataToPlot'); end       
             
 end
