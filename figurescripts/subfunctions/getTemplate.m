@@ -64,12 +64,14 @@ if ~isempty(stimEccen)
     
     % Add new data to new field with extension    
     tmpName = 'StimEccen';
+    eccenMask = zeros(size(eccen.sub_bs_eccen));
     
     if length(stimEccen)==1     
-        template.([whichVisualAreas '_' tmpName]) = template.(whichVisualAreas).*(eccen.sub_bs_eccen<=stimEccen);
+        eccenMask(find((eccen.sub_bs_eccen<=stimEccen(1)))) = 1;
     elseif length(stimEccen)==2
-        template.([whichVisualAreas '_' tmpName]) = template.(whichVisualAreas).*(stimEccen(1)<=eccen.sub_bs_eccen<=stimEccen(2));
+        eccenMask(find((stimEccen(1)<=eccen.sub_bs_eccen) & (eccen.sub_bs_eccen<=stimEccen(2)))) = 1;        
     end
+    template.([whichVisualAreas '_' tmpName]) = template.(whichVisualAreas).*eccenMask;
 end
 
 return
