@@ -48,12 +48,12 @@ individuals viewing a full-field high contrast-reversing checkerboard stimulus.
 								_Projects/MEG/SSMEG/fullOnly/XX_SSMEG_XXX_wlsubjXXX_)
 
 ## Workflow and examples
-1. How to get downsampled V1-V3 Templates?
-	1. Compute FreeSurfer's recon-all of subject's T1w image (https://surfer.nmr.mgh.harvard.edu/fswiki/recon-all)
-	2. Use Benson Docker on Freesurfer subject to create V1-V3 (https://github.com/noahbenson/neuropythy/)
+1. How to get downsampled V1-V3 anatomical templates that can be used to make predictions with Brainstorm gain matrix?
+	1. Compute FreeSurfer's recon-all segmentation of subject's T1w image (https://surfer.nmr.mgh.harvard.edu/fswiki/recon-all)
+	2. Use Benson Docker on Freesurfer subject to create V1-V3 anatomical template(https://github.com/noahbenson/neuropythy/)
 	3. Combine and downsample FS hemispheres to BS with this repository script 's_visualAreasFS2BS'
 
-2. How to get V1 template prediction for a particular subject and visualize it?
+2. How to get V1 anatomical template prediction for a particular subject and visualize it?
 	1. Have access to the SSMEG folder in Brainstorm database
 	2. Run figure script: `makeFigure1('exampleSubject', subjectnr)`
 
@@ -73,8 +73,34 @@ individuals viewing a full-field high contrast-reversing checkerboard stimulus.
 	1. Run figure script: `makeFigure4()`
 
 ## Dependencies
-- MATLAB 9.1 with build in toolboxes: 
 - Brainstorm toolbox   (to align MEG and MRI and compute gain matrix, https://neuroimage.usc.edu/brainstorm/)
 - FieldTrip toolboxes  (for visualizing meshes, http://www.fieldtriptoolbox.org/)
 - meg_utils repository (for analysis and visualizing, https://github.com/WinawerLab/meg_utils)
+
+This code was created with MATLAB 9.1 and the following build in toolboxes:
+	Bioinformatics Toolbox 	 				 4.7 
+	Computer Vision System Toolbox 			 7.2
+	Control System Toolbox 	 				 10.1 
+	Curve Fitting Toolbox 	 				 3.5.4 
+	DSP System Toolbox 	 					 9.3 
+	Database Toolbox 	 					 7.0 
+	Global Optimization Toolbox 			 3.4.1 
+	Image Acquisition Toolbox 	 			 5.1 
+	Image Processing Toolbox 	 			 9.5 
+	Instrument Control Toolbox 	 			 3.10 
+	Mapping Toolbox 	 					 4.4 
+	Neural Network Toolbox 	 				 9.1 
+	Optimization Toolbox 	 				 7.5 
+	Parallel Computing Toolbox 	 			 6.9 
+	Partial Differential Equation Toolbox 	 2.3 
+	RICOH MEG Reader toolbox for MATLAB 	 1.0.3 
+	Signal Processing Toolbox 	 			 7.3 
+	Simulink 	 							 8.8 
+	Simulink Control Design 	 			 4.4 
+	Statistics and Machine Learning Toolbox  11.0 
+	Symbolic Math Toolbox 	 				 7.1 
+	System Identification Toolbox 			 9.5 
+	Wavelet Toolbox 	 					 4.17 
+	Yokogawa MEG Reader toolbox for MATLAB 	 1.5.2 
+
 
