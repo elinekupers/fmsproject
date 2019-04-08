@@ -72,4 +72,9 @@ individuals viewing a full-field high contrast-reversing checkerboard stimulus.
 5. How to plot model prediction with alternative forward model (no cancellation allowed)
 	1. Run figure script: `makeFigure4()`
 
+## Dependencies
+- MATLAB 9.1 with build in toolboxes: 
+- Brainstorm toolbox   (to align MEG and MRI and compute gain matrix, https://neuroimage.usc.edu/brainstorm/)
+- FieldTrip toolboxes  (for visualizing meshes, http://www.fieldtriptoolbox.org/)
+- meg_utils repository (for analysis and visualizing, https://github.com/WinawerLab/meg_utils)
 
