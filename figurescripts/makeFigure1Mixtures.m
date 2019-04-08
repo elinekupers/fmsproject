@@ -34,7 +34,9 @@ projectName     = 'SSMEG';
 saveFigures     = true;     % Save figures in the figure folder?
 
 % What visual area to use?
-area            = 'all'; % Choose between 'V1' or 'all' (=V1-V3);
+area            = 'V123'; % Choose between 'V1', 'V2', 'V3', or 'V123'
+eccenLimitDeg   = [2 6]; % what is the eccentricity limit (deg) for the template, supposingly matching the stimulus aperture.
+% (Can be a single int x, to get [0 x] or a vector limiting between [x,y])
 
 % Number of iterations for the random coherence prediction of the forward
 % model
@@ -59,38 +61,36 @@ ncols = ceil(nrMixedKappas/nrows)+1;
 % (1) one contour line at the percentile of data (say 90.4/100).
 % (2) number of contour lines, dividing data into equal groups (use one number under 10)
 %   for example, if contourPercentile=3, you draw 3 lines at the 25, 50 and 75th percentile
-contourPercentile = 90.4; 
-% contourPercentile = 3; 
+% contourPercentile = 90.4;
+contourPercentile = 3;
 
 % line with for contour lines
 lw = 2;
 
 for s = subjectToPlot
     
-     d = dir(fullfile(bsDB, projectName, 'data', subject{s}, 'R*'));
-     bsData = fullfile(d(1).folder, d(1).name);
-     bsAnat = fullfile(bsDB, projectName, 'anat', subject{s});
-     
-     figure(1); set(1, 'Color', 'w', 'Position', [1, 1, 1680, 999]); clf; hold all;
+    d = dir(fullfile(bsDB, projectName, 'data', subject{s}, 'R*'));
+    bsData = fullfile(d(1).folder, d(1).name);
+    bsAnat = fullfile(bsDB, projectName, 'anat', subject{s});
+    
+    figure(1); set(1, 'Color', 'w', 'Position', [1, 1, 1680, 999]); clf; hold all;
     
     for k = 1:length(allMixedKappas)
         
         kappa.mix   = allMixedKappas(k);
-              
+        
         %% 1. Load relevant matrices
         
+        % Get Gain matrix
         G_constrained = getGainMatrix(bsData, keep_sensors);
         
         % Get V1 template limited to 11 degrees eccentricity
-        template = getTemplate(bsAnat, area, 11);
+        template = getTemplate(bsAnat, area, eccenLimitDeg);
         
         % Simulate coherent, in between or mixture, adn incoherent source time
         % series and compute predictions from forward model (w)
-        if strcmp(area, 'all')
-            tmp = getForwardModelPredictions(G_constrained, template.V123StimEccen, [], n, nrEpochs, theta, kappa);
-        else
-            tmp = getForwardModelPredictions(G_constrained, template.V1StimEccen, [], n, nrEpochs, theta, kappa);
-        end
+        tmp = getForwardModelPredictions(G_constrained, template.(area), [], n, nrEpochs, theta, kappa);
+       
         
         % Compute amplitude across time
         amps.c = abs(fft(tmp.c,[],2));
@@ -105,7 +105,7 @@ for s = subjectToPlot
     end
     
     % Visualize most incoherent signals
-    subplot(nrows, ncols,1);    
+    subplot(nrows, ncols,1);
     dataToPlot = squeeze(w.V1i(s,1,:));
     if contourPercentile>10; contourLines = [1 1]*prctile(dataToPlot, contourPercentile); else contourLines = contourPercentile; end
     megPlotMap(dataToPlot, clims, [], 'bipolar', 'Kappa = 0', [],[], 'isolines', contourLines);
@@ -119,7 +119,7 @@ for s = subjectToPlot
     megPlotMap(dataToPlot, clims, [], 'bipolar', 'Kappa = 10*pi', [],[], 'isolines', contourLines);
     h = findobj(gca,'Type','contour');
     h.LineWidth = lw;
-
+    
     % Visualize all mixtures
     for k = 1:nrMixedKappas
         subplot(nrows, ncols,k+1)
@@ -129,17 +129,17 @@ for s = subjectToPlot
         h = findobj(gca,'Type','contour');
         h.LineWidth = lw;
     end
-        
+    
     dataDir       = fullfile(fmsRootPath,'data', subject{s}); % Where to save images?
     figureDir       = fullfile(fmsRootPath,'figures', subject{s}); % Where to save images?
     
     % Make figure and data dir for subject, if non-existing
     if ~exist(figureDir,'dir'); mkdir(figureDir); end
     if ~exist(dataDir,'dir'); mkdir(dataDir); end
-        
+    
     save(fullfile(dataDir, sprintf('%s_mixturePredictions_contour.mat', subject{s})), 'w');
     figurewrite(fullfile(figureDir, sprintf('%s_mixturePredictions_%s_%2.1f', subject{s}, area, contourPercentile)),[],[1 300],'.',1);
-
+    
 end
 
 
@@ -173,7 +173,7 @@ if plotMeanSubject
         h = findobj(gca,'Type','contour');
         h.LineWidth = lw;
     end
-        
+    
     figureDir       = fullfile(fmsRootPath,'figures', 'average'); % Where to save images?
     dataDir       = fullfile(fmsRootPath,'data', 'average'); % Where to save images?
     
@@ -183,5 +183,5 @@ if plotMeanSubject
     % Plot data and save data
     save(fullfile(dataDir, 'mixturePredictions_averge.mat'), 'w');
     figurewrite(fullfile(figureDir, sprintf('mixturePredictions_%s_%2.1f', area, contourPercentile)),[],[1 300],'.',1);
-
+    
 end
