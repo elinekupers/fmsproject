@@ -36,7 +36,7 @@ saveFigures     = true;     % Save figures in the figure folder?
 % What visual area to use?
 area            = 'V123'; % Choose between 'V1', 'V2', 'V3', or 'V123'
 eccenLimitDeg   = [2 6]; % what is the eccentricity limit (deg) for the template, supposingly matching the stimulus aperture.
-% (Can be a single int x, to get [0 x] or a vector limiting between [x,y])
+                         % (Can be a single int x, to get [0 x] or a vector limiting between [x,y])
 
 % Number of iterations for the random coherence prediction of the forward
 % model
@@ -89,7 +89,7 @@ for s = subjectToPlot
         
         % Simulate coherent, in between or mixture, adn incoherent source time
         % series and compute predictions from forward model (w)
-        tmp = getForwardModelPredictions(G_constrained, template.(area), [], n, nrEpochs, theta, kappa);
+        tmp = getForwardModelPredictions(G_constrained, template.([area '_stimEccen']), [], n, nrEpochs, theta, kappa);
        
         
         % Compute amplitude across time
@@ -138,7 +138,7 @@ for s = subjectToPlot
     if ~exist(dataDir,'dir'); mkdir(dataDir); end
     
     save(fullfile(dataDir, sprintf('%s_mixturePredictions_contour.mat', subject{s})), 'w');
-    figurewrite(fullfile(figureDir, sprintf('%s_mixturePredictions_%s_%2.1f', subject{s}, area, contourPercentile)),[],[1 300],'.',1);
+    figurewrite(fullfile(figureDir, sprintf('%s_mixturePredictions_%s_%d-%d_%2.1f', subject{s}, area, eccenLimitDeg(1), eccenLimitDeg(2), contourPercentile)),[],[1 300],'.',1);
     
 end
 
@@ -182,6 +182,6 @@ if plotMeanSubject
     
     % Plot data and save data
     save(fullfile(dataDir, 'mixturePredictions_averge.mat'), 'w');
-    figurewrite(fullfile(figureDir, sprintf('mixturePredictions_%s_%2.1f', area, contourPercentile)),[],[1 300],'.',1);
+    figurewrite(fullfile(figureDir, sprintf('mixturePredictions_%s_%d-%d_%2.1f', area, eccenLimitDeg(1), eccenLimitDeg(2),contourPercentile)),[],[1 300],'.',1);
     
 end
