@@ -39,7 +39,7 @@ subject         = {'wlsubj002', ... % S1 - Full, Left, Right stim experiment
 
 % What type of data to use? 
 dataType        = 'amplitudes'; % can be 'SNR' or 'amplitudes'
-area            = 'V1'; % can be 'V123', 'V1', 'V2', 'V3' 
+area            = 'V123'; % can be 'V123', 'V1', 'V2', 'V3' 
 eccenLimitDeg   = [0 11]; % deg 
 
 % What's the plotting range
@@ -152,22 +152,22 @@ for s = 1:length(subject)
     megPlotMap(abs(w.V1c(s,:)),climsContour,[],bipolar,[],[],[],'isolines', 3);
     c1 = findobj(ax1.Children,'Type','Contour');
     
-    ax2 =subplot(212);
+    ax2 = subplot(212);
     megPlotMap(abs(w.V1i(s,:)),0.5*climsContour,[],bipolar,[],[],[],'isolines', 3);
     c2 = findobj(ax2.Children,'Type','Contour');
     
     figure(1);
-    subplot(nrows,ncols,s)
+    ax3 = subplot(nrows,ncols,s);
     [~,ch] = megPlotMap(sl(s,:),climsSL,gcf,'bipolar');
     hold on; contour(c1.XData,c1.YData, c1.ZData,3, 'k-');  drawnow; 
-    c1.LineWidth = 4;
+    c3 = findobj(ax3.Children,'Type','Contour'); c3.LineWidth = 3;
     colormap(bipolar); title(sprintf('SL: S%d',s));
     set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
     
-    subplot(nrows,ncols,s+length(subject))
+    ax4 = subplot(nrows,ncols,s+length(subject));
     [~,ch] = megPlotMap(bb(s,:),climsBB,gcf,'bipolar');
     hold on; contour(c2.XData,c2.YData, c2.ZData,3, 'k-'); drawnow;
-    c1.LineWidth = 2;
+    c4 = findobj(ax4.Children,'Type','Contour'); c4.LineWidth = 3;
     colormap(bipolar); title(sprintf('BB: S%d',s));
     set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);   
     
@@ -201,7 +201,7 @@ if saveFigures % use different function to save figures, since figurewrite crash
     
     set(0, 'currentfigure', fH1);
 %     figurewrite(fullfile(figureDir,'Figure3A_predictionV123VsDataIndividuals_matched'),[],0,'.',1);
-    hgexport(fH1, fullfile(figureDir, sprintf('Figure3A_prediction_%s_%1.2f-%d_VsDataIndividuals_matched_%s.eps', area, eccenLimitDeg(1), eccenLimitDeg(2), dataType)))
+    hgexport(fH1, fullfile(figureDir, sprintf('Figure3_prediction_%s_%1.2f-%d_VsDataIndividuals_matched_%s.eps', area, eccenLimitDeg(1), eccenLimitDeg(2), dataType)))
     
 end
 
