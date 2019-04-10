@@ -73,7 +73,7 @@ for ii = 1:size(data,1)
     % Plot data or predictions
     figure(fH1);
     subplot(size(data,1),1,ii);
-    [~,ch] = megPlotMap(dataToPlot,colormapLims,fH1,'bipolar',[],[],[], ...
+    [~,ch] = megPlotMap(dataToPlot,colormapLims,fH1,'bipolar',sub_ttl{ii},[],[], ...
         'isolines', contourLines, ...
     ...    'chanindx', dataToPlot > max(contourmapLims), ...
         'pointsymbol', markerType, ... '*'
@@ -91,7 +91,7 @@ for ii = 1:size(data,1)
             c(jj).LineWidth = 4;
         end
         
-        if size(c,1)==1
+        if length(contourLines)==2
             figure(fH2); hold all;
             
             contourf(c.XData, c.YData, c.ZData, contourLines, 'LineColor',colorMarkers{ii}, 'Fill','off','LineWidth',4);
@@ -112,7 +112,7 @@ if saveFigures
     if ~exist('figureDir', 'dir'); mkdir(figureDir); end
     set(0, 'currentfigure', fH1);
     figurewrite(fullfile(figureDir,fig_ttl{1}),[],0,'.',1);
-    if ~isempty(contourLines)
+    if length(contourLines)==2
         set(0, 'currentfigure', fH2);
         figurewrite(fullfile(figureDir,fig_ttl{2}),[],0,'.',1);
     end
