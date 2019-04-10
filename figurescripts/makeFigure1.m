@@ -15,26 +15,28 @@ function makeFigure1(varargin)
 % (3) Run the s_visualAreasFS2BS script from this repository
 %
 % INPUTS: 
-%   [exampleSubject]  :  (int) subject nr you would like to plot, default is 12
+%   [subjectsToPlot]  :  (int) subject nr you would like to plot, default is 12
 %   [plotMeanSubject] :  (bool) plot average across all 12 subjets or not?
 %   [saveFig]         :  (bool) save figures or not?
 %
 % Example 1:
-%  makeFigure1('exampleSubject', 1, 'plotMeanSubject', false, 'saveFig', true)
+%  makeFigure1('subjectsToPlot', 1, 'plotMeanSubject', false, 'saveFig', true)
 % Example 2:
-%  makeFigure1('exampleSubject', 12, 'plotMeanSubject', false, 'saveFig', true)
+%  makeFigure1('subjectsToPlot', 12, 'plotMeanSubject', false, 'saveFig', true)
+% Example 3:
+%  makeFigure1('subjectsToPlot', 1:12, 'plotMeanSubject', true, 'saveFig', true)
 
 %% 0. Set up paths and define parameters
 
 p = inputParser;
 p.KeepUnmatched = true;
-p.addParameter('exampleSubject', 12);
+p.addParameter('subjectsToPlot', 12);
 p.addParameter('plotMeanSubject', false, @islogical)
 p.addParameter('saveFig', false, @islogical);
 p.parse(varargin{:});
 
 % Rename variables
-exampleSubject      = p.Results.exampleSubject;
+subjectsToPlot      = p.Results.subjectsToPlot;
 plotMeanSubject     = p.Results.plotMeanSubject;
 saveFig             = p.Results.saveFig;
 
@@ -80,8 +82,6 @@ keep_sensors = logical([ones(157,1); zeros(192-157,1)]); % TODO: Figure out a mo
 % Loop over subjects
 if plotMeanSubject
     subjectsToPlot = 1:length(subject);
-else
-    subjectsToPlot = exampleSubject;
 end
 
 for s = subjectsToPlot
@@ -111,20 +111,18 @@ for s = subjectsToPlot
     w.V1i(s,:) = mean(amps.i(:,2,:),3);
     w.V1m(s,:) = mean(amps.m(:,2,:),3);
     
-end
     %% Visualize predictions
 
-for exampleSubject = subjectsToPlot
-    dataToPlot   = cat(1,w.V1c(exampleSubject,:), w.V1i(exampleSubject,:), w.V1m(exampleSubject,:));
+    dataToPlot   = cat(1,w.V1c(s,:), w.V1i(s,:), w.V1m(s,:));
     colorMarkers = {'r','b', 'g'};
-    sub_ttl      = {sprintf('Uniform phase S%d', exampleSubject), ...
-                    sprintf('Random phase S%d', exampleSubject),...
-                    sprintf('Mixed phase S%d', exampleSubject)};                
+    sub_ttl      = {sprintf('Uniform phase S%d', s), ...
+                    sprintf('Random phase S%d', s),...
+                    sprintf('Mixed phase S%d', s)};                
     fig_ttl      = {sprintf('Figure1_model_predictions_mixture_%s_%1.2f-%d_contour%d', area, eccenLimitDeg(1),eccenLimitDeg(2), contourmapPercentile), sprintf('Figure1_Uniform_and_Random_Compared_mixture_%s_%1.2f-%d_contour%d', area, eccenLimitDeg(1),eccenLimitDeg(2), contourmapPercentile)};
     markerType   = '.';
 
-    dataDir       = fullfile(fmsRootPath,'data', subject{exampleSubject}); % Where to save images?
-    figureDir       = fullfile(fmsRootPath,'figures', subject{exampleSubject}); % Where to save images?
+    dataDir       = fullfile(fmsRootPath,'data', subject{s}); % Where to save vector of sensors that fall within contours?
+    figureDir       = fullfile(fmsRootPath,'figures', subject{s}); % Where to save images?
 
     % Make figure and data dir for subject, if non-existing             
     if ~exist(figureDir,'dir'); mkdir(figureDir); end
@@ -136,7 +134,7 @@ for exampleSubject = subjectsToPlot
 %     sensorsWithinContours = logical(sensorsWithinContours);
 
     % Save sensors of interest falling within the contour lines
-    if saveFig; save(fullfile(dataDir, sprintf('%s_prediction_%s_%1.2f-%d.mat', subject{exampleSubject}, area, eccenLimitDeg(1),eccenLimitDeg(2))), 'dataToPlot'); end
+    if saveFig; save(fullfile(dataDir, sprintf('%s_prediction_%s_%1.2f-%d.mat', subject{s}, area, eccenLimitDeg(1),eccenLimitDeg(2))), 'dataToPlot'); end
 
 end
 
