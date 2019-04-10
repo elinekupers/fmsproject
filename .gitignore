@@ -4,6 +4,6 @@ data/*
 *.m~
 stimulus/*
 figures/*
-
+toolboxVersions.mat
 
 
