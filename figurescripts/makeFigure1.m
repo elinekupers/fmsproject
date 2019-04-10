@@ -58,11 +58,11 @@ projectName     = 'SSMEG';
 
 % What visual area to use?
 area            = 'V123'; % Choose between 'V1', 'V2', 'V3', or 'V123'
-eccenLimitDeg   = [.18 11]; % what is the eccentricity limit (deg) for the template, supposingly matching the stimulus aperture. 
+eccenLimitDeg   = [0 11]; % what is the eccentricity limit (deg) for the template, supposingly matching the stimulus aperture. 
                        % (Can be a single int x, to get [0 x] or a vector [x,y] limiting eccentricity to larger/equal to x and smaller/equal to y)
 
 % Define colormap and contour lines
-contourmapPercentile   = 93.6; % draw contour line at what fraction of the colormap?  top 15 channels: 90.4, or for top 10 channels: 93.6, 
+contourmapPercentile   = 3;%93.6; % draw contour line at what fraction of the colormap?  top 15 channels: 90.4, or for top 10 channels: 93.6, 
                                 % or for use any integer under 10 to get contour lines at equal percentiles of data
 colormapPercentile     = 97.5; % percentile of data to use for max/min limits of colorbar
 
@@ -120,7 +120,7 @@ for exampleSubject = subjectsToPlot
     sub_ttl      = {sprintf('Uniform phase S%d', exampleSubject), ...
                     sprintf('Random phase S%d', exampleSubject),...
                     sprintf('Mixed phase S%d', exampleSubject)};                
-    fig_ttl      = {sprintf('Figure1_model_predictions_mixture_%s_%1.2f-%d', area, eccenLimitDeg(1),eccenLimitDeg(2)), sprintf('Figure1_Uniform_and_Random_Compared_mixture_%s_%1.2f-%d', area, eccenLimitDeg(1),eccenLimitDeg(2))};
+    fig_ttl      = {sprintf('Figure1_model_predictions_mixture_%s_%1.2f-%d_contour%d', area, eccenLimitDeg(1),eccenLimitDeg(2), contourmapPercentile), sprintf('Figure1_Uniform_and_Random_Compared_mixture_%s_%1.2f-%d_contour%d', area, eccenLimitDeg(1),eccenLimitDeg(2), contourmapPercentile)};
     markerType   = '.';
 
     dataDir       = fullfile(fmsRootPath,'data', subject{exampleSubject}); % Where to save images?
@@ -149,7 +149,7 @@ if plotMeanSubject
     
     dataToPlot = [w.V1c_mn; w.V1i_mn; w.V1m_mn];
     
-    fig_ttl    = {sprintf('Figure1_model_predictions_mixture_%s_%1.2f-%d', area, eccenLimitDeg(1),eccenLimitDeg(2)), sprintf('Figure1_Uniform_and_Random_Compared_mixture_%s_%1.2f-%d', area, eccenLimitDeg(1),eccenLimitDeg(2))};
+    fig_ttl    = {sprintf('Figure1_model_predictions_mixture_%s_%1.2f-%d_contour%d', area, eccenLimitDeg(1),eccenLimitDeg(2), contourmapPercentile), sprintf('Figure1_Uniform_and_Random_Compared_mixture_%s_%1.2f-%d_contour%d', area, eccenLimitDeg(1),eccenLimitDeg(2), contourmapPercentile)};
     sub_ttl    = {sprintf('Uniform phase Average N = %d', length(subject)), ...
                   sprintf('Random phase Average N = %d', length(subject)), ...
                   sprintf('Mixed phase Average N = %d', length(subject))};
@@ -171,3 +171,8 @@ if plotMeanSubject
     if saveFig; save(fullfile(dataDir, sprintf('Average_prediction_%s_%1.2f-%d.mat',area,eccenLimitDeg(1),eccenLimitDeg(2))), 'dataToPlot'); end       
             
 end
+
+% Check toolbox versions
+% out = ver;
+% save(fullfile(fmsRootPath, 'toolboxVersions.mat'),'out')
+

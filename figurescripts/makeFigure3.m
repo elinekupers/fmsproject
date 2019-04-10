@@ -19,36 +19,49 @@ function makeFigure3()
 %% 0. Define paths and variables
 bsDB            = '/Volumes/server/Projects/MEG/brainstorm_db/';
 figureDir       = fullfile(fmsRootPath, 'figures'); % Where to save images?
-saveFigures     = true;     % Save figures in the figure folder?
 dataDir         = fullfile(fmsRootPath, 'data');    % Where to get data?
+projectName     = 'SSMEG';                          % Define Brainstorm project name, for subject and data/anatomy folders
+saveFigures     = true;                             % Save figures in the figure folder?
 
-% Define project name, subject and data/anatomy folders
-projectName     = 'SSMEG';
-
-% Which subjects to average?
-%   Full  only: 'wlsubj048', 'wlsubj046','wlsubj039','wlsubj059', 'wlsubj067'
-%   Full, Left, Right: 'wlsubj002','wlsubj004','wlsubj005','wlsubj006','wlsubj010','wlsubj011'
-subject         = {'wlsubj002','wlsubj004','wlsubj005','wlsubj006','wlsubj010','wlsubj011','wlsubj048', 'wlsubj046','wlsubj039','wlsubj059', 'wlsubj067', 'wlsubj070'};
+% Define subjects
+subject         = {'wlsubj002', ... % S1 - Full, Left, Right stim experiment
+                   'wlsubj004', ... % S2 - Full, Left, Right stim experiment
+                   'wlsubj005', ... % S3 - Full, Left, Right stim experiment
+                   'wlsubj006', ... % S4 - Full, Left, Right stim experiment
+                   'wlsubj010', ... % S5 - Full, Left, Right stim experiment
+                   'wlsubj011', ... % S6 - Full, Left, Right stim experiment
+                   'wlsubj048', ... % S7 - Full  stim only experiment
+                   'wlsubj046', ... % S8 - Full  stim only experiment
+                   'wlsubj039', ... % S9 - Full  stim only experiment
+                   'wlsubj059', ... % S10 - Full  stim only experiment
+                   'wlsubj067', ... % S11 - Full  stim only experiment
+                   'wlsubj070'};    % S12 - Full  stim only experiment
 
 % What type of data to use? 
 dataType        = 'amplitudes'; % can be 'SNR' or 'amplitudes'
-area            = 'all'; % can be 'all' (= V1-V3), or 'V1' 
+area            = 'V1'; % can be 'V123', 'V1', 'V2', 'V3' 
+eccenLimitDeg   = [0 11]; % deg 
 
 % What's the plotting range
-climsSL         = [-20,20];
+climsSL         = [-40,40];
 climsBB         = [-6,6];
-climsPred       = [-1 1]*1E-4;
+climsContour    = [-1 1]*1E-4;
 
 % Number of iterations for the random coherence prediction of the forward model
-n               = 10;     % number of timepoints (ms)
-nrEpochs        = 1;      % number of epochs
+n               = 10;        % number of timepoints (ms)
+nrEpochs        = 1000;      % number of epochs
+theta           = 0;         % von mises mean, equal for three distributions
+kappa.coh       = 10*pi;     % very narrow von Mises
+kappa.incoh     = 0;         % very broad (uniform) von Mises
+kappa.mix       = 0.27*pi;   % in between width size von Mises
 
 % Define vector that can truncate number of sensors 
-keep_sensors    = logical([ones(157,1); zeros(192-157,1)]); % Note: Figure out a more generic way to define keep_sensors
+keep_sensors    = logical([ones(157,1); zeros(192-157,1)]); % NB: Figure out a more generic way to define keep_sensors
 
 % Predefine figures
 fH1 = figure(1); clf; set(fH1, 'Position', [1 1 2550 1300], 'Name','Figure 3A, Data against model predictions V1 - matched');
-if length(subject) <= 6; nrows = 2; ncols = 6; else; nrows = 4; ncols = 6; end
+nrows = 4; 
+ncols = 6;
 
 % Loop over subjects to get predictions and data
 for s = 1:length(subject)
@@ -62,19 +75,21 @@ for s = 1:length(subject)
     G_constrained = getGainMatrix(BSdataDir, keep_sensors);
 
     % Get V1 template limited to 11 degrees eccentricity
-    template = getTemplate(BSanatDir, area, 11);
+    template = getTemplate(BSanatDir, area, eccenLimitDeg);
 
-    % Simulate coherent and incoherent source time series and compute
-    % predictions from forward model (w)
-    if strcmp(area, 'all')
-        tmp = getForwardModelPredictions(G_constrained, template.V123StimEccen, [], n, nrEpochs);
-    else
-       tmp = getForwardModelPredictions(G_constrained, template.V1StimEccen, [], n, nrEpochs);
-    end
+    % Simulate coherent, in between or mixture, adn incoherent source time 
+    % series and compute predictions from forward model (w)
+    tmp = getForwardModelPredictions(G_constrained, template.([area '_StimEccen']), [], n, nrEpochs, theta, kappa);
+      
+    % Compute amplitude across time
+    amps.c = abs(fft(tmp.c,[],2));
+    amps.i = abs(fft(tmp.i,[],2));
+    amps.m = abs(fft(tmp.m,[],2));
     
-    % Take mean across epochs
-    w.V1c(s,:) = mean(abs(tmp.c),2);
-    w.V1i(s,:) = mean(abs(tmp.i),2);
+    % Compute mean weights across epochs at input frequency
+    w.V1c(s,:) = mean(amps.c(:,2,:),3);
+    w.V1i(s,:) = mean(amps.i(:,2,:),3);
+    w.V1m(s,:) = mean(amps.m(:,2,:),3);
     
     %% 3. Data
     
@@ -128,30 +143,31 @@ for s = 1:length(subject)
         
         climsSL = [-1 1]*prctile(sl(s,:), 97.5);
         climsBB = [-1 1]*prctile(bb(s,:), 97.5);
-        
-        
+ 
     end
        
     %% 4. Plotting to get contour lines
     figure(2); clf;
     ax1 = subplot(211);
-    megPlotMap(abs(w.V1c(s,:)),climsPred,[],bipolar,[],[],[],'isolines', 3);
+    megPlotMap(abs(w.V1c(s,:)),climsContour,[],bipolar,[],[],[],'isolines', 3);
     c1 = findobj(ax1.Children,'Type','Contour');
     
     ax2 =subplot(212);
-    megPlotMap(abs(w.V1i(s,:)),0.5*climsPred,[],bipolar,[],[],[],'isolines', 3);
+    megPlotMap(abs(w.V1i(s,:)),0.5*climsContour,[],bipolar,[],[],[],'isolines', 3);
     c2 = findobj(ax2.Children,'Type','Contour');
     
     figure(1);
     subplot(nrows,ncols,s)
     [~,ch] = megPlotMap(sl(s,:),climsSL,gcf,'bipolar');
-    hold on; contour(c1.XData,c1.YData, c1.ZData,3, 'k-');  drawnow;
+    hold on; contour(c1.XData,c1.YData, c1.ZData,3, 'k-');  drawnow; 
+    c1.LineWidth = 4;
     colormap(bipolar); title(sprintf('SL: S%d',s));
     set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
     
     subplot(nrows,ncols,s+length(subject))
     [~,ch] = megPlotMap(bb(s,:),climsBB,gcf,'bipolar');
     hold on; contour(c2.XData,c2.YData, c2.ZData,3, 'k-'); drawnow;
+    c1.LineWidth = 2;
     colormap(bipolar); title(sprintf('BB: S%d',s));
     set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);   
     
@@ -185,7 +201,7 @@ if saveFigures % use different function to save figures, since figurewrite crash
     
     set(0, 'currentfigure', fH1);
 %     figurewrite(fullfile(figureDir,'Figure3A_predictionV123VsDataIndividuals_matched'),[],0,'.',1);
-    hgexport(fH1, fullfile(figureDir, sprintf('Figure3A_prediction_%s_VsDataIndividuals_matched_%s.eps', area, dataType)))
+    hgexport(fH1, fullfile(figureDir, sprintf('Figure3A_prediction_%s_%1.2f-%d_VsDataIndividuals_matched_%s.eps', area, eccenLimitDeg(1), eccenLimitDeg(2), dataType)))
     
 end
 
@@ -194,11 +210,11 @@ close all;
 %% Plot average across subjects
 figure(4); clf;
 ax1 = subplot(211);
-megPlotMap(nanmean(abs(w.V1c),1),climsPred,[],bipolar,[],[],[],'isolines', 3);
+megPlotMap(nanmean(abs(w.V1c),1),climsContour,[],bipolar,[],[],[],'isolines', 3);
 c1 = findobj(ax1.Children,'Type','Contour');
 
 ax2 =subplot(212);
-megPlotMap(nanmean(abs(w.V1i),1),0.5*climsPred,[],bipolar,[],[],[],'isolines', 3);
+megPlotMap(nanmean(abs(w.V1i),1),0.5*climsContour,[],bipolar,[],[],[],'isolines', 3);
 c2 = findobj(ax2.Children,'Type','Contour');
 
 figure(5);
@@ -223,7 +239,7 @@ mnPredictionIncoherent = nanmean(allPredictionIncoherent_norm,1);
 if saveFigures % use different function to save figures, since figurewrite crashes with many subplots containing many data points    
     set(0, 'currentfigure', 5);
 %     figurewrite(fullfile(figureDir,'Figure3A_predictionV123VsDataIndividuals_matched'),[],0,'.',1);
-    hgexport(5, fullfile(figureDir, sprintf('Figure3A_prediction_%s_VsDataAVERAGE_matched_%s.eps', area, dataType)))
+    hgexport(5, fullfile(figureDir, sprintf('Figure3A_prediction_%s_%1.2f-%d_VsDataAVERAGE_matched_%s.eps', area, eccenLimitDeg(1), eccenLimitDeg(2), dataType)))
     
 end
 
@@ -300,12 +316,12 @@ fprintf('\nEFFECT OF ANATOMY when NOT MATCHED:\n')
 fprintf('CoD SL w/ coherent phase, but wrong anatomy: Median: %1.3f, Mean (+/- se) = %1.3f (+/- %1.3f)\n', median(slDataCoherentPred_subjectsNotMatched), mean(slDataCoherentPred_subjectsNotMatched), (std(slDataCoherentPred_subjectsNotMatched))./sqrt(length(slDataCoherentPred_subjectsNotMatched)))
 
 
-fprintf('\nMEAN SUBJECT:\n')
+fprintf('\nAVERAGE ACROSS SUBJECTS:\n')
 fprintf('\nEFFECT OF SYNCHRONY when MATCHED:\n')
 fprintf('CoD SL w/ coherent phase: %1.3f\n', mn_codSLCoherent)
 fprintf('CoD BB w/ incoherent phase: %1.3f\n', mn_codBBIncoherent)
 
-fprintf('\nMEAN SUBJECT:\n')
+fprintf('\nAVERAGE ACROSS SUBJECTS:\n')
 fprintf('\nEFFECT OF SYNCHRONY when NOT MATCHED:\n')
 fprintf('CoD SL w/ incoherent phase: %1.3f\n', mn_codSLIncoherent)
 fprintf('CoD BB w/ coherent phase: %1.3f\n', mn_codBBCoherent)

@@ -1,4 +1,4 @@
-function makeFigure2(exampleSubject)
+function makeFigure2(subjectsToPlot)
 
 % This is a function to make Figure 2 from the manuscript about forward
 % modeling coherent and incoherent neural sources to MEG responses.
@@ -19,18 +19,29 @@ function makeFigure2(exampleSubject)
 
 %% 0. Set up paths and define parameters
 
-% Which subjects to average?
-%   Full  only: 'wlsubj048', 'wlsubj046','wlsubj039','wlsubj059', 'wlsubj067'
-%   Full, Left, Right: 'wlsubj002','wlsubj004','wlsubj005','wlsubj006','wlsubj010','wlsubj011'
-subject         = {'wlsubj002','wlsubj004','wlsubj005','wlsubj006','wlsubj010','wlsubj011','wlsubj048', 'wlsubj046','wlsubj039','wlsubj059', 'wlsubj067', 'wlsubj070'};
-if nargin < 1; exampleSubject  = 12; end % Which example subject to show if not defined
+% Which example subject to show if not defined
+if nargin < 1; subjectsToPlot  = 12; end 
+
+% Define subjects
+subject         = {'wlsubj002', ... % S1 - Full, Left, Right stim experiment
+                   'wlsubj004', ... % S2 - Full, Left, Right stim experiment
+                   'wlsubj005', ... % S3 - Full, Left, Right stim experiment
+                   'wlsubj006', ... % S4 - Full, Left, Right stim experiment
+                   'wlsubj010', ... % S5 - Full, Left, Right stim experiment
+                   'wlsubj011', ... % S6 - Full, Left, Right stim experiment
+                   'wlsubj048', ... % S7 - Full  stim only experiment
+                   'wlsubj046', ... % S8 - Full  stim only experiment
+                   'wlsubj039', ... % S9 - Full  stim only experiment
+                   'wlsubj059', ... % S10 - Full  stim only experiment
+                   'wlsubj067', ... % S11 - Full  stim only experiment
+                   'wlsubj070'};    % S12 - Full  stim only experiment
 
 % Set up paths
-figureDir              = fullfile(fmsRootPath, 'figures', subject{exampleSubject}); % Where to save images?
+figureDir              = fullfile(fmsRootPath, 'figures'); % Where to save images?
 dataDir                = fullfile(fmsRootPath, 'data');    % Where to get data?
 saveFigures            = true;      % Save figures in the figure folder?
-plotMeanSubject        = true;     % Plot average subject?
-useSLIncohSpectrum     = true;      % Plot SL amplitudes from incoherent spectrum (default: true)
+plotMeanSubject        = false;     % Plot average subject?
+useSLIncohSpectrum     = false;      % Plot SL amplitudes from incoherent spectrum (default: true)
 doSOIcomparison        = false;     % Compare the signal for the two types of SOI (sensors of interest, requires makeFigure1 to be executed)
 
 % Two ways of plotting contours
@@ -48,36 +59,39 @@ nboot = 1000;
 % Predefine tickmark position for colorbar
 % yscaleAB = [-6,-3,0,3,6];
 
+% Preallocate space for matrices
+diffFullBlankSL = NaN(length(subject),157);
+diffFullBlankBB = diffFullBlankSL;
 
 %% 1. Load subject's data
 
-for s = 1:length(subject)
+for s = subjectsToPlot
     
     % Go from subject to session nr
     switch subject{s}
-        case 'wlsubj002' % S1 - From exp: Full, Left, Right
+        case 'wlsubj002' % S1 - Full, Left, Right stim experiment
             whichSession = 2;
-        case 'wlsubj004' % S2 - From exp: Full, Left, Right
+        case 'wlsubj004' % S2 - Full, Left, Right stim experiment
             whichSession = 7;
-        case 'wlsubj005' % S3 - From exp: Full, Left, Right
+        case 'wlsubj005' % S3 - Full, Left, Right stim experiment
             whichSession = 8;
-        case 'wlsubj006' % S4 - From exp: Full, Left, Right
+        case 'wlsubj006' % S4 - Full, Left, Right stim experiment
             whichSession = 1;
-        case 'wlsubj010' % S5 - From exp: Full, Left, Right
+        case 'wlsubj010' % S5 - Full, Left, Right stim experiment
             whichSession = 6;
-        case 'wlsubj011' % S6 - From exp: Full, Left, Right
+        case 'wlsubj011' % S6 - Full, Left, Right stim experiment
             whichSession = 5;
-        case 'wlsubj048' % S7 - From exp: Full field Only
+        case 'wlsubj048' % S7 - Full  stim only experiment
             whichSession = 9;
-        case 'wlsubj046' % S8 - From exp: Full field Only
+        case 'wlsubj046' % S8 - Full  stim only experiment
             whichSession = 10;
-        case 'wlsubj039' % S9 - From exp: Full field Only
+        case 'wlsubj039' % S9 - Full  stim only experiment
             whichSession = 11;
-        case 'wlsubj059' % S10 - From exp: Full field Only
+        case 'wlsubj059' % S10 - Full  stim only experiment
             whichSession = 12;
-        case 'wlsubj067' % S11 - From exp: Full field Only
+        case 'wlsubj067' % S11 - Full  stim only experiment
             whichSession = 13;
-        case 'wlsubj070' % S12 - From exp: Full field Only
+        case 'wlsubj070' % S12 - Full  stim only experiment
             whichSession = 14;
     end
     
@@ -114,7 +128,7 @@ for s = 1:length(subject)
         
         %  Get sensors of interest based on forward model predictions
         %  (sensorsOfInterest is boolean of 2x157)
-        tmp = load(fullfile(dataDir, subject{exampleSubject}, sprintf('%s_sensorsOfInterestFromPrediction', subject{exampleSubject})));
+        tmp = load(fullfile(dataDir, subject{subjectsToPlot}, sprintf('%s_sensorsOfInterestFromPrediction', subject{subjectsToPlot})));
         
         % Row 1 SOI based on single subject uniform forward model prediction
         % Row 2 SOI based on single subject random forward model prediction
@@ -132,18 +146,13 @@ for s = 1:length(subject)
         
         clear uniformSensors randomSensors;
     end
-end
 
 
-%% 2. Get contrast between full and blank for SL and BB data
 
-% Preallocate space for matrices
-diffFullBlankSL = NaN(length(subject),size(ampl{s}.sl.full,2));
-diffFullBlankBB = diffFullBlankSL;
+    %% 2. Get contrast between full and blank for SL and BB data
 
-% Take difference between mean of full and blank epochs for each subject
-% and dataset (sl or bb)
-for s = 1:length(subject)
+    % Take difference between mean of full and blank epochs for each subject
+    % and dataset (sl or bb)    
     diffFullBlankSL(s,:) = nanmean(ampl{s}.sl.full,1) - nanmean(ampl{s}.sl.blank,1);
     diffFullBlankBB(s,:) = nanmean(ampl{s}.bb.full,1) - nanmean(ampl{s}.bb.blank,1);
     
@@ -154,50 +163,27 @@ for s = 1:length(subject)
         diffFullBlankSL(s,:) = diffFullBlankSL(s,:) .* 10^15;
         diffFullBlankBB(s,:) = diffFullBlankBB(s,:) .* 10^15 .* 10^15;
     end
+
+    %% 3. Plot example subject
+    snrThreshMask.sl.single = abs(squeeze(snr(s,1,:))) > snrThresh;
+    snrThreshMask.bb.single = abs(squeeze(snr(s,2,:))) > snrThresh;
+
+    dataToPlot   = cat(1, diffFullBlankSL(s,:) .* snrThreshMask.sl.single', ...
+        diffFullBlankBB(s,:) .* snrThreshMask.bb.single');
+    dataToPlot(:,98) = NaN; % Check if this is always a bad channel, or only
+    % for a certain subject
+    fig_ttl      = {sprintf('Figure2_Observed_MEG_Data_incohSpectrum%d_contour%2.1f', useSLIncohSpectrum, contourPercentile), sprintf('Figure2_Sl_and_Broadband_Compared_incohSpectrum%d_contour%2.1f', useSLIncohSpectrum, contourPercentile)};
+    sub_ttl      = {sprintf('Stimulus locked S%d', s), ...
+        sprintf('Broadband S%d', s)};
+
+    % Plot it!
+    if saveFigures
+        figureDir = fullfile(figureDir, subject{s});
+        if ~exist(figureDir, 'dir'); mkdir(figureDir); end
+    end
+    
+    visualizeSensormaps(dataToPlot, colormapPercentile, contourPercentile, [], [], fig_ttl, sub_ttl, saveFigures, figureDir);
 end
-
-
-% %% Get contrast by bootstrapping over epochs
-%     bootstat = cell(1,length(subject));
-%
-%     % Loop over fieldnames (sensors of interest)
-%     for s = 1:length(subject)
-%
-%         % Example subject
-%         bootstat{s}.sl.full.all  = bootstrp(nboot, @(x) nanmean(x,1), ampl{s}.sl.full);
-%         bootstat{s}.sl.blank.all = bootstrp(nboot, @(x) nanmean(x,1), ampl{s}.sl.blank);
-%
-%         % take difference between full and blank
-%         bootstat{s}.sl.diff.all  = mean([bootstat{s}.sl.full.all - bootstat{s}.sl.blank.all],1);
-%
-%         bootstat{s}.bb.full.all  = bootstrp(nboot, @(x) nanmean(x,1), ampl{s}.bb.full);
-%         bootstat{s}.bb.blank.all = bootstrp(nboot, @(x) nanmean(x,1), ampl{s}.bb.blank);
-%
-%         bootstat{s}.bb.diff.all  = mean([bootstat{s}.bb.full.all - bootstat{s}.bb.blank.all],1);
-%
-%     end
-%
-%     if plotMeanSubject
-%         % Group average
-%         bootstatGroup.sl.all = bootstrp(nboot, @(x) nanmean(x,1), diffFullBlankSL);
-%         bootstatGroup.bb.all = bootstrp(nboot, @(x) nanmean(x,1), diffFullBlankBB);
-%     end
-
-
-%% 3. Plot example subject
-snrThreshMask.sl.single = abs(squeeze(snr(exampleSubject,1,:))) > snrThresh;
-snrThreshMask.bb.single = abs(squeeze(snr(exampleSubject,2,:))) > snrThresh;
-
-dataToPlot   = cat(1, diffFullBlankSL(exampleSubject,:) .* snrThreshMask.sl.single', ...
-    diffFullBlankBB(exampleSubject,:) .* snrThreshMask.bb.single');
-dataToPlot(:,98) = NaN; % Check if this is always a bad channel, or only
-% for a certain subject
-fig_ttl      = {sprintf('Figure2_Observed_MEG_Data_incohSpectrum%d_contour%2.1f', useSLIncohSpectrum, contourPercentile), sprintf('Figure2_Sl_and_Broadband_Compared_incohSpectrum%d_contour%2.1f', useSLIncohSpectrum, contourPercentile)};
-sub_ttl      = {sprintf('Stimulus locked S%d', exampleSubject), ...
-    sprintf('Broadband S%d', exampleSubject)};
-
-% Plot it!
-visualizeSensormaps(dataToPlot, colormapPercentile, contourPercentile, [], [], fig_ttl, sub_ttl, saveFigures, figureDir);
 
 %% 4. Plot average across subjects if requested
 
@@ -297,9 +283,37 @@ if doSOIcomparison
 end
 
 return
-%% OBSOLETE 3. Plot mean of 6 subjects
+%% OBSOLETE code
+
+% %% Get contrast by bootstrapping over epochs
+%     bootstat = cell(1,length(subject));
 %
+%     % Loop over fieldnames (sensors of interest)
+%     for s = 1:length(subject)
 %
+%         % Example subject
+%         bootstat{s}.sl.full.all  = bootstrp(nboot, @(x) nanmean(x,1), ampl{s}.sl.full);
+%         bootstat{s}.sl.blank.all = bootstrp(nboot, @(x) nanmean(x,1), ampl{s}.sl.blank);
+%
+%         % take difference between full and blank
+%         bootstat{s}.sl.diff.all  = mean([bootstat{s}.sl.full.all - bootstat{s}.sl.blank.all],1);
+%
+%         bootstat{s}.bb.full.all  = bootstrp(nboot, @(x) nanmean(x,1), ampl{s}.bb.full);
+%         bootstat{s}.bb.blank.all = bootstrp(nboot, @(x) nanmean(x,1), ampl{s}.bb.blank);
+%
+%         bootstat{s}.bb.diff.all  = mean([bootstat{s}.bb.full.all - bootstat{s}.bb.blank.all],1);
+%
+%     end
+%
+%     if plotMeanSubject
+%         % Group average
+%         bootstatGroup.sl.all = bootstrp(nboot, @(x) nanmean(x,1), diffFullBlankSL);
+%         bootstatGroup.bb.all = bootstrp(nboot, @(x) nanmean(x,1), diffFullBlankBB);
+%     end
+
+
+% Plot mean of 6 subjects
+
 %
 % % Define color range
 % cLims = [-1 1]*prctile(sl_snr, 95);
@@ -329,7 +343,7 @@ return
 %     hgexport(gcf,fullfile(figureDir,'Figure2_SLBB_average_2'))
 % end
 
-%% (obsolete?) Plot mean of 6 subjects with CI from contour lines
+% (more obsolete?) Plot mean of 6 subjects with CI from contour lines
 
 % allData  = {squeeze(sl_all)',squeeze(bb_all)'};
 % clims    = {climsSL,climsBB};
