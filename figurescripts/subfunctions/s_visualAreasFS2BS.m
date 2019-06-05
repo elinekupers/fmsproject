@@ -30,9 +30,10 @@ if ~exist('MRIread')
     addpath(genpath('/Applications/freesurfer/fsfast/toolbox'))
 end
 
-bssubject = 'wlsubj005';
+bssubject = 'wlsubj002';
 fssubject = bssubject;
-exp     = 'SSMEG';
+exp       = 'SSMEG';
+highResFlag = true;
 
 % Freesurfer, brainstorm database and data/anatomy directories
 fsdir     = '/Volumes/server/Freesurfer_subjects';
@@ -45,4 +46,4 @@ datadir = fullfile(bsDB, exp, 'data', bssubject, d(end).name);
 anatdir = fullfile(bsDB, exp, 'anat', bssubject);
 
 %% 1.1 Create downsampled amplitude template
-interp_retinotopy(bsDB, fsdir, fssubject, bssubject, exp)
+interp_retinotopy(bsDB, fsdir, fssubject, bssubject, exp, highResFlag)
