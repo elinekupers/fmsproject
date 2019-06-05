@@ -37,18 +37,18 @@ subject         = {'wlsubj002', ... % S1 - Full, Left, Right stim experiment
                    'wlsubj070'};    % S12 - Full  stim only experiment
 
 % Set up paths
-figureDir              = fullfile(fmsRootPath, 'figures'); % Where to save images?
+figureDir              = fullfile(fmsRootPath, 'figures', 'nocontour_sameCLim2'); % Where to save images?
 dataDir                = fullfile(fmsRootPath, 'data');    % Where to get data?
 saveFigures            = true;      % Save figures in the figure folder?
-plotMeanSubject        = false;     % Plot average subject?
-useSLIncohSpectrum     = false;      % Plot SL amplitudes from incoherent spectrum (default: true)
+plotMeanSubject        = true;     % Plot average subject?
+useSLIncohSpectrum     = true;      % Plot SL amplitudes from incoherent spectrum (default: true)
 doSOIcomparison        = false;     % Compare the signal for the two types of SOI (sensors of interest, requires makeFigure1 to be executed)
-
+    
 % Two ways of plotting contours
-% (1) one contour line at the percentile of data (say 90.4/100).
+% (1) one contour line at the percentile of data (e.g. top 10: 93.6/100 or top 15: 90.4/100).
 % (2) number of contour lines, dividing data into equal groups (use one number under 10)
 %   for example, if contourPercentile=3, you draw 3 lines at the 25, 50 and 75th percentile
-contourPercentile     = 93.6;
+contourPercentile     = []; %93.6;
 % contourPercentile      = 3;
 colormapPercentile     = 97.5; % percentile of data to use for max/min limits of colorbar
 snrThresh              = 0;    % Threshold amplitudes by 1 SD of SNR
@@ -107,7 +107,10 @@ for s = subjectsToPlot
     if useSLIncohSpectrum
         ampl{s}.sl.full  = data.sl.full;
         ampl{s}.sl.blank = data.sl.blank;
-        
+        if strcmp(subject{s},'wlsubj059')
+            ampl{s}.sl.full  = data.sl.full_coherent;
+            ampl{s}.sl.blank = data.sl.blank_coherent;
+        end
     else
         ampl{s}.sl.full  = data.sl.full_coherent;
         ampl{s}.sl.blank = data.sl.blank_coherent;
@@ -164,25 +167,28 @@ for s = subjectsToPlot
         diffFullBlankBB(s,:) = diffFullBlankBB(s,:) .* 10^15 .* 10^15;
     end
 
-    %% 3. Plot example subject
+    %% 3. Plot subject
     snrThreshMask.sl.single = abs(squeeze(snr(s,1,:))) > snrThresh;
     snrThreshMask.bb.single = abs(squeeze(snr(s,2,:))) > snrThresh;
 
     dataToPlot   = cat(1, diffFullBlankSL(s,:) .* snrThreshMask.sl.single', ...
         diffFullBlankBB(s,:) .* snrThreshMask.bb.single');
-    dataToPlot(:,98) = NaN; % Check if this is always a bad channel, or only
-    % for a certain subject
+ 
+    if intersect(s, [1:7,10,12]) % [HACK: for some reason the preprocessing steps didn't take out bad channel 98 in most sessions]
+         dataToPlot(:,98) = NaN; % Check if this is always a bad channel, and should be dropped earlier in the analysis
+    end
+     
     fig_ttl      = {sprintf('Figure2_Observed_MEG_Data_incohSpectrum%d_contour%2.1f', useSLIncohSpectrum, contourPercentile), sprintf('Figure2_Sl_and_Broadband_Compared_incohSpectrum%d_contour%2.1f', useSLIncohSpectrum, contourPercentile)};
     sub_ttl      = {sprintf('Stimulus locked S%d', s), ...
         sprintf('Broadband S%d', s)};
 
     % Plot it!
     if saveFigures
-        figureDir = fullfile(figureDir, subject{s});
-        if ~exist(figureDir, 'dir'); mkdir(figureDir); end
+        figureDirSubj = fullfile(figureDir, subject{s});
+        if ~exist(figureDirSubj, 'dir'); mkdir(figureDirSubj); end
     end
     
-    visualizeSensormaps(dataToPlot, colormapPercentile, contourPercentile, [], [], fig_ttl, sub_ttl, saveFigures, figureDir);
+    visualizeSensormaps(dataToPlot, colormapPercentile, contourPercentile, [], [], fig_ttl, sub_ttl, saveFigures, figureDirSubj);
 end
 
 %% 4. Plot average across subjects if requested
@@ -204,11 +210,11 @@ if plotMeanSubject
         sprintf('Broadband Average N = %d', length(subject))};
     
     % Make figure dir for average subject, if non-existing
-    if ~exist(fullfile(fmsRootPath, 'figures', 'average'),'dir'); mkdir(fullfile(fmsRootPath, 'figures', 'average')); end
-    figureDir       = fullfile(fmsRootPath,'figures', 'average'); % Where to save images?
+    figureDirAvg       = fullfile(figureDir,'average'); % Where to save images?
+    if ~exist(figureDirAvg,'dir'); mkdir(figureDirAvg); end
     
     % Plot it!
-    visualizeSensormaps(dataToPlot, colormapPercentile, contourPercentile, [], [], fig_ttl, sub_ttl, saveFigures, figureDir);
+    visualizeSensormaps(dataToPlot, colormapPercentile, contourPercentile, [], [], fig_ttl, sub_ttl, saveFigures, figureDirAvg);
 end
 
 %% 5. If requested: Make barplot of bootstrapped data of sensors that fall within contour 
