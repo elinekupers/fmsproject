@@ -62,8 +62,15 @@ switch type
 
         % Make sure bad epochs and bad sensors are the same across two datasets
         assert(isequal(badEpochs,badEpochs0))
-%         assert(isequal(badChannels,badChannels0))
+        if ~isequal(badChannels,badChannels0)  
+            badChanIdx = union(find(badChannels),find(badChannels0));
+            badChannels = false(size(badChannels0));
+            badChannels(badChanIdx) = true;
+        end
 
+        fprintf('(%s): Selected bad channels are: %s\n', mfilename, sprintf('%d ', find(badChannels)));
+               
+        
         % Remove bad channels and bad epochs from data and conditions
         sensorData = sensorData(:,~badEpochs, ~badChannels);
 
