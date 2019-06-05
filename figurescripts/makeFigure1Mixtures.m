@@ -31,11 +31,12 @@ subject         = {'wlsubj002','wlsubj004','wlsubj005','wlsubj006','wlsubj010','
 % Path to brainstorm database and project name
 bsDB            = '/Volumes/server/Projects/MEG/brainstorm_db/';
 projectName     = 'SSMEG';
+highResSurf     = true;
 saveFigures     = true;     % Save figures in the figure folder?
 
 % What visual area to use?
 area            = 'V123'; % Choose between 'V1', 'V2', 'V3', or 'V123'
-eccenLimitDeg   = [2 6]; % what is the eccentricity limit (deg) for the template, supposingly matching the stimulus aperture.
+eccenLimitDeg   = [.1 11]; % what is the eccentricity limit (deg) for the template, supposingly matching the stimulus aperture.
                          % (Can be a single int x, to get [0 x] or a vector limiting between [x,y])
 
 % Number of iterations for the random coherence prediction of the forward
@@ -71,7 +72,12 @@ for s = subjectToPlot
     
     d = dir(fullfile(bsDB, projectName, 'data', subject{s}, 'R*'));
     bsData = fullfile(d(1).folder, d(1).name);
-    bsAnat = fullfile(bsDB, projectName, 'anat', subject{s});
+    
+    if highResSurf
+        bsAnat = fullfile(bsDB, projectName, 'anat', subject{s}, 'highres');
+    else
+        bsAnat = fullfile(bsDB, projectName, 'anat', subject{s});
+    end
     
     figure(1); set(1, 'Color', 'w', 'Position', [1, 1, 1680, 999]); clf; hold all;
     
@@ -82,7 +88,7 @@ for s = subjectToPlot
         %% 1. Load relevant matrices
         
         % Get Gain matrix
-        G_constrained = getGainMatrix(bsData, keep_sensors);
+        G_constrained = getGainMatrix(bsData, keep_sensors, highResSurf);
         
         % Get V1 template limited to 11 degrees eccentricity
         template = getTemplate(bsAnat, area, eccenLimitDeg);
@@ -137,8 +143,8 @@ for s = subjectToPlot
     if ~exist(figureDir,'dir'); mkdir(figureDir); end
     if ~exist(dataDir,'dir'); mkdir(dataDir); end
     
-    save(fullfile(dataDir, sprintf('%s_mixturePredictions_contour.mat', subject{s})), 'w');
-    figurewrite(fullfile(figureDir, sprintf('%s_mixturePredictions_%s_%d-%d_%2.1f', subject{s}, area, eccenLimitDeg(1), eccenLimitDeg(2), contourPercentile)),[],[1 300],'.',1);
+    save(fullfile(dataDir, sprintf('%s_mixturePredictions_contour_highResFlag%d.mat', subject{s}, highResSurf)), 'w');
+    figurewrite(fullfile(figureDir, sprintf('%s_mixturePredictions_%s_%d-%d_%2.1f_highResFlag%d', subject{s}, area, eccenLimitDeg(1), eccenLimitDeg(2), contourPercentile, highResSurf)),[],[1 300],'.',1);
     
 end
 
@@ -181,7 +187,7 @@ if plotMeanSubject
     if ~exist(dataDir,'dir'); mkdir(dataDir); end
     
     % Plot data and save data
-    save(fullfile(dataDir, 'mixturePredictions_averge.mat'), 'w');
-    figurewrite(fullfile(figureDir, sprintf('mixturePredictions_%s_%d-%d_%2.1f', area, eccenLimitDeg(1), eccenLimitDeg(2),contourPercentile)),[],[1 300],'.',1);
+    save(fullfile(dataDir, sprintf('mixturePredictions_averge_highResFlag%d.mat',highResSurf)), 'w');
+    figurewrite(fullfile(figureDir, sprintf('mixturePredictions_%s_%d-%d_%2.1f_highResFlag%d', area, eccenLimitDeg(1), eccenLimitDeg(2),contourPercentile, highResSurf)),[],[1 300],'.',1);
     
 end

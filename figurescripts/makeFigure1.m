@@ -57,14 +57,15 @@ subject         = {'wlsubj002', ... S1 - From exp: Full, Left, Right
 % Path to brainstorm database and project name
 bsDB            = '/Volumes/server/Projects/MEG/brainstorm_db/';
 projectName     = 'SSMEG';
+highResSurf     = true;
 
 % What visual area to use?
 area            = 'V123'; % Choose between 'V1', 'V2', 'V3', or 'V123'
-eccenLimitDeg   = [0 11]; % what is the eccentricity limit (deg) for the template, supposingly matching the stimulus aperture. 
+eccenLimitDeg   = [.1 11]; % what is the eccentricity limit (deg) for the template, supposingly matching the stimulus aperture. 
                        % (Can be a single int x, to get [0 x] or a vector [x,y] limiting eccentricity to larger/equal to x and smaller/equal to y)
 
 % Define colormap and contour lines
-contourmapPercentile   = 3;%93.6; % draw contour line at what fraction of the colormap?  top 15 channels: 90.4, or for top 10 channels: 93.6, 
+contourmapPercentile   = 93.6; % draw contour line at what fraction of the colormap?  top 15 channels: 90.4, or for top 10 channels: 93.6, 
                                 % or for use any integer under 10 to get contour lines at equal percentiles of data
 colormapPercentile     = 97.5; % percentile of data to use for max/min limits of colorbar
 
@@ -88,11 +89,15 @@ for s = subjectsToPlot
     
     d = dir(fullfile(bsDB, projectName, 'data', subject{s}, 'R*'));
     bsData = fullfile(d(1).folder, d(1).name);    
-    bsAnat = fullfile(bsDB, projectName, 'anat', subject{s});
     
+    if highResSurf
+        bsAnat = fullfile(bsDB, projectName, 'anat', subject{s}, 'highres');
+    else
+        bsAnat = fullfile(bsDB, projectName, 'anat', subject{s});
+    end    
     %% 1. Load relevant matrices
     
-    G_constrained = getGainMatrix(bsData, keep_sensors);
+    G_constrained = getGainMatrix(bsData, keep_sensors, highResSurf);
 
     % Get V1 template limited to 11 degrees eccentricity
     template = getTemplate(bsAnat, area, eccenLimitDeg);
@@ -118,7 +123,7 @@ for s = subjectsToPlot
     sub_ttl      = {sprintf('Uniform phase S%d', s), ...
                     sprintf('Random phase S%d', s),...
                     sprintf('Mixed phase S%d', s)};                
-    fig_ttl      = {sprintf('Figure1_model_predictions_mixture_%s_%1.2f-%d_contour%d', area, eccenLimitDeg(1),eccenLimitDeg(2), contourmapPercentile), sprintf('Figure1_Uniform_and_Random_Compared_mixture_%s_%1.2f-%d_contour%d', area, eccenLimitDeg(1),eccenLimitDeg(2), contourmapPercentile)};
+    fig_ttl      = {sprintf('Figure1_model_predictions_mixture_%s_%1.2f-%d_contour%d_highResFlag%d', area, eccenLimitDeg(1),eccenLimitDeg(2), contourmapPercentile, highResSurf), sprintf('Figure1_Uniform_and_Random_Compared_mixture_%s_%1.2f-%d_contour%d_highResFlag', area, eccenLimitDeg(1),eccenLimitDeg(2), contourmapPercentile, highResSurf)};
     markerType   = '.';
 
     dataDir       = fullfile(fmsRootPath,'data', subject{s}); % Where to save vector of sensors that fall within contours?
@@ -134,7 +139,7 @@ for s = subjectsToPlot
 %     sensorsWithinContours = logical(sensorsWithinContours);
 
     % Save sensors of interest falling within the contour lines
-    if saveFig; save(fullfile(dataDir, sprintf('%s_prediction_%s_%1.2f-%d.mat', subject{s}, area, eccenLimitDeg(1),eccenLimitDeg(2))), 'dataToPlot'); end
+    if saveFig; save(fullfile(dataDir, sprintf('%s_prediction_%s_%1.2f-%d_highResFlag%d.mat', subject{s}, area, eccenLimitDeg(1),eccenLimitDeg(2), highResSurf)), 'dataToPlot'); end
 
 end
 
@@ -147,7 +152,7 @@ if plotMeanSubject
     
     dataToPlot = [w.V1c_mn; w.V1i_mn; w.V1m_mn];
     
-    fig_ttl    = {sprintf('Figure1_model_predictions_mixture_%s_%1.2f-%d_contour%d', area, eccenLimitDeg(1),eccenLimitDeg(2), contourmapPercentile), sprintf('Figure1_Uniform_and_Random_Compared_mixture_%s_%1.2f-%d_contour%d', area, eccenLimitDeg(1),eccenLimitDeg(2), contourmapPercentile)};
+    fig_ttl    = {sprintf('Figure1_model_predictions_mixture_%s_%1.2f-%d_contour%d_highResFlag%d', area, eccenLimitDeg(1),eccenLimitDeg(2), contourmapPercentile,highResSurf), sprintf('Figure1_Uniform_and_Random_Compared_mixture_%s_%1.2f-%d_contour%d_highResFlag%d', area, eccenLimitDeg(1),eccenLimitDeg(2), contourmapPercentile, highResSurf)};
     sub_ttl    = {sprintf('Uniform phase Average N = %d', length(subject)), ...
                   sprintf('Random phase Average N = %d', length(subject)), ...
                   sprintf('Mixed phase Average N = %d', length(subject))};
@@ -166,7 +171,7 @@ if plotMeanSubject
 %     sensorsWithinContours = logical(sensorsWithinContours);
 
     % Save sensors of interest falling within the contour lines
-    if saveFig; save(fullfile(dataDir, sprintf('Average_prediction_%s_%1.2f-%d.mat',area,eccenLimitDeg(1),eccenLimitDeg(2))), 'dataToPlot'); end       
+    if saveFig; save(fullfile(dataDir, sprintf('Average_prediction_%s_%1.2f-%d_highResFlag%d.mat',area,eccenLimitDeg(1),eccenLimitDeg(2),highResSurf)), 'dataToPlot'); end       
             
 end
 
