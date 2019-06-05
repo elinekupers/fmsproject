@@ -25,6 +25,7 @@ if ~exist('stimEccen','var') || isempty(stimEccen)
     stimEccen = [];
 end
 
+
 %%
 
 % Load V1-3 template with unitized phases in downsampled brainstorm format (computed by interp_retinotopy.m)
@@ -67,11 +68,16 @@ if ~isempty(stimEccen)
     eccenMask = zeros(size(eccen.sub_bs_eccen));
     
     if length(stimEccen)==1     
-        eccenMask(find((eccen.sub_bs_eccen<=stimEccen(1)))) = 1;
+        eccenMask((eccen.sub_bs_eccen<=stimEccen(1))) = 1;
     elseif length(stimEccen)==2
-        eccenMask(find((eccen.sub_bs_eccen>=stimEccen(1)) & (eccen.sub_bs_eccen<=stimEccen(2)))) = 1;        
+        eccenMask((eccen.sub_bs_eccen>=stimEccen(1)) & (eccen.sub_bs_eccen<=stimEccen(2))) = 1;        
     end
     template.([whichVisualAreas '_' tmpName]) = template.(whichVisualAreas).*eccenMask;
+    
+    figure, histogram(eccen.sub_bs_eccen(eccen.sub_bs_eccen>0), 'NumBins', 90, 'Normalization', 'cumcount'); hold on;
+    histogram(eccen.sub_bs_eccen(logical(eccenMask)==1), 'NumBins', 11, 'Normalization', 'cumcount');
+    histogram(eccen.sub_bs_eccen(logical(template.([whichVisualAreas '_' tmpName]))==1), 'NumBins',11); 
+    legend({'All vertices, all eccen', 'All vertices, within requested eccen', 'Vertices within visual area, within requested eccen'});
 end
 
 return
