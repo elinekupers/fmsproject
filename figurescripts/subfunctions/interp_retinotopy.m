@@ -1,4 +1,4 @@
-function interp_retinotopy(bsdir, fsdir, sub_fs, sub_bs, proj_bs)
+function interp_retinotopy(bsdir, fsdir, sub_fs, sub_bs, proj_bs, highResFlag)
 
 % Function to interpret retinotopy from this subject's freesurfer directory
 % as outputted by the hub.docker.com/r/nben/occipital_atlas Docker (in
@@ -50,6 +50,10 @@ if ~exist('proj_bs','var')||isempty(proj_bs)
     error('Need to specify brainstorm project to run interp_retinotopy function')
 end
 
+if ~exist('highResFlag','var')||isempty(highResFlag)
+    highResFlag = 0;
+end
+
 sub_fsdir = sprintf('%s/%s', fsdir, sub_fs);
 sub_bsdir = sprintf('%s/%s/anat/%s', bsdir, proj_bs, sub_bs);
 setenv('SUBJECTS_DIR', fsdir);
@@ -59,25 +63,23 @@ setenv('SUBJECTS_DIR', fsdir);
 
 d = dir(fullfile(sprintf('%s/surf/*benson14_varea*', sub_fsdir)));
 
-if regexp(d(1).name, 'mgz', 'ONCE')
+% if regexp(d(1).name, 'mgz', 'ONCE')
     retino_fname = @(hem, type)(sprintf('%s/surf/%s.benson14_%s.mgz', sub_fsdir, hem, type));
-    % retino_fname = @(hem, type)(sprintf('%s/surf/%s.template_%s.mgz', sub_fsdir, hem, type));  
     surfdat      = @(lh, rh, rc)(setfield(setfield([], 'lh', lh.vol(:)), 'rh', rc*rh.vol(:)));
 
     sub_fs_angle = surfdat(MRIread(retino_fname('lh', 'angle')), MRIread(retino_fname('rh', 'angle')), -1);
     sub_fs_eccen = surfdat(MRIread(retino_fname('lh', 'eccen')), MRIread(retino_fname('rh', 'eccen')),  1);
-%     sub_fs_areas = surfdat(MRIread(retino_fname('lh', 'areas')), MRIread(retino_fname('rh', 'areas')),  1);
     sub_fs_areas = surfdat(MRIread(retino_fname('lh', 'varea')), MRIread(retino_fname('rh', 'varea')),  1);
 
     
-else
-    retino_fname = @(hem, type)(sprintf('%s/surf/%s.benson14_%s', sub_fsdir, hem, type));
-    surfdat      = @(lh, rh, rc)(setfield(setfield([], 'lh', lh(:)), 'rh', rc*rh(:)));
-
-    sub_fs_angle = surfdat(read_curv(retino_fname('lh', 'angle')), read_curv(retino_fname('rh', 'angle')), -1);
-    sub_fs_eccen = surfdat(read_curv(retino_fname('lh', 'eccen')), read_curv(retino_fname('rh', 'eccen')),  1);
-    sub_fs_areas = surfdat(read_curv(retino_fname('lh', 'varea')), read_curv(retino_fname('rh', 'varea')),  1);
-end
+% else
+%     retino_fname = @(hem, type)(sprintf('%s/surf/%s.benson14_%s', sub_fsdir, hem, type));
+%     surfdat      = @(lh, rh, rc)(setfield(setfield([], 'lh', lh(:)), 'rh', rc*rh(:)));
+% 
+%     sub_fs_angle = surfdat(read_curv(retino_fname('lh', 'angle')), read_curv(retino_fname('rh', 'angle')), -1);
+%     sub_fs_eccen = surfdat(read_curv(retino_fname('lh', 'eccen')), read_curv(retino_fname('rh', 'eccen')),  1);
+%     sub_fs_areas = surfdat(read_curv(retino_fname('lh', 'varea')), read_curv(retino_fname('rh', 'varea')),  1);
+% end
 
 % 
 
@@ -85,7 +87,18 @@ end
 
 %% Apply the interpolation
 
-sub_fs_interp = @(dat)(tess_fs2bst(sub_bs, sub_fs, dat.lh, dat.rh));
+
+if highResFlag
+    subFolder = 'highres';
+    sub_fs_interp = @(dat)(tess_fs2bst(sub_bs, sub_fs, dat.lh, dat.rh, 'tess_cortex_pial_high'));
+else
+    subFolder = 'lowres';
+    sub_fs_interp = @(dat)(tess_fs2bst(sub_bs, sub_fs, dat.lh, dat.rh, 'tess_cortex_pial_low'));
+end
+
+sub_bsdir = fullfile(sub_bsdir, subFolder);
+if ~exist(sub_bsdir, 'dir'); mkdir(sub_bsdir); end
+    
 
 sub_bs_angle = sub_fs_interp(sub_fs_angle);
 sub_bs_eccen = sub_fs_interp(sub_fs_eccen);
