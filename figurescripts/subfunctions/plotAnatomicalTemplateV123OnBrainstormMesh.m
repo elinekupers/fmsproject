@@ -21,6 +21,8 @@ bsDB        = '/Volumes/server/Projects/MEG/brainstorm_db';
 projectName = 'SSMEG';
 anatDir     = fullfile(bsDB, projectName, 'anat', subject);
 
+if ~exist('saveFig', 'var'); saveFig=0; end
+
 if length(stimEccen)==1
     stimEccen(2) = stimEccen(1);
     stimEccen(1) = 0;
@@ -30,14 +32,14 @@ end
 template = getTemplate(anatDir, area, stimEccen);
 
 % Define plotting params 
-colors = template.([area '_StimEccen']);
+colors = double(template.V123)./max(template.V123); %template.([area '_StimEccen']);
 thresh = [];
 clims  = [];
-meshType = [];
+meshType = 'smooth'; %'unsmooth'
 ttl = sprintf('%s: Brainstorm mesh, %s', subject, area);
 
 % Plot it!
-visualizeBrainstormMesh(anatDir, double(colors)', thresh, clims, meshType, ttl)
+visualizeBrainstormMesh(anatDir, colors', thresh, clims, meshType, ttl)
 
 % Save the figure
 if saveFig
