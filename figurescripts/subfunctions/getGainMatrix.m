@@ -1,4 +1,4 @@
-function G_constrained = getGainMatrix(data_dir, keep_sensors)
+function G_constrained = getGainMatrix(data_dir, keep_sensors, highResFlag)
 
 % Function to load gain matrix and constrain it to have only one dipole 
 % vector (that is perpendicular to the surface).
@@ -20,10 +20,19 @@ function G_constrained = getGainMatrix(data_dir, keep_sensors)
 % Define keep_sensors as empty if not used as input
 if nargin < 2
     keep_sensors = []; 
+elseif nargin < 3
+    highResFlag = false;
 end
+
     
 % Load headmodel from Brainstorm
-headmodel = load(fullfile(data_dir, 'headmodel_surf_os_meg.mat'));
+hm_filename = 'headmodel_surf_os_meg';
+
+if highResFlag
+    hm_filename = [hm_filename '_02'];
+end
+
+headmodel = load(fullfile(data_dir, [hm_filename '.mat']));
 
 % Keep all sensors in Gain matrix
 if isempty(keep_sensors)
