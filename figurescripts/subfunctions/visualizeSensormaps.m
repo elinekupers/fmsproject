@@ -59,8 +59,13 @@ sensorsOfInterest = NaN(size(data));
 for ii = 1:size(data,1)
     
     dataToPlot = data(ii,:);
-    colormapLims =  [-1 1]*prctile(dataToPlot, colormapPercentile);
-    
+%     colormapLims =  [-1 1]*prctile(dataToPlot, colormapPercentile);
+    if ii ==1
+        colormapLims = [-40, 40];
+    else
+        colormapLims = [-2.5, 2.5];
+    end
+
     if ~isempty(contourmapPercentile)
        if contourmapPercentile>10 
            contourLines = [1 1]*prctile(dataToPlot, contourmapPercentile); 
@@ -78,7 +83,7 @@ for ii = 1:size(data,1)
     ...    'chanindx', dataToPlot > max(contourmapLims), ...
         'pointsymbol', markerType, ... '*'
         'pointsize', 10); hold on;
-    
+%     if ii ==1; set(gca, 'CLim', [-50,50]); else set(gca, 'CLim', [-2,2]); end
     % Check if a contour line was requested, if so, save those data and
     % replot in separate figure
     if ~isempty(contourLines)
@@ -104,7 +109,7 @@ for ii = 1:size(data,1)
     
     % Make figure pretty
     set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12); title(sub_ttl{ii})
-
+    
 end
 
 % Save if requested
