@@ -8,8 +8,7 @@ if ~exist('meshType','var') || isempty(meshType)
     bs_pial_low = load(fullfile(anatDir, 'tess_cortex_pial_low.mat'));
 else
     if strcmp(meshType,'smooth')
-        bs_pial_low = load(fullfile(anatDir, 'tess_cortex_pial_low_fig.mat'));
-    elseif strcmp(meshType,'unsmooth')
+        bs_pial_low_smooth = load(fullfile(anatDir, 'tess_cortex_pial_low_fig.mat'));
         bs_pial_low = load(fullfile(anatDir, 'tess_cortex_pial_low.mat'));
     end
 end
