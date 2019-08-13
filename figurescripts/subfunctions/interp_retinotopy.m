@@ -63,7 +63,7 @@ setenv('SUBJECTS_DIR', fsdir);
 
 d = dir(fullfile(sprintf('%s/surf/*benson14_varea*', sub_fsdir)));
 
-% if regexp(d(1).name, 'mgz', 'ONCE')
+if regexp(d(1).name, 'mgz', 'ONCE')
     retino_fname = @(hem, type)(sprintf('%s/surf/%s.benson14_%s.mgz', sub_fsdir, hem, type));
     surfdat      = @(lh, rh, rc)(setfield(setfield([], 'lh', lh.vol(:)), 'rh', rc*rh.vol(:)));
 
@@ -72,14 +72,14 @@ d = dir(fullfile(sprintf('%s/surf/*benson14_varea*', sub_fsdir)));
     sub_fs_areas = surfdat(MRIread(retino_fname('lh', 'varea')), MRIread(retino_fname('rh', 'varea')),  1);
 
     
-% else
-%     retino_fname = @(hem, type)(sprintf('%s/surf/%s.benson14_%s', sub_fsdir, hem, type));
-%     surfdat      = @(lh, rh, rc)(setfield(setfield([], 'lh', lh(:)), 'rh', rc*rh(:)));
-% 
-%     sub_fs_angle = surfdat(read_curv(retino_fname('lh', 'angle')), read_curv(retino_fname('rh', 'angle')), -1);
-%     sub_fs_eccen = surfdat(read_curv(retino_fname('lh', 'eccen')), read_curv(retino_fname('rh', 'eccen')),  1);
-%     sub_fs_areas = surfdat(read_curv(retino_fname('lh', 'varea')), read_curv(retino_fname('rh', 'varea')),  1);
-% end
+else
+    retino_fname = @(hem, type)(sprintf('%s/surf/%s.benson14_%s', sub_fsdir, hem, type));
+    surfdat      = @(lh, rh, rc)(setfield(setfield([], 'lh', lh(:)), 'rh', rc*rh(:)));
+
+    sub_fs_angle = surfdat(read_curv(retino_fname('lh', 'angle')), read_curv(retino_fname('rh', 'angle')), -1);
+    sub_fs_eccen = surfdat(read_curv(retino_fname('lh', 'eccen')), read_curv(retino_fname('rh', 'eccen')),  1);
+    sub_fs_areas = surfdat(read_curv(retino_fname('lh', 'varea')), read_curv(retino_fname('rh', 'varea')),  1);
+end
 
 % 
 
