@@ -59,11 +59,14 @@ sensorsOfInterest = NaN(size(data));
 for ii = 1:size(data,1)
     
     dataToPlot = data(ii,:);
-%     colormapLims =  [-1 1]*prctile(dataToPlot, colormapPercentile);
-    if ii ==1
-        colormapLims = [-40, 40];
+    if length(colormapPercentile)==2
+        if ii ==1
+            colormapLims = [-40, 40];
+        else
+            colormapLims = [-2.5, 2.5];
+        end
     else
-        colormapLims = [-2.5, 2.5];
+        colormapLims =  [-1 1]*prctile(dataToPlot, colormapPercentile);
     end
 
     if ~isempty(contourmapPercentile)
