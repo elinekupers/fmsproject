@@ -1,4 +1,4 @@
-function template = getTemplate(anatDir, whichVisualAreas, stimEccen)
+function [template, polarang, eccen] = getTemplate(anatDir, whichVisualAreas, stimEccen)
 
 % Function to load Brainstorm mesh templates of visual areas. Templates
 % should be created from Benson Docker for a particular Freesurfer subject,
@@ -15,6 +15,10 @@ function template = getTemplate(anatDir, whichVisualAreas, stimEccen)
 % template           :  [struct] contrains downsampled brainstorm meshes with
 %                       ones for included vertices and zeros for excluded
 %                       vertices
+% polarang           :  [struct] contrains downsampled brainstorm meshes with
+%                       V1-V3 polar angle map
+% eccen              :  [struct] contrains downsampled brainstorm meshes with
+%                       V1-V3 eccentricity map
 
 % NB: Brainstorm GUI has to be open
 if ~exist('whichVisualAreas','var') || isempty(whichVisualAreas)
@@ -73,11 +77,12 @@ if ~isempty(stimEccen)
         eccenMask((eccen.sub_bs_eccen>=stimEccen(1)) & (eccen.sub_bs_eccen<=stimEccen(2))) = 1;        
     end
     template.([whichVisualAreas '_' tmpName]) = template.(whichVisualAreas).*eccenMask;
-    
-    figure, histogram(eccen.sub_bs_eccen(eccen.sub_bs_eccen>0), 'NumBins', 90, 'Normalization', 'cumcount'); hold on;
-    histogram(eccen.sub_bs_eccen(logical(eccenMask)==1), 'NumBins', 11, 'Normalization', 'cumcount');
-    histogram(eccen.sub_bs_eccen(logical(template.([whichVisualAreas '_' tmpName]))==1), 'NumBins',11); 
-    legend({'All vertices, all eccen', 'All vertices, within requested eccen', 'Vertices within visual area, within requested eccen'});
+
+%     % Debug figure to check number of vertices selected
+%     figure, histogram(eccen.sub_bs_eccen(eccen.sub_bs_eccen>0), 'NumBins', 90, 'Normalization', 'cumcount'); hold on;
+%     histogram(eccen.sub_bs_eccen(logical(eccenMask)==1), 'NumBins', 11, 'Normalization', 'cumcount');
+%     histogram(eccen.sub_bs_eccen(logical(template.([whichVisualAreas '_' tmpName]))==1), 'NumBins',11); 
+%     legend({'All vertices, all eccen', 'All vertices, within requested eccen', 'Vertices within visual area, within requested eccen'});
 end
 
 return
