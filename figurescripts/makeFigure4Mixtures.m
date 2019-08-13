@@ -1,10 +1,10 @@
-function makeFigure1Mixtures(subjectToPlot)
+function makeFigure4Mixtures(subjectToPlot)
 
-% This is a function to make Figure 1 from the manuscript about forward
+% This is a function to make Figure 4 from the manuscript about forward
 % modeling coherent and incoherent neural sources to MEG responses.
 
-% This figure shows the MEG forward model based on coherent and incoherent
-% predictions coming from vertices located in V1.
+% This figure shows the MEG forward model predictions based on different mixtures of 
+% coherent and incoherent cortical sources located in V1.
 
 % To runs this script, you need:
 % (1) Access to the SSMEG folder in the brainstorm data base

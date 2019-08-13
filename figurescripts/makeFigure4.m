@@ -1,169 +1,191 @@
-function makeFigure4(exampleSubject)
-
-% This is a function to make Figure 4 from the manuscript using a forward
-% model to predict coherent and incoherent neural sources to MEG responses, WITHOUT CANCELLATION.
-
+function makeFigure4(varargin)
+% This is a function to make Figure 4 from the manuscript about forward
+% modeling coherent and incoherent neural sources to MEG responses.
+%
 % This figure shows the MEG forward model based on coherent and incoherent
-% predictions coming from vertices located in V1 when using an ABSOLUTE gain matrix.
-
+% predictions coming from vertices located in V1.
+%
 % To runs this script, you need:
 % (1) Access to the SSMEG folder in the brainstorm data base
+%     (on the winawerlab server under '/Projects/MEG/brainstorm_db/'
 % (2) MEG_utils and Fieldtrip toolbox added to the paths. For example:
-%     tbUse('ForwardModelSynchrony');
-%        or to only add the MEG_utils toolbox:
-%     addpath(genpath('~/matlab/git/toolboxes/meg_utils'))
+%        tbUse('ForwardModelSynchrony');
+%     or to only add the MEG_utils toolbox:
+%        addpath(genpath('~/matlab/git/toolboxes/meg_utils'))
+% (3) Run the s_visualAreasFS2BS script from this repository
+%
+% INPUTS:
+%   [subjectsToPlot]  :  (int) subject nr you would like to plot, default is 12
+%   [plotMeanSubject] :  (bool) plot average across all 12 subjets or not?
+%   [saveFig]         :  (bool) save figures or not?
+%
+% Example 1:
+%  makeFigure4('subjectsToPlot', 1, 'plotMeanSubject', false, 'saveFig', true)
+% Example 2:
+%  makeFigure4('subjectsToPlot', 12, 'plotMeanSubject', false, 'saveFig', true)
+% Example 3:
+%  makeFigure4('subjectsToPlot', 1:12, 'plotMeanSubject', true, 'saveFig', true)
 
 %% 0. Set up paths and define parameters
 
-% Which subjects to average?
-%   Full  only: 'wlsubj048', 'wlsubj046','wlsubj039','wlsubj059','wlsubj067',' wlsubj070'
-%   Full, Left, Right: 'wlsubj002','wlsubj004','wlsubj005','wlsubj006','wlsubj010','wlsubj011'
-subject = {'wlsubj002','wlsubj004','wlsubj005','wlsubj006','wlsubj010','wlsubj011','wlsubj048', 'wlsubj046','wlsubj039','wlsubj059', 'wlsubj067','wlsubj070'};
+p = inputParser;
+p.KeepUnmatched = true;
+p.addParameter('subjectsToPlot', 12);
+p.addParameter('plotMeanSubject', true, @islogical)
+p.addParameter('saveFig', true, @islogical);
+p.parse(varargin{:});
 
-% Which subjects to show as example?
-if nargin < 1; exampleSubject  = 12; end % Which example subject to show if not defined
+% Rename variables
+subjectsToPlot      = p.Results.subjectsToPlot;
+plotMeanSubject     = p.Results.plotMeanSubject;
+saveFig             = p.Results.saveFig;
+
+% Define subjects
+subject         = {'wlsubj002', ... S1 - From exp: Full, Left, Right
+    'wlsubj004', ... S2 - From exp: Full, Left, Right
+    'wlsubj005', ... S3 - From exp: Full, Left, Right
+    'wlsubj006', ... S4 - From exp: Full, Left, Right
+    'wlsubj010', ... S5 - From exp: Full, Left, Right
+    'wlsubj011', ... S6 - From exp: Full, Left, Right
+    'wlsubj048', ... S7 - From exp: Full only
+    'wlsubj046', ... S8 - From exp: Full only
+    'wlsubj039', ... S9 - From exp: Full only
+    'wlsubj059', ... S10 - From exp: Full only
+    'wlsubj067', ... S11 - From exp: Full only
+    'wlsubj070'}; %  S12 - From exp: Full only
 
 % Path to brainstorm database and project name
 bsDB            = '/Volumes/server/Projects/MEG/brainstorm_db/';
 projectName     = 'SSMEG';
-figureDir       = fullfile(fmsRootPath,'figures', subject{exampleSubject}); % Where to save images?
-% dataDir         = fullfile(fmsRootPath,'data', subject{exampleSubject}); % Where to save images?
-saveFigures     = true;     % Save figures in the figure folder?
-plotMeanSubject = true;     % Plot average subject?
-plotWithVsWithoutCancellation = true;
+highResSurf     = false;
 
-% What visual area?
-area    = 'all'; % Choose from 'V1', or 'all' (V1-V3)
+% What visual area to use?
+area            = 'V123'; % Choose between 'V1', 'V2', 'V3', or 'V123'
+eccenLimitDeg   = [.18 11]; % what is the eccentricity limit (deg) for the template, supposingly matching the stimulus aperture.
+% (Can be a single int x, to get [0 x] or a vector [x,y] limiting eccentricity to larger/equal to x and smaller/equal to y)
 
-% What's the plotting range for individual example and average across
-% subjects?
-contourmapPercentile   = 93.6; %Choose 90.4 for top 15, or 93.6 for top 10; % draw contour line at what fraction of the colormap?
+% Define colormap and contour lines
+contourmapPercentile   = 93.6; % draw contour line at what fraction of the colormap?  top 15 channels: 90.4, or for top 10 channels: 93.6,
+% or for use any integer under 10 to get contour lines at equal percentiles of data
 colormapPercentile     = 97.5; % percentile of data to use for max/min limits of colorbar
 
-% Number of iterations for the random coherence prediction of the forward
-% model
-n        = 10;     % number of timepoints (ms)
-nrEpochs = 1000;        % number of epochs
+% Number of iterations for the random coherence prediction of the forward model
+n        	= 10;        % number of timepoints (ms)
+nrEpochs    = 1000;      % number of epochs
+theta       = 0;         % von mises mean, equal for three distributions
+kappa.coh   = 10*pi;     % very narrow von Mises
+kappa.incoh = 0;         % very broad (uniform) von Mises
+kappa.mix   = 0.27*pi;        % in between width size von Mises
 
-% Define vector that can truncate number of sensors 
-keep_sensors = logical([ones(157,1); zeros(192-157,1)]); % Note: Figure out a more generic way to define keep_sensors
+% Define vector that can truncate number of sensors
+keep_sensors = logical([ones(157,1); zeros(192-157,1)]); % TODO: Figure out a more generic way to define keep_sensors
 
-for s = 1:length(subject)
+% Loop over subjects
+if plotMeanSubject
+    subjectsToPlot = 1:length(subject);
+end
+
+for s = subjectsToPlot
     
     d = dir(fullfile(bsDB, projectName, 'data', subject{s}, 'R*'));
-    bsData = fullfile(d(1).folder, d(1).name);    
-    bsAnat = fullfile(bsDB, projectName, 'anat', subject{s});
+    bsData = fullfile(d(1).folder, d(1).name);
     
+    if highResSurf
+        bsAnat = fullfile(bsDB, projectName, 'anat', subject{s}, 'highres');
+    else
+        bsAnat = fullfile(bsDB, projectName, 'anat', subject{s});
+    end
     %% 1. Load relevant matrices
     
-    G_constrained = getGainMatrix(bsData, keep_sensors);
-
+    G_constrained = getGainMatrix(bsData, keep_sensors, highResSurf);
+    
     % Get V1 template limited to 11 degrees eccentricity
-    template = getTemplate(bsAnat, area, 11);
-
-    % Simulate coherent and incoherent source time series and compute
-    % predictions from forward model (w)
-
-    % NOTE: Take absolute values of G_contrained - no cancellation possible
-    if strcmp(area, 'all')
-        tmp.woC = getForwardModelPredictions(abs(G_constrained), template.V123StimEccen, [], n, nrEpochs);
-        tmp.wC = getForwardModelPredictions(G_constrained, template.V123StimEccen, [], n, nrEpochs);
-    else
-       tmp.woC = getForwardModelPredictions(abs(G_constrained), template.V1StimEccen, [], n, nrEpochs);
-       tmp.wC = getForwardModelPredictions(G_constrained, template.V1StimEccen, [], n, nrEpochs);
-    end
+    template = getTemplate(bsAnat, area, eccenLimitDeg);
     
-    % Compute amplitude at freq
-    amps.woC.c = abs(fft(tmp.woC.c,[],2));
-    amps.woC.i = abs(fft(tmp.woC.i,[],2));
+    % Simulate coherent, in between or mixture, adn incoherent source time
+    % series and compute predictions from forward model (w)
+    tmp = getForwardModelPredictions(G_constrained, template.([area '_StimEccen']), [], n, nrEpochs, theta, kappa);
     
-    amps.wC.c = abs(fft(tmp.wC.c,[],2));
-    amps.wC.i = abs(fft(tmp.wC.i,[],2));
+    % Compute amplitude across time
+    amps.c = abs(fft(tmp.c,[],2));
+    amps.i = abs(fft(tmp.i,[],2));
+    amps.m = abs(fft(tmp.m,[],2));
     
-    % Take mean across epochs
-    w.woC.V1c(s,:) = mean(amps.woC.c(:,2,:),3);
-    w.woC.V1i(s,:) = mean(amps.woC.i(:,2,:),3);
+    % Compute mean weights across epochs at input frequency
+    w.V1c(s,:) = mean(amps.c(:,2,:),3);
+    w.V1i(s,:) = mean(amps.i(:,2,:),3);
+    w.V1m(s,:) = mean(amps.m(:,2,:),3);
     
-    w.wC.V1c(s,:) = mean(amps.wC.c(:,2,:),3);
-    w.wC.V1i(s,:) = mean(amps.wC.i(:,2,:),3);
     
 end
 
-%% 3. Visualize predictions from forward model for requested individual subject
-
-% Define plotting data and labels
-dataToPlot   = cat(1, w.woC.V1c(exampleSubject,:), w.woC.V1i(exampleSubject,:));
-colorMarkers = {'r','b'};
-fig_ttl      = {'Figure4_V1_model_predictions-No_cancellation', ...
-                'Figure4_Sl_and_Broadband_Compared-No_cancellation'};
-sub_ttl      = {sprintf('No cancellation: Coherent phase S%d',exampleSubject), ...
-                sprintf('No cancellation: Incoherent phase S%d',exampleSubject)};
+%% Visualize predictions
+colorContours = {'r','b','g'};
 markerType   = '.';
 
-% Plot it!
-visualizeSensormaps(dataToPlot, colormapPercentile, contourmapPercentile, colorMarkers, markerType, fig_ttl, sub_ttl, saveFigures, figureDir);
+for s = p.Results.subjectsToPlot
+    dataToPlot   = cat(1,w.V1c(s,:), w.V1i(s,:), w.V1m(s,:));
 
-%% Visualize prediction for across subjects
+    sub_ttl      = {sprintf('Uniform phase S%d', s), ...
+        sprintf('Random phase S%d', s),...
+        sprintf('Mixed phase S%d', s)};
+    fig_ttl      = {sprintf('Figure4_model_predictions_mixture_%s_%1.2f-%d_contour%d_highResFlag%d', ...
+                        area, eccenLimitDeg(1),eccenLimitDeg(2), contourmapPercentile, highResSurf), ...
+                    sprintf('Figure1_Uniform_and_Random_Compared_mixture_%s_%1.2f-%d_contour%d_highResFlag', ...
+                    area, eccenLimitDeg(1),eccenLimitDeg(2), contourmapPercentile, highResSurf)};
+
+    dataDir       = fullfile(fmsRootPath,'data', subject{s}); % Where to save vector of sensors that fall within contours?
+    figureDir       = fullfile(fmsRootPath,'figures', subject{s}); % Where to save images?
+    
+    % Make figure and data dir for subject, if non-existing
+    if ~exist(figureDir,'dir'); mkdir(figureDir); end
+    if ~exist(dataDir,'dir'); mkdir(dataDir); end
+    
+    sensorsWithinContours = visualizeSensormaps(dataToPlot, colormapPercentile, contourmapPercentile, colorContours, markerType, fig_ttl, sub_ttl, saveFig, figureDir);
+    
+    % Make them logicals so we can use them later as indices
+    %     sensorsWithinContours = logical(sensorsWithinContours);
+    
+    % Save sensors of interest falling within the contour lines
+    if saveFig; save(fullfile(dataDir, sprintf('%s_prediction_%s_%1.2f-%d_highResFlag%d.mat', subject{s}, area, eccenLimitDeg(1),eccenLimitDeg(2), highResSurf)), 'dataToPlot'); end
+    
+end
+%% Take mean across subjects and plot if requested
 if plotMeanSubject
     
-    % Redefine figure dir
-    figureDir    = fullfile(fmsRootPath, 'figures', 'average'); % Where to save images?
-
-    % Take the average across subjects
-    w.woC.V1c_mn     = mean(w.woC.V1c,1);
-    w.woC.V1i_mn     = mean(w.woC.V1i,1);
-
-    % Define plotting data and labels
-    dataToPlot   = cat(1, w.woC.V1c_mn, w.woC.V1i_mn);
-    colorMarkers = {'r','b'};
-    fig_ttl      = {'Figure4_V1_model_predictions-No_cancellation', ...
-                    'Figure4_Sl_and_Broadband_Compared-No_cancellation'};
-    sub_ttl      = {sprintf('No cancellation: Coherent phase Average N=%d', length(subject)), ...
-                    sprintf('No cancellation: Incoherent phase Average N=%d', length(subject))};
-    markerType   = '.';
-
-    % Plot it!
-    visualizeSensormaps(dataToPlot, colormapPercentile, contourmapPercentile, colorMarkers, markerType, fig_ttl, sub_ttl, saveFigures, figureDir);
-
+    w.V1c_mn = mean(w.V1c,1);
+    w.V1i_mn = mean(w.V1i,1);
+    w.V1m_mn = mean(w.V1m,1);
     
-    %% Plot ratio of with vs without cancellation
-    if plotWithVsWithoutCancellation
-
-        % Take the average across subjects
-        w.wC.V1c_mn     = mean(w.wC.V1c,1);
-        w.wC.V1i_mn     = mean(w.wC.V1i,1);
-                
-        % Take ratio
-        ratioCoh = w.wC.V1c_mn ./ w.woC.V1c_mn;
-        ratioInCoh = w.wC.V1i_mn ./ w.woC.V1i_mn;
-
-       clims = [-1 1].*10^-2;
-
-       figure; 
-       subplot(311); 
-       megPlotMap(w.wC.V1c_mn, 0.1*clims, [], 'bipolar', 'Coh: With cancellation'); 
-       
-       subplot(312); 
-       megPlotMap(w.woC.V1c_mn, 2*clims, [], 'bipolar', 'Coh: Without cancellation'); 
-       
-       subplot(313); 
-       megPlotMap(ratioCoh, [-1 1], [], 'bipolar', 'Coh: Ratio with / without'); 
-       
-       figure; 
-       subplot(311); 
-       megPlotMap(w.wC.V1i_mn, 0.1*clims, [], 'bipolar', 'InCoh: With cancellation'); 
-       
-       subplot(312); 
-       megPlotMap(w.woC.V1i_mn, 0.1*clims, [], 'bipolar', 'InCoh: Without cancellation'); 
-       
-       subplot(313); 
-       megPlotMap(ratioInCoh, [-1 1], [], 'bipolar', 'InCoh: Ratio with / without'); 
-
-        % Or just the two ratio's:
-       fig_ttl = {'Fig4_ratioWithVsWithoutCancellation','Fig4_ratioWithVsWithoutCancellation_Overlap'};
-       sub_ttl = {'Coh: Ratio with / without', 'InCoh: Ratio with / without'};
-       visualizeSensormaps([ratioCoh; ratioInCoh], 100, contourmapPercentile, colorMarkers, markerType, fig_ttl, sub_ttl, saveFigures, figureDir);
-
-    end
-
+    dataToPlot = [w.V1c_mn; w.V1i_mn; w.V1m_mn];
+    
+    fig_ttl    = {sprintf('Figure4_model_predictions_mixture_%s_%1.2f-%d_contour%d_highResFlag%d', ...
+                        area, eccenLimitDeg(1),eccenLimitDeg(2), contourmapPercentile,highResSurf), ...
+                  sprintf('Figure4_Uniform_and_Random_Compared_mixture_%s_%1.2f-%d_contour%d_highResFlag%d', ...
+                        area, eccenLimitDeg(1),eccenLimitDeg(2), contourmapPercentile, highResSurf)};
+                    
+    sub_ttl    = {sprintf('Uniform phase Average N = %d', length(subject)), ...
+                  sprintf('Random phase Average N = %d', length(subject)), ...
+                  sprintf('Mixed phase Average N = %d', length(subject))};
+    
+    figureDir       = fullfile(fmsRootPath,'figures', 'average'); % Where to save images?
+    dataDir       = fullfile(fmsRootPath,'data', 'average'); % Where to save images?
+    
+    if ~exist(figureDir,'dir'); mkdir(figureDir); end
+    if ~exist(dataDir,'dir'); mkdir(dataDir); end
+    
+    % Plot data and save channels that are located inside the contour lines
+    sensorsWithinContours = visualizeSensormaps(dataToPlot, colormapPercentile, contourmapPercentile, colorContours, markerType, fig_ttl, sub_ttl, saveFig, figureDir);
+    
+    % Make them logicals so we can use them later as indices
+    %     sensorsWithinContours = logical(sensorsWithinContours);
+    
+    % Save sensors of interest falling within the contour lines
+    if saveFig; save(fullfile(dataDir, sprintf('Average_prediction_%s_%1.2f-%d_highResFlag%d.mat',area,eccenLimitDeg(1),eccenLimitDeg(2),highResSurf)), 'dataToPlot'); end
+    
 end
+
+% Check toolbox versions
+% out = ver;
+% save(fullfile(fmsRootPath, 'toolboxVersions.mat'),'out')
+
