@@ -68,7 +68,7 @@ switch type
             badChannels(badChanIdx) = true;
         end
 
-        fprintf('(%s): Selected bad channels are: %s\n', mfilename, sprintf('%d ', find(badChannels)));
+        fprintf('(%s): S%d - Selected bad channels are: %s\n', mfilename, whichSession, sprintf('%d ', find(badChannels)));
                
         
         % Remove bad channels and bad epochs from data and conditions
