@@ -37,27 +37,27 @@ end
 % eccen    = load(fullfile(anatDir, 'eccen_overlay.mat')); % [1xNsources] Nonzero value represents vertex preferred eccentricity in degrees, zeros refer to outside of visual cortex
 % polarang = load(fullfile(anatDir, 'angle_overlay.mat')); % [1xNsources] Nonzero value represents vertex preferred polar angle in degrees, zeros refer to outside of visual cortex
 
-areas    = load(fullfile(anatDir, 'benson14areas_overlay.mat')); % [1xNsources] Every value between [-3,3] is inside V1-3, zeros refer to outside of visual cortex. Positive values represent dorsal, negative values ventral
-eccen    = load(fullfile(anatDir, 'benson14eccen_overlay.mat')); % [1xNsources] Nonzero value represents vertex preferred eccentricity in degrees, zeros refer to outside of visual cortex
+areas    = load(fullfile(anatDir, 'benson14areas_overlay.mat')); % [1xNsources] Every value between [1 and 3] is inside V1-3, zeros refer to outside of visual cortex, 4-12 are other visual areas
+eccen    = load(fullfile(anatDir, 'benson14eccen_overlay.mat')); % [1xNsources] Nonzero value represents vertex preferred eccentricity in degrees, zeros refer to outside of visual cortex, 
 polarang = load(fullfile(anatDir, 'benson14angle_overlay.mat')); % [1xNsources] Nonzero value represents vertex preferred polar angle in degrees, zeros refer to outside of visual cortex
 
 
 switch whichVisualAreas
     case 'V123'
         % Get vertices in V1-V3
-        template.(whichVisualAreas)     = abs(areas.sub_bs_areas)>0;
+        template.(whichVisualAreas)     = (areas.sub_bs_areas>0 & areas.sub_bs_areas <=3);
     
     case 'V1'
         % Get only vertices in V1
-        template.(whichVisualAreas)     = abs(areas.sub_bs_areas)==1; 
+        template.(whichVisualAreas)     = areas.sub_bs_areas==1; 
         
     case 'V2'
          % Get only vertices in V2
-        template.(whichVisualAreas)     = abs(areas.sub_bs_areas)==2;
+        template.(whichVisualAreas)     = areas.sub_bs_areas==2;
         
     case 'V3'
         % Get only vertices in V3
-        template.(whichVisualAreas)     = abs(areas.sub_bs_areas)==3;
+        template.(whichVisualAreas)     = areas.sub_bs_areas==3;
 
 end
 
