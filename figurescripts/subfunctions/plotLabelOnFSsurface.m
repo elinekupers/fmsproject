@@ -5,9 +5,9 @@ if ~exist('fast_fileexists')
 end
 
 
-pth = '/Volumes/server/Freesurfer_subjects/wlsubj005/surf';
+pth = '/Volumes/server/Freesurfer_subjects/wlsubj001/surf';
 hemi = 'l';
-stimEccen = 11; % stimulus had 11 degrees of visual angle
+stimEccen = [0.18 11]; % stimulus had 11 degrees of visual angle, we exclude the central 0.18 degrees with fixation dot.
 
 
 % Surface mesh
@@ -33,7 +33,7 @@ mshcolor.angle = ni.vol(:);
 
 % Eccen:
 ni                 = MRIread(retEccen);
-mshcolor.stimEccen = ni.vol(:)<stimEccen;
+mshcolor.stimEccen = ((ni.vol(:)>stimEccen(1))&(ni.vol(:)<stimEccen(2)));
 mshcolor.eccen     = ni.vol(:);
 
 % Area:
@@ -43,6 +43,8 @@ mshcolor.areas = abs(ni.vol(:));
 
 % Get V1 and restrict to stimulus eccentricity
 mshcolor.v1 = mshcolor.areas==1;
+mshcolor.v2 = mshcolor.areas==2;
+mshcolor.v3 = mshcolor.areas==3;
 mshcolor.v123 = mshcolor.areas>0;
 
 mshcolor.v1StimEccen = mshcolor.v1.*mshcolor.stimEccen;
@@ -65,7 +67,9 @@ set(fH, 'Color', 'w', 'Position', pos); clf;
 
 % Mesh
 c = mshcolor.curv;
-c(idx) = mshcolor.v123StimEccen(idx).*150;
+c(find(mshcolor.v1)) = 50;
+c(find(mshcolor.v2)) = 100;
+c(find(mshcolor.v3)) = 150;
 
 mx = vertices(:,1);%+surf_offsets(1);
 my = vertices(:,2);%+surf_offsets(2);
@@ -117,6 +121,49 @@ cmap = [gyri; sulci; hsv(256)]; clim = [0 1];
 tH = trimesh(faces, mx, my, mz, c); axis equal; hold on
 set(tH, 'LineStyle', 'none', 'FaceColor', 'interp', 'FaceVertexCData',c)
 colormap(cmap); set(gca, 'CLim', clim);
+
+axis off;
+
+% Viewpoint
+if strcmpi(hemi, 'r'), set(gca, 'View', [-90 -4]);
+else, set(gca, 'View', [90.2000, -6.2000]); end
+
+% Lighting
+if strcmpi(hemi, 'r'), pos = [-1 1 1]; else, pos = [1 1 1]; end
+light('Position',100*pos,'Style','local')
+lighting gouraud
+material dull
+
+%% Plot Eccen blocked
+
+fH = figure; pos = get(gcf, 'Position'); pos([3 4]) = [1000 800];
+set(fH, 'Color', 'w', 'Position', pos); clf;
+
+% Mesh
+idx1 = (mshcolor.eccen > 0)&(mshcolor.eccen < 5);
+idx2 = (mshcolor.eccen >= 5)&(mshcolor.eccen < 10);
+idx3 = (mshcolor.eccen >= 10)&(mshcolor.eccen < 15);
+idx4 = (mshcolor.eccen >= 15)&(mshcolor.eccen < 20);
+idx5 = (mshcolor.eccen >= 20)&(mshcolor.eccen < 50);
+idx6 = (mshcolor.eccen >= 50)&(mshcolor.eccen < 90);
+
+c = mshcolor.curv;
+c(c==1)= 1/256;
+c(idx1) = 50;
+c(idx2) = 150;
+c(idx3) = 100;
+c(idx4) = 150;
+c(idx5) = 200;
+c(idx6) = 250;
+
+
+mx = vertices(:,1);%+surf_offsets(1);
+my = vertices(:,2);%+surf_offsets(2);
+mz = vertices(:,3);%+surf_offsets(3);
+
+tH = trimesh(faces, mx, my, mz, c); axis equal; hold on
+set(tH, 'LineStyle', 'none', 'FaceColor', 'interp', 'FaceVertexCData',c)
+colormap(cmap); set(gca, 'CLim', [0 255]);
 
 axis off;
 
@@ -183,14 +230,17 @@ material dull
 fH = figure; pos = get(gcf, 'Position'); pos([3 4]) = [1000 800];
 set(fH, 'Color', 'w', 'Position', pos); clf;
 
-% Mesh
-idx1 = ((0 < mshcolor.eccen)&(mshcolor.eccen<= 11));
+% Mesh indices
+idx0 = ((0 < mshcolor.eccen)&(mshcolor.eccen<= 0.2));
+idx1 = ((0.2 < mshcolor.eccen)&(mshcolor.eccen<= 11));
 idx2 = ((11 < mshcolor.eccen)&(mshcolor.eccen<= 90));
 
 c = mshcolor.curv;
 c(c==1) = 1/4;
+c(idx0) = 1;
 c(idx1) = 2/3;
 c(idx2) = 1;
+
 
 % Get xyz vertices
 mx = vertices(:,1);%+surf_offsets(1);
@@ -221,7 +271,7 @@ else, set(gca, 'View', [90.2000, -6.2000]); end
 
 % Lighting
 if strcmpi(hemi, 'r'), pos = [-1 1 1]; else, pos = [1 1 1]; end
-light('Position',100*pos,'Style','local')
+light('Position',90*pos,'Style','local')
 lighting gouraud
 material dull
 
