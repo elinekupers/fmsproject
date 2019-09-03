@@ -40,7 +40,7 @@ subject         = {'wlsubj002', ... % S1 - Full, Left, Right stim experiment
 % What type of data to use? 
 dataType        = 'amplitudes'; % can be 'SNR' or 'amplitudes'
 area            = 'V123'; % can be 'V123', 'V1', 'V2', 'V3' 
-eccenLimitDeg   = [0 11]; % deg 
+eccenLimitDeg   = [0.18 11]; % deg 
 
 % What's the plotting range
 climsSL         = [-40,40];
@@ -48,18 +48,18 @@ climsBB         = [-6,6];
 climsContour    = [-1 1]*1E-4;
 
 % Number of iterations for the random coherence prediction of the forward model
-n               = 10;        % number of timepoints (ms)
-nrEpochs        = 1000;      % number of epochs
-theta           = 0;         % von mises mean, equal for three distributions
-kappa.coh       = 10*pi;     % very narrow von Mises
-kappa.incoh     = 0;         % very broad (uniform) von Mises
-kappa.mix       = 0.27*pi;   % in between width size von Mises
+n        	= 10;        % number of timepoints (ms)
+nrEpochs    = 1000;      % number of epochs
+theta       = 0;         % von mises mean, equal for three distributions (syn, asyn and mix)
+kappa.syn   = 100*pi;    % very narrow von Mises
+kappa.asyn  = 0;         % very broad (uniform) von Mises
+kappa.mix   = 0.27*pi;   % in-between width size von Mises (note: we are not plotting these values for this figure)
 
 % Define vector that can truncate number of sensors 
 keep_sensors    = logical([ones(157,1); zeros(192-157,1)]); % NB: Figure out a more generic way to define keep_sensors
 
 % Predefine figures
-fH1 = figure(1); clf; set(fH1, 'Position', [1 1 2550 1300], 'Name','Figure 3A, Data against model predictions V1 - matched');
+fH1 = figure(1); clf; set(fH1, 'Position', [1 1 2550 1300], 'Name','Figure XX, Data against model predictions V1 - matched');
 nrows = 4; 
 ncols = 6;
 
@@ -201,7 +201,7 @@ if saveFigures % use different function to save figures, since figurewrite crash
     
     set(0, 'currentfigure', fH1);
 %     figurewrite(fullfile(figureDir,'Figure3A_predictionV123VsDataIndividuals_matched'),[],0,'.',1);
-    hgexport(fH1, fullfile(figureDir, sprintf('Figure3_prediction_%s_%1.2f-%d_VsDataIndividuals_matched_%s.eps', area, eccenLimitDeg(1), eccenLimitDeg(2), dataType)))
+    hgexport(fH1, fullfile(figureDir, sprintf('FigureXX_prediction_%s_%1.2f-%d_VsDataIndividuals_matched_%s.eps', area, eccenLimitDeg(1), eccenLimitDeg(2), dataType)))
     
 end
 
