@@ -48,6 +48,9 @@ end
 % if kappa is small, treat as uniform distribution
 if kappa < 1e-6
     alpha = 2*pi*rand(n,1);
+    if exist('m','var')
+        alpha = reshape(alpha,m(1),m(2));
+    end
     return
 end
 
