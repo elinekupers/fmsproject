@@ -5,7 +5,7 @@ function w = getForwardModelPredictions(G, template, f, n, nrEpochs, theta, kapp
 
 % INPUTS:
 % G                  : [matrix] Gain matrix [nSensors x nSources]
-% template           : [matrix] template to get predictions for [1xnSources]
+% template           : [matrix] Anatomical template of V1-V3 retinotopy [1xnSources]
 % f                  : [int] frequency to use for simulate sine wave (Hz)
 % n                  : [int] number of time points for simulated signal (ms)
 % nrEpochs           : [int] number of epochs containing a simulated signal
@@ -33,8 +33,8 @@ if ~exist('theta', 'var') || isempty(theta)
 end
 
 if ~exist('kappa', 'var') || isempty(kappa)
-    kappa.incoh = 0; % (inverse) width of distribution
-    kappa.coh = 20*pi;
+    kappa.asyn = 0; % (inverse) width of distribution
+    kappa.syn = 20*pi;
     kappa.mix = pi;
 end
 
@@ -44,50 +44,82 @@ end
 t  = (1:n)/n;   % s
 
 % Preallocate space
-signalCoherent   = zeros([size(template,2), n, nrEpochs]);
-signalIncoherent = zeros(size(signalCoherent));
-signalMix        = zeros(size(signalCoherent));
+signalSynchronous   = zeros([size(template,2), n, nrEpochs]);
+signalAsynchronous  = zeros(size(signalSynchronous));
+signalMix           = zeros(size(signalSynchronous));
 
 % Get nr of vertices in template that are actually used
 nrVertices = sum(template);
 
 % Sample phases from three different von Mises 
-phase.coh   = circ_vmrnd(theta, kappa.coh, nrEpochs);
-phase.incoh = circ_vmrnd(theta, kappa.incoh, [nrEpochs, nrVertices]);
+phase.syn   = circ_vmrnd(theta, kappa.syn, nrEpochs);
+phase.asyn  = circ_vmrnd(theta, kappa.asyn, [nrEpochs, nrVertices]);
 phase.mix   = circ_vmrnd(theta, kappa.mix, [nrEpochs, nrVertices]);
 
 % Create time series, add different phases sampled from von Mises later
-ts = repmat((2*pi*f*t), nrEpochs, nrVertices);
-ts = reshape(ts, [nrEpochs, n, nrVertices]);
+timepoints = 2*pi*f*t;
+ts = repmat(timepoints', [1 nrEpochs]);
 
-% Coherent signal contains the same phase per vertex, but differs
-% slightly per epoch (depending on the width of the von Mises
-% distribution)
-tsCoherent = sin(ts+phase.coh);
-tsCoherent = permute(tsCoherent, [3, 2, 1]);
+%% Synchronous signals 
+% Signals contain the same phase across vertices.
+% Depending on the width of the von Mises distribution, they might slightly
+% differ between per epoch
 
-signalCoherent(find(template),:,:) =  tsCoherent;
+% Create synchronous sine waves
+tsSynchronous = sin(ts+phase.syn');
 
-% Incoherent signal gets a random phase every vertex and every epoch
-phase.incoh = reshape(phase.incoh, [nrEpochs, nrVertices]);
+% Add singleton dimension
+tsSynchronous = repmat(tsSynchronous, [1 1 nrVertices]);
 
-ts = permute(ts, [1,3,2]);
-tsIncoherent = sin(ts + phase.incoh); 
-tsIncoherent = permute(tsIncoherent, [2, 3, 1]); 
+% Change order of array dimensions to correspond to preallocated array
+tsSynchronous = permute(tsSynchronous, [3, 1, 2]);
 
-signalIncoherent(find(template),:,:) = tsIncoherent;
+% Add timeseries to selected vertices from anatomical template
+signalSynchronous(find(template),:,:) =  tsSynchronous; %#ok<FNDSB>
+
+%% Asynchronous signals
+% Signals contain sine waves with random (uniform distributed) phases, for
+% every vertex and every epoch
+
+% Create more time points first
+ts = repmat(timepoints', [1 nrEpochs, nrVertices]);
+
+% Add singleton dimension
+phase.asyn = reshape(phase.asyn, [1, nrEpochs, nrVertices]);
+
+% Create asynchronous sine waves
+tsAsynchronous = sin(ts+phase.asyn);
+
+% Change order of array dimensions to correspond to preallocated array
+tsAsynchronous = permute(tsAsynchronous, [3, 1, 2]); 
+
+% Add timeseries to selected vertices from anatomical template
+signalAsynchronous(find(template),:,:) = tsAsynchronous; %#ok<FNDSB>
         
-% Signal mix 
-tsMix = sin(ts + phase.mix);
-tsMix = permute(tsMix, [2, 3, 1]); 
-signalMix(find(template),:,:) = tsMix;
+%% Signal mix
+% Same as for asynchronous, but now signals contains sine waves with 
+% a mixture of phases biased towards a particular value, which can differ 
+% for every vertex and every epoch
+
+% Add singleton dimension
+phase.mix = reshape(phase.mix, [1, nrEpochs, nrVertices]);
+
+% Create mixture of more/less synchronous sine waves
+tsMix = sin(ts+phase.mix);
+
+% Change order of array dimensions to correspond to preallocated array
+tsMix = permute(tsMix, [3, 1, 2]); 
+
+% Add timeseries to selected vertices from anatomical template
+signalMix(find(template),:,:) = tsMix; %#ok<FNDSB>
 
     
-%% Predicted sensor time series
+%% Predicted sensor time series by multiplying source activity with Gain
+
 for epoch = 1:nrEpochs
-    w.c(:,:,epoch) = G*signalCoherent(:,:,epoch);
-    w.i(:,:,epoch) = G*signalIncoherent(:,:,epoch);
-    w.m(:,:,epoch) = G*signalMix(:,:,epoch);
+    w.c(:,:,epoch) = G*signalSynchronous(:,:,epoch);  % synchronous or coherent
+    w.i(:,:,epoch) = G*signalAsynchronous(:,:,epoch); % asynchronous or incoherent
+    w.m(:,:,epoch) = G*signalMix(:,:,epoch);          % mix
 end
 
     
