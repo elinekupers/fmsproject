@@ -1,4 +1,4 @@
-function sensorsOfInterest = visualizeSensormaps(data, colormapPercentile, contourmapPercentile, colorMarkers, markerType, fig_ttl, sub_ttl, saveFigures, figureDir)
+function sensorsOfInterest = visualizeSensormaps(data, maxColormapPercentile, contourPercentile, signedColorbar, colorMarkers, markerType, fig_ttl, sub_ttl, saveFigures, figureDir)
 
 % visualizeSensormaps(data, colormapLims, contourmapLims, colorMarkers, markerType, fig_ttl, sub_ttl, saveFigures)
 
@@ -10,16 +10,24 @@ function sensorsOfInterest = visualizeSensormaps(data, colormapPercentile, conto
 % visualizeSensormaps(data, 50, 50)
 
 %% Check input params
-if ~exist('colormapPercentile','var') || isempty(colormapPercentile)
-    colormapPercentile = 97.5;
+if ~exist('maxColormapPercentile','var') || isempty(maxColormapPercentile)
+    maxColormapPercentile = 100;
 end
 
-if ~exist('contourmapPercentile','var') || isempty(contourmapPercentile)
-    contourmapPercentile = []; % if empty, don't show any
+if ~exist('contourPercentile','var') || isempty(contourPercentile)
+    contourPercentile = []; % if empty, don't show any
+end
+
+if ~exist('signedColorbar','var') || isempty(signedColorbar)
+    signedColorbar = true; 
 end
 
 if ~exist('colorMarkers','var') || isempty(colorMarkers)
-    colorMarkers =  repmat({'r','b','g'},1,2);
+    if size(data,1) == 3
+        colorMarkers =  repmat({'y','b','g'},1,2);
+    else
+        colorMarkers =  repmat({'y','b'},1,2);
+    end
 end
 
 if ~exist('markerType','var') || isempty(markerType)
@@ -31,7 +39,7 @@ if ~exist('fig_ttl','var') || isempty(fig_ttl)
 end
 
 if ~exist('sub_ttl','var') || isempty(sub_ttl)
-    sub_ttl = {'','','',''};
+     sub_ttl = {'','',''};
 end
 
 if ~exist('saveFigures','var') || isempty(saveFigures)
@@ -39,54 +47,58 @@ if ~exist('saveFigures','var') || isempty(saveFigures)
     figureDir = [];
 else
     if saveFigures && (~exist('figureDir','var') || isempty(saveFigures))
-        figureDir = fullfile(fmsRootPath, 'figures'); if ~exist(figureDir,'dir'); mkdir(figureDir); end
+        figureDir = fullfile(fmsRootPath, 'figures'); 
+        if ~exist(figureDir,'dir'); mkdir(figureDir); end
     end
 end
 
-%% Predefine figures 
-cmap = [1 1 1; 0 0 1; 1 0 0];
+%% Predefine figures and matrix saving sensor nrs drawn within contours
+
+% Main figure
 fH1 = figure; clf; set(fH1,'position',[1,600,1400,800], 'Name', fig_ttl{1}, 'NumberTitle', 'off');
 
-if ~isempty(contourmapPercentile) && contourmapPercentile>10
+% If contour lines are getting drawn, replot them in second figure
+if ~isempty(contourPercentile) && contourPercentile>10
+    cmapContour = [1 1 1; 0 0 1; 1 0 0];
     fH2 = figure; clf; set(fH2,'position',[ 1400, 923, 700, 473], 'Name', fig_ttl{2}, 'NumberTitle', 'off');
-                   subplot(1,1,1); megPlotMap(zeros(1,157)); colormap(cmap);
+                   subplot(1,1,1); megPlotMap(zeros(1,157)); colormap(cmapContour);
 end
 
 % Save sensors of interest that fall within the contour lines
 sensorsOfInterest = NaN(size(data));
 
-% Loop over datasets
+%% Loop over datasets
 for ii = 1:size(data,1)
     
     dataToPlot = data(ii,:);
-    if length(colormapPercentile)==2
-        if ii ==1
-            colormapLims = [-40, 40];
-        else
-            colormapLims = [-2.5, 2.5];
-        end
+    cmapData   = bipolar(64);
+    
+    % Check limits of color map/bar 
+    if signedColorbar
+        colormapLims = [-1,1].*prctile(dataToPlot, maxColormapPercentile);
     else
-        colormapLims =  [-1 1]*prctile(dataToPlot, colormapPercentile);
+        colormapLims = [0 prctile(dataToPlot, maxColormapPercentile)];
+        cmapData = cmapData(ceil(length(cmapData)/2):end,:);
     end
 
-    if ~isempty(contourmapPercentile)
-       if contourmapPercentile>10 
-           contourLines = [1 1]*prctile(dataToPlot, contourmapPercentile); 
-       else
-           contourLines = contourmapPercentile; 
+    % Check at what point to draw contour lines
+    if ~isempty(contourPercentile)
+       if contourPercentile > 10 % Plot at given data percentile 
+           contourLines = [1 1]*prctile(dataToPlot, contourPercentile); 
+       else % Plot nr of contours at equo-distance percentiles 
+           contourLines = contourPercentile; 
        end
-    else contourLines = [];
-    end
+    else, contourLines = []; end
+
 
     % Plot data or predictions
     figure(fH1);
     subplot(size(data,1),1,ii);
-    [~,ch] = megPlotMap(dataToPlot,colormapLims,fH1,'bipolar',sub_ttl{ii},[],[], ...
+    [~,ch] = megPlotMap(dataToPlot,colormapLims,fH1,cmapData,sub_ttl{ii},[],[], ...
         'isolines', contourLines, ...
     ...    'chanindx', dataToPlot > max(contourmapLims), ...
         'pointsymbol', markerType, ... '*'
         'pointsize', 10); hold on;
-%     if ii ==1; set(gca, 'CLim', [-50,50]); else set(gca, 'CLim', [-2,2]); end
     % Check if a contour line was requested, if so, save those data and
     % replot in separate figure
     if ~isempty(contourLines)
@@ -96,7 +108,7 @@ for ii = 1:size(data,1)
         for jj = 1:size(c,1)
             % Change line width
             figure(fH1); 
-            c(jj).LineWidth = 4;
+            c(jj).LineWidth = 2;
         end
         
         if length(contourLines)==2
