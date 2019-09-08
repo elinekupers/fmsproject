@@ -1,11 +1,9 @@
-function makeFigure4Mixtures(subjectToPlot)
-
-% This is a function to make Figure 4 from the manuscript about forward
-% modeling coherent and incoherent neural sources to MEG responses.
-
-% This figure shows the MEG forward model predictions based on different mixtures of 
-% coherent and incoherent cortical sources located in V1.
-
+function makeFigure6Mixtures(varargin)
+%
+% This is a function to make model predictions for different mixtures of
+% synchrony levels in early visual cortical sources
+% similar to Figure 6 from the manuscript.
+%
 % To runs this script, you need:
 % (1) Access to the SSMEG folder in the brainstorm data base
 % (2) MEG_utils and Fieldtrip toolbox added to the paths. For example:
@@ -13,39 +11,93 @@ function makeFigure4Mixtures(subjectToPlot)
 %        or to only add the MEG_utils toolbox:
 %     addpath(genpath('~/matlab/git/toolboxes/meg_utils'))
 % (3) Run the s_visualAreasFS2BS script from this repository
+%
+% INPUTS:
+%   [subjectsToPlot]        :  (int)  subject nr to plot, default is 12
+%   [plotMeanSubject]       :  (bool) true/false plot average across subjects
+%   [saveFig]               :  (bool) true/false save figures
+%   [headmodelType]         :  (str)  type of headmodel. Choose from 'OS'
+%                                     (overlapping spheres) or 'BEM'
+%                                     (boundary element model)
+%   [highResSurf]           :  (bool) true/false use high resolution
+%                                     headmodel/surface resolution.
+%   [area]                  :  (str)  visual area to use from Benson et al.
+%                                     (2014) PloS Comp Bio template.
+%                                     Choose from 'V1', 'V2', 'V3', 'V123'
+%   [eccenLimitDeg]         :  (int)  eccentricity limit (deg) of the template.
+%                                     Supposingly matching the stimulus aperture.
+%                                     Can be a single int x, to get [0 x] or
+%                                     a vector [x,y] limiting eccentricity to
+%                                     larger/equal to x and smaller/equal to y)
+%   [contourPercentile]     :  (int)  percentile of the data to draw contours
+%                                     If colormap max is at 97.5th percentile:
+%                                     Top15 sensors = 90.4. Top10 sensors = 93.6
+%                                     To get contour lines at equal percentiles
+%                                     of data, use any integer under 10.
+%   [maxColormapPercentile] :  (int)  percentile of data to truncate colormap
+%   [signedColorbar]        :  (bool) true/false plot signed colormap or only
+%                                     positive values.
 
-if ~exist('subjectToPlot', 'var') || isempty(subjectToPlot)
-    subjectToPlot = 1:12;
-    plotMeanSubject = true;     % Plot average subject?
+p = inputParser;
+p.KeepUnmatched = true;
+p.addParameter('subjectsToPlot', 12);
+p.addParameter('plotMeanSubject', true, @islogical)
+p.addParameter('saveFig', true, @islogical);
+p.addParameter('headmodelType', 'BEM', @(x) any(x,{'OS', 'BEM'}));
+p.addParameter('highResSurf', false, @islogical);
+p.addParameter('area', 'V123', @(x) any(x,{'V1', 'V2', 'V3','V123'}));
+p.addParameter('eccenLimitDeg', [0.18 11], @isnumeric);
+p.addParameter('contourPercentile', 93.6, @isnumeric);
+% p.addParameter('maxColormapPercentile', 97.5, @isnumeric);
+p.addParameter('signedColorbar', false, @islogical);
+p.parse(varargin{:});
+
+% Rename variables
+subjectsToPlot        = p.Results.subjectsToPlot;
+plotMeanSubject       = p.Results.plotMeanSubject;
+saveFig               = p.Results.saveFig;
+headmodelType         = p.Results.headmodelType;
+highResSurf           = p.Results.highResSurf;
+area                  = p.Results.area;
+eccenLimitDeg         = p.Results.eccenLimitDeg;
+contourPercentile     = p.Results.contourPercentile;
+% maxColormapPercentile = p.Results.maxColormapPercentile;
+signedColorbar        = p.Results.signedColorbar;
+
+%% 0. Define subjects and paths
+
+subject         = {'wlsubj002', ... S1 - From exp: Full, Left, Right
+    'wlsubj004', ... S2 - From exp: Full, Left, Right
+    'wlsubj005', ... S3 - From exp: Full, Left, Right
+    'wlsubj006', ... S4 - From exp: Full, Left, Right
+    'wlsubj010', ... S5 - From exp: Full, Left, Right
+    'wlsubj011', ... S6 - From exp: Full, Left, Right
+    'wlsubj048', ... S7 - From exp: Full only
+    'wlsubj046', ... S8 - From exp: Full only
+    'wlsubj039', ... S9 - From exp: Full only
+    'wlsubj059', ... S10 - From exp: Full only
+    'wlsubj067', ... S11 - From exp: Full only
+    'wlsubj070'}; %  S12 - From exp: Full only
+
+
+% Load all subjects when plotting the mean
+if plotMeanSubject
+    subjectsToLoad = 1:length(subject);
 else
-    plotMeanSubject = false;     % Plot average subject?
+    subjectsToLoad = subjectsToPlot;
 end
-
-%% 0. Set up paths and define parameters
-
-% Which subjects to average?
-%   Full  only: 'wlsubj048', 'wlsubj046','wlsubj039','wlsubj059', 'wlsubj067'
-%   Full, Left, Right: 'wlsubj002','wlsubj004','wlsubj005','wlsubj006','wlsubj010','wlsubj011'
-subject         = {'wlsubj002','wlsubj004','wlsubj005','wlsubj006','wlsubj010','wlsubj011','wlsubj048', 'wlsubj046','wlsubj039','wlsubj059', 'wlsubj067', 'wlsubj070'};
 
 % Path to brainstorm database and project name
 bsDB            = '/Volumes/server/Projects/MEG/brainstorm_db/';
 projectName     = 'SSMEG';
-highResSurf     = true;
-saveFigures     = true;     % Save figures in the figure folder?
-
-% What visual area to use?
-area            = 'V123'; % Choose between 'V1', 'V2', 'V3', or 'V123'
-eccenLimitDeg   = [.1 11]; % what is the eccentricity limit (deg) for the template, supposingly matching the stimulus aperture.
-                         % (Can be a single int x, to get [0 x] or a vector limiting between [x,y])
 
 % Number of iterations for the random coherence prediction of the forward
 % model
 n               = 10;         % number of timepoints (ms)
 nrEpochs        = 1000;       % number of epochs
 theta           = 0;          % von mises mean of all three distributions
-kappa.coh       = 10*pi;      % kappa width, coherent signal
-kappa.incoh     = 0;          % kappa width, incoherent signal
+kappa.syn       = 10*pi;      % kappa width, coherent signal
+kappa.asyn      = 0;          % kappa width, incoherent signal
 allMixedKappas  = pi.*logspace(log10(.1),log10(2),10);
 
 % Define vector that can truncate number of sensors
@@ -53,22 +105,24 @@ keep_sensors = logical([ones(157,1); zeros(192-157,1)]); % Note: Figure out a mo
 
 % Plotting variables
 nrMixedKappas = length(allMixedKappas);
-labels = cellstr(sprintfc('Kappa = %1.2f *pi', allMixedKappas./pi));
-clims =  10^-3.*[-1 1];
+labels    = cellstr(sprintfc('Kappa = %1.2f *pi', allMixedKappas./pi));
+clims     =  [0 10^-3]; % or use maxColormapPercentile
+cmapData  = bipolar(64);
+
+% Check limits of color map/bar
+if ~signedColorbar
+    cmapData = cmapData(ceil(length(cmapData)/2):end,:);
+end
+
+% Subplot layout
 nrows = 4;
 ncols = ceil(nrMixedKappas/nrows)+1;
-
-% Two ways of plotting contours
-% (1) one contour line at the percentile of data (say 90.4/100).
-% (2) number of contour lines, dividing data into equal groups (use one number under 10)
-%   for example, if contourPercentile=3, you draw 3 lines at the 25, 50 and 75th percentile
-% contourPercentile = 90.4;
-contourPercentile = 3;
 
 % line with for contour lines
 lw = 2;
 
-for s = subjectToPlot
+%% Loop over subjects to get headmodels
+for s = subjectsToLoad
     
     d = dir(fullfile(bsDB, projectName, 'data', subject{s}, 'R*'));
     bsData = fullfile(d(1).folder, d(1).name);
@@ -81,22 +135,21 @@ for s = subjectToPlot
     
     figure(1); set(1, 'Color', 'w', 'Position', [1, 1, 1680, 999]); clf; hold all;
     
+    %% Loop over kappa params to get predictions
     for k = 1:length(allMixedKappas)
         
         kappa.mix   = allMixedKappas(k);
         
         %% 1. Load relevant matrices
         
-        % Get Gain matrix
-        G_constrained = getGainMatrix(bsData, keep_sensors, highResSurf);
+        G_constrained = getGainMatrix(bsData, keep_sensors, headmodelType, highResSurf);
         
         % Get V1 template limited to 11 degrees eccentricity
         template = getTemplate(bsAnat, area, eccenLimitDeg);
         
         % Simulate coherent, in between or mixture, adn incoherent source time
         % series and compute predictions from forward model (w)
-        tmp = getForwardModelPredictions(G_constrained, template.([area '_stimEccen']), [], n, nrEpochs, theta, kappa);
-       
+        tmp = getForwardModelPredictions(G_constrained, template.([area '_StimEccen']), [], n, nrEpochs, theta, kappa);
         
         % Compute amplitude across time
         amps.c = abs(fft(tmp.c,[],2));
@@ -110,42 +163,45 @@ for s = subjectToPlot
         
     end
     
-    % Visualize most incoherent signals
+    %% Visualize predictions
+    
+    % ASYNCHRONOUS (KAPPA=0)
     subplot(nrows, ncols,1);
     dataToPlot = squeeze(w.V1i(s,1,:));
     if contourPercentile>10; contourLines = [1 1]*prctile(dataToPlot, contourPercentile); else contourLines = contourPercentile; end
-    megPlotMap(dataToPlot, clims, [], 'bipolar', 'Kappa = 0', [],[], 'isolines', contourLines);
+    megPlotMap(dataToPlot, clims, [], cmapData, 'Kappa = 0', [],[], 'isolines', contourLines);
     h = findobj(gca,'Type','contour');
     h.LineWidth = lw;
     
-    % Visualize most coherent signals
+    % SYNCHRONOUS (KAPPA=100*pi)
     subplot(nrows, ncols,nrMixedKappas+2);
     dataToPlot = squeeze(w.V1c(s,1,:));
     if contourPercentile>10; contourLines = [1 1]*prctile(dataToPlot, contourPercentile); else contourLines = contourPercentile; end
-    megPlotMap(dataToPlot, clims, [], 'bipolar', 'Kappa = 10*pi', [],[], 'isolines', contourLines);
+    megPlotMap(dataToPlot, clims, [], cmapData, 'Kappa = 10*pi', [],[], 'isolines', contourLines);
     h = findobj(gca,'Type','contour');
     h.LineWidth = lw;
     
-    % Visualize all mixtures
+    % ALL MIXTURES
     for k = 1:nrMixedKappas
         subplot(nrows, ncols,k+1)
         dataToPlot = squeeze(w.V1m(s,k,:));
         if contourPercentile>10; contourLines = [1 1]*prctile(dataToPlot, contourPercentile); else contourLines = contourPercentile; end
-        megPlotMap(dataToPlot, clims, [], 'bipolar', labels(k), [],[], 'isolines', contourLines);
+        megPlotMap(dataToPlot, clims, [], cmapData, labels(k), [],[], 'isolines', contourLines);
         h = findobj(gca,'Type','contour');
         h.LineWidth = lw;
     end
     
-    dataDir       = fullfile(fmsRootPath,'data', subject{s}); % Where to save images?
-    figureDir       = fullfile(fmsRootPath,'figures', subject{s}); % Where to save images?
-    
-    % Make figure and data dir for subject, if non-existing
-    if ~exist(figureDir,'dir'); mkdir(figureDir); end
-    if ~exist(dataDir,'dir'); mkdir(dataDir); end
-    
-    save(fullfile(dataDir, sprintf('%s_mixturePredictions_contour_highResFlag%d.mat', subject{s}, highResSurf)), 'w');
-    figurewrite(fullfile(figureDir, sprintf('%s_mixturePredictions_%s_%d-%d_%2.1f_highResFlag%d', subject{s}, area, eccenLimitDeg(1), eccenLimitDeg(2), contourPercentile, highResSurf)),[],[1 300],'.',1);
-    
+    if saveFig
+        dataDir       = fullfile(fmsRootPath,'data', subject{s}); % Where to save images?
+        figureDir       = fullfile(fmsRootPath,'figures', subject{s}); % Where to save images?
+        
+        % Make figure and data dir for subject, if non-existing
+        if ~exist(figureDir,'dir'); mkdir(figureDir); end
+        if ~exist(dataDir,'dir'); mkdir(dataDir); end
+        
+%         save(fullfile(dataDir, sprintf('%s_mixturePredictions_contour_%s_highResFlag%d.mat', subject{s}, headmodelType, highResSurf)), 'w');
+        figurewrite(fullfile(figureDir, sprintf('%s_mixturePredictions_%s_%d-%d_%2.1f_%s_highResFlag%d', subject{s}, area, eccenLimitDeg(1), eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf)),[],[1 300],'.',1);
+    end
 end
 
 
@@ -160,14 +216,14 @@ if plotMeanSubject
     subplot(nrows, ncols,1);
     dataToPlot = w.V1i_mn(1,:);
     if contourPercentile>10; contourLines = [1 1]*prctile(dataToPlot, contourPercentile); else contourLines = contourPercentile; end
-    megPlotMap(dataToPlot, clims, [], 'bipolar', 'Kappa = 0', [],[], 'isolines', contourLines);
+    megPlotMap(dataToPlot, clims, [], cmapData, 'Kappa = 0', [],[], 'isolines', contourLines);
     h = findobj(gca,'Type','contour');
     h.LineWidth = lw;
     
     subplot(nrows, ncols,nrMixedKappas+2);
     dataToPlot = w.V1c_mn(1,:);
     if contourPercentile>10; contourLines = [1 1]*prctile(dataToPlot, contourPercentile); else contourLines = contourPercentile; end
-    megPlotMap(dataToPlot, clims, [], 'bipolar', 'Kappa = 10*pi', [],[], 'isolines', contourLines);
+    megPlotMap(dataToPlot, clims, [], cmapData, 'Kappa = 10*pi', [],[], 'isolines', contourLines);
     h = findobj(gca,'Type','contour');
     h.LineWidth = lw;
     
@@ -175,19 +231,20 @@ if plotMeanSubject
         subplot(nrows, ncols,k+1);
         dataToPlot = w.V1m(k,:);
         if contourPercentile>10; contourLines = [1 1]*prctile(dataToPlot, contourPercentile); else contourLines = contourPercentile; end
-        megPlotMap(dataToPlot, clims, [], 'bipolar', labels(k), [],[], 'isolines', contourLines);
+        megPlotMap(dataToPlot, clims, [], cmapData, labels(k), [],[], 'isolines', contourLines);
         h = findobj(gca,'Type','contour');
         h.LineWidth = lw;
     end
     
-    figureDir       = fullfile(fmsRootPath,'figures', 'average'); % Where to save images?
-    dataDir       = fullfile(fmsRootPath,'data', 'average'); % Where to save images?
-    
-    if ~exist(figureDir,'dir'); mkdir(figureDir); end
-    if ~exist(dataDir,'dir'); mkdir(dataDir); end
-    
-    % Plot data and save data
-    save(fullfile(dataDir, sprintf('mixturePredictions_averge_highResFlag%d.mat',highResSurf)), 'w');
-    figurewrite(fullfile(figureDir, sprintf('mixturePredictions_%s_%d-%d_%2.1f_highResFlag%d', area, eccenLimitDeg(1), eccenLimitDeg(2),contourPercentile, highResSurf)),[],[1 300],'.',1);
-    
+    if saveFig
+        figureDir       = fullfile(fmsRootPath,'figures', 'average'); % Where to save images?
+        dataDir       = fullfile(fmsRootPath,'data', 'average'); % Where to save images?
+        
+        if ~exist(figureDir,'dir'); mkdir(figureDir); end
+        if ~exist(dataDir,'dir'); mkdir(dataDir); end
+        
+        % Plot data and save data
+%         save(fullfile(dataDir, sprintf('mixturePredictions_averge_%s_highResFlag%d.mat',headmodelType,highResSurf)), 'w');
+        figurewrite(fullfile(figureDir, sprintf('mixturePredictions_%s_%d-%d_%2.1f_%s_highResFlag%d', area, eccenLimitDeg(1), eccenLimitDeg(2),contourPercentile, headmodelType, highResSurf)),[],[1 300],'.',1);
+    end
 end
