@@ -1,4 +1,4 @@
-function G_constrained = getGainMatrix(data_dir, keep_sensors, highResFlag)
+function G_constrained = getGainMatrix(data_dir, keep_sensors, headmodelType, highResFlag)
 
 % Function to load gain matrix and constrain it to have only one dipole 
 % vector (that is perpendicular to the surface).
@@ -7,11 +7,13 @@ function G_constrained = getGainMatrix(data_dir, keep_sensors, highResFlag)
 % that point to the data folder of the subject in the Brainstorm database.
 
 % INPUTS:
-% data_dir      : [str] path to subject's data folder in Brainstorm database
-% max_size      : [bool] logical that keeps requested sensors and truncates the rest in Gain matrix if requested
+% data_dir      : [str]  path to subject's data folder in Brainstorm database
+% keep_sensors  : [bool] logical vector that keeps requested sensors and truncates the rest in Gain matrix if requested
+% type          : [str]  choose from two types of headmodels: overlapping spheres model ('OS') or ('BEM') boundary element model
+% highResFlag   : [bool] true/false use of FS size surface mesh
 
 % OUTPUTS:
-% G_constrained :  contrained Gain matrix from headmodel 
+% G_constrained :  constrained Gain matrix from headmodel. Constrained means that the dipoles are forced to be surface normals (thus perpendicular to the surface)
 
 % NB: Brainstorm GUI has to be open
 
@@ -21,17 +23,29 @@ function G_constrained = getGainMatrix(data_dir, keep_sensors, highResFlag)
 if nargin < 2
     keep_sensors = []; 
 elseif nargin < 3
+    headmodelType = 'OS';
+elseif nargin < 4
     highResFlag = false;
 end
 
     
-% Load headmodel from Brainstorm
-hm_filename = 'headmodel_surf_os_meg';
+% Convert headmodelType to string matching mat file from Brainstorm DB
+if strcmp(headmodelType, 'OS'), hm_str = 'os_meg';
+elseif strcmp(headmodelType, 'BEM'), hm_str = 'openmeeg';
+else, error('(%s): headmodel type does not exist/is not available',mfilename); end
 
+% Get headmodel file name
+hm_filename = sprintf('headmodel_surf_%s', hm_str);
+
+% Check high resolution surface flag
 if highResFlag
+    if strcmp(headmodelType, 'openmeeg')
+        error('(%s): high resolution surface is not available for BEM headmodel',mfilename)
+    end
     hm_filename = [hm_filename '_02'];
 end
 
+% Load headmodel
 headmodel = load(fullfile(data_dir, [hm_filename '.mat']));
 
 % Keep all sensors in Gain matrix
