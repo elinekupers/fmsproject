@@ -15,9 +15,30 @@ function makeFigure6(varargin)
 % (3) Run the s_visualAreasFS2BS script from this repository
 %
 % INPUTS:
-%   [subjectsToPlot]  :  (int) subject nr you would like to plot, default is 12
-%   [plotMeanSubject] :  (bool) plot average across all 12 subjets or not?
-%   [saveFig]         :  (bool) save figures or not?
+%   [subjectsToPlot]        :  (int)  subject nr to plot, default is 12
+%   [plotMeanSubject]       :  (bool) true/false plot average across subjects
+%   [saveFig]               :  (bool) true/false save figures
+%   [headmodelType]         :  (str)  type of headmodel. Choose from 'OS' 
+%                                     (overlapping spheres) or 'BEM'
+%                                     (boundary element model)
+%   [highResSurf]           :  (bool) true/false use high resolution 
+%                                     headmodel/surface resolution.
+%   [area]                  :  (str)  visual area to use from Benson et al.
+%                                     (2014) PloS Comp Bio template. 
+%                                     Choose from 'V1', 'V2', 'V3', 'V123'
+%   [eccenLimitDeg]         :  (int)  eccentricity limit (deg) of the template. 
+%                                     Supposingly matching the stimulus aperture. 
+%                                     Can be a single int x, to get [0 x] or 
+%                                     a vector [x,y] limiting eccentricity to
+%                                     larger/equal to x and smaller/equal to y)
+%   [contourPercentile]     :  (int)  percentile of the data to draw contours
+%                                     If colormap max is at 97.5th percentile: 
+%                                     Top15 sensors = 90.4. Top10 sensors = 93.6
+%                                     To get contour lines at equal percentiles 
+%                                     of data, use any integer under 10.
+%   [maxColormapPercentile] :  (int)  percentile of data to truncate colormap
+%   [signedColorbar]        :  (bool) true/false plot signed colormap or only
+%                                     positive values.
 %
 % Example 1:
 %  makeFigure6('subjectsToPlot', 1, 'plotMeanSubject', false, 'saveFig', true)
@@ -33,21 +54,20 @@ p.KeepUnmatched = true;
 p.addParameter('subjectsToPlot', 12);
 p.addParameter('plotMeanSubject', true, @islogical)
 p.addParameter('saveFig', true, @islogical);
-p.addParameter('highResSurf', false, @islogical);                       % What surface resolution? Choose from true (high) or false (low)
-p.addParameter('area', 'V123', @(x) any(x,{'V1', 'V2', 'V3','V123'}));  % What visual area to use? Choose between 'V1', 'V2', 'V3', or 'V123'
-p.addParameter('eccenLimitDeg', [0.18 11], @isnumeric);                 % What is the eccentricity limit (deg) for the template? (supposingly matching the stimulus aperture.) 
-                                                                        %   Can be a single int x, to get [0 x] or a vector [x,y] limiting eccentricity to larger/equal to x and smaller/equal to y)
-p.addParameter('contourPercentile', 93.6, @isnumeric);                  % At what percentile of the data to draw contour lines?
-                                                                        %   If colormap max is at 97.5th percentile: Top 15 channels -> 90.4. Top 10 channels -> 93.6,
-                                                                        %   to get contour lines at equal percentiles of data, use any integer under 10
-p.addParameter('maxColormapPercentile', 97.5, @isnumeric);              % At what percentile of data are we truncating colormap?
-p.addParameter('signedColorbar', false, @islogical);                    % Plot signed colormap (true) or only positive values (false)? 
+p.addParameter('headmodelType', 'BEM', @(x) any(x,{'OS', 'BEM'}));
+p.addParameter('highResSurf', false, @islogical);
+p.addParameter('area', 'V123', @(x) any(x,{'V1', 'V2', 'V3','V123'}));
+p.addParameter('eccenLimitDeg', [0.18 11], @isnumeric);
+p.addParameter('contourPercentile', 93.6, @isnumeric);
+p.addParameter('maxColormapPercentile', 97.5, @isnumeric);
+p.addParameter('signedColorbar', false, @islogical);
 p.parse(varargin{:});
 
 % Rename variables
 subjectsToPlot        = p.Results.subjectsToPlot;
 plotMeanSubject       = p.Results.plotMeanSubject;
 saveFig               = p.Results.saveFig;
+headmodelType         = p.Results.headmodelType;
 highResSurf           = p.Results.highResSurf;
 area                  = p.Results.area;
 eccenLimitDeg         = p.Results.eccenLimitDeg;
@@ -105,7 +125,7 @@ for s = subjectsToLoad
     end
     %% 1. Load relevant matrices
     
-    G_constrained = getGainMatrix(bsData, keep_sensors, highResSurf);
+    G_constrained = getGainMatrix(bsData, keep_sensors, headmodelType, highResSurf);
     
     % Get V1 template limited to 11 degrees eccentricity
     template = getTemplate(bsAnat, area, eccenLimitDeg);
@@ -134,10 +154,10 @@ for s = subjectsToPlot
     sub_ttl      = {sprintf('Synchronous sources S%d', s), ...
                     sprintf('Asynchronous sources S%d', s)};
                 
-    fig_ttl      = {sprintf('Figure6_ModelPredictions_%s_%1.2f-%d_prctile%2.1f_highResFlag%d_S%d', ...
-                        area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, highResSurf, s), ...
-                    sprintf('Figure6_Contour_%s_%1.2f-%d_prctile%2.1f_highResFlag%d_S%d', ...
-                        area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, highResSurf, s)};
+    fig_ttl      = {sprintf('Figure6_ModelPredictions_%s_%1.2f-%d_prctile%2.1f_%s_highResFlag%d_S%d', ...
+                        area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf, s), ...
+                    sprintf('Figure6_Contour_%s_%1.2f-%d_prctile%2.1f_%s_highResFlag%d_S%d', ...
+                        area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf, s)};
 
     dataDir      = fullfile(fmsRootPath,'data', subject{s}); % Where to save vector of sensors that fall within contours?
     figureDir    = fullfile(fmsRootPath,'figures', subject{s}); % Where to save images?
@@ -153,8 +173,8 @@ for s = subjectsToPlot
     % Save sensors of interest falling within the contour lines
     if saveFig
         save(fullfile(dataDir, ...
-            sprintf('%s_sensorsWithinContours_Prediction_%s_%1.2f-%d_prctile%2.1f_highResFlag%d_S%d.mat', ...
-            subject{s}, area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, highResSurf, s)), 'dataToPlot'); 
+            sprintf('%s_sensorsWithinContours_Prediction_%s_%1.2f-%d_prctile%2.1f_%s_highResFlag%d_S%d.mat', ...
+            subject{s}, area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf, s)), 'dataToPlot'); 
     end
     
 end
@@ -166,10 +186,10 @@ if plotMeanSubject
     
     dataToPlot = cat(1,w.V123c_mn, w.V123i_mn);
     
-    fig_ttl    = {sprintf('Figure6_ModelPredictions_%s_%1.2f-%d_prctile%d_highResFlag%d_AVERAGE', ...
-                        area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, highResSurf), ...
-                  sprintf('Figure6_Contour_%s_%1.2f-%d_prctile%d_highResFlag%d_AVERAGE', ...
-                        area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, highResSurf)};
+    fig_ttl    = {sprintf('Figure6_ModelPredictions_%s_%1.2f-%d_prctile%d_%s_highResFlag%d_AVERAGE', ...
+                        area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf), ...
+                  sprintf('Figure6_Contour_%s_%1.2f-%d_prctile%d_%s_highResFlag%d_AVERAGE', ...
+                        area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf)};
                     
     sub_ttl    = {sprintf('Synchronous sources - Average N = %d', length(subject)), ...
                   sprintf('Asynchronous sources - Average N = %d', length(subject))};
@@ -185,8 +205,8 @@ if plotMeanSubject
     
     % Save sensors of interest falling within the contour lines
     if saveFig
-        save(fullfile(dataDir, sprintf('sensorsWithinContours_Prediction_%s_%1.2f-%d_prctile%2.1f_highResFlag%d_AVERAGE.mat', ...
-            area,eccenLimitDeg(1),eccenLimitDeg(2),contourPercentile,highResSurf)), 'dataToPlot');
+        save(fullfile(dataDir, sprintf('sensorsWithinContours_Prediction_%s_%1.2f-%d_prctile%2.1f_%s_highResFlag%d_AVERAGE.mat', ...
+            area,eccenLimitDeg(1),eccenLimitDeg(2),contourPercentile,headmodelType,highResSurf)), 'dataToPlot');
     end
     
 end
