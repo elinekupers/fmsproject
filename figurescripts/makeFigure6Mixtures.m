@@ -205,7 +205,7 @@ for s = subjectsToLoad
         
         % Make figure dir for subject, if non-existing
         if ~exist(figureDir,'dir'); mkdir(figureDir); end
-        figurewrite(fullfile(figureDir, sprintf('%s_mixturePredictions_%s_%d-%d_%2.1f_%s_highResFlag%d', subject{s}, area, eccenLimitDeg(1), eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf)),[],[1 300],'.',1);
+        figurewrite(fullfile(figureDir, sprintf('mixturePredictions_%s_%d-%d_%2.1f_%s_highResFlag%d_S%d', area, eccenLimitDeg(1), eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf, s)),[],[1 300],'.',1);
     end
 end
 
