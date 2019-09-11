@@ -37,13 +37,21 @@ function makeFigure6VaryEccen(varargin)
 %   [maxColormapPercentile] :  (int)  percentile of data to truncate colormap
 %   [signedColorbar]        :  (bool) true/false plot signed colormap or only
 %                                     positive values.
+%
+% Example 1:
+%  makeFigure6VaryEccen('subjectsToPlot', 1, 'plotMeanSubject', false, 'saveFig', true)
+% Example 2:
+%  makeFigure6VaryEccen('subjectsToPlot', 12, 'plotMeanSubject', false, 'saveFig', true)
+% Example 3:
+%  makeFigure6VaryEccen('subjectsToPlot', 1:12, 'plotMeanSubject', true, 'saveFig', true)
+%
 
 p = inputParser;
 p.KeepUnmatched = true;
 p.addParameter('subjectsToPlot', 12);
 p.addParameter('plotMeanSubject', true, @islogical)
 p.addParameter('saveFig', true, @islogical);
-p.addParameter('headmodelType', 'BEM', @(x) any(x,{'OS', 'BEM'}));
+p.addParameter('headmodelType', 'OS', @(x) any(x,{'OS', 'BEM'}));
 p.addParameter('highResSurf', false, @islogical);
 p.addParameter('area', 'V123', @(x) any(x,{'V1', 'V2', 'V3','V123'}));
 p.addParameter('eccenLimitDeg', [[0.18,11]; [0.18,1]; [1,2]; [2,4]; [4,6]; [6,11]], @isnumeric);
