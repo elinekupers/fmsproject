@@ -37,13 +37,21 @@ function makeFigure6Mixtures(varargin)
 %   [maxColormapPercentile] :  (int)  percentile of data to truncate colormap
 %   [signedColorbar]        :  (bool) true/false plot signed colormap or only
 %                                     positive values.
+%
+% Example 1:
+%  makeFigure6Mixtures('subjectsToPlot', 1, 'plotMeanSubject', false, 'saveFig', true)
+% Example 2:
+%  makeFigure6Mixtures('subjectsToPlot', 12, 'plotMeanSubject', false, 'saveFig', true)
+% Example 3:
+%  makeFigure6Mixtures('subjectsToPlot', 1:12, 'plotMeanSubject', true, 'saveFig', true)
+%
 
 p = inputParser;
 p.KeepUnmatched = true;
 p.addParameter('subjectsToPlot', 12);
 p.addParameter('plotMeanSubject', true, @islogical)
 p.addParameter('saveFig', true, @islogical);
-p.addParameter('headmodelType', 'BEM', @(x) any(x,{'OS', 'BEM'}));
+p.addParameter('headmodelType', 'OS', @(x) any(x,{'OS', 'BEM'}));
 p.addParameter('highResSurf', false, @islogical);
 p.addParameter('area', 'V123', @(x) any(x,{'V1', 'V2', 'V3','V123'}));
 p.addParameter('eccenLimitDeg', [0.18 11], @isnumeric);
@@ -96,7 +104,7 @@ projectName     = 'SSMEG';
 n               = 10;         % number of timepoints (ms)
 nrEpochs        = 1000;       % number of epochs
 theta           = 0;          % von mises mean of all three distributions
-kappa.syn       = 10*pi;      % kappa width, coherent signal
+kappa.syn       = 100*pi;      % kappa width, coherent signal
 kappa.asyn      = 0;          % kappa width, incoherent signal
 allMixedKappas  = pi.*logspace(log10(.1),log10(2),10);
 
@@ -177,7 +185,7 @@ for s = subjectsToLoad
     subplot(nrows, ncols,nrMixedKappas+2);
     dataToPlot = squeeze(w.V1c(s,1,:));
     if contourPercentile>10; contourLines = [1 1]*prctile(dataToPlot, contourPercentile); else contourLines = contourPercentile; end
-    megPlotMap(dataToPlot, clims, [], cmapData, 'Kappa = 10*pi', [],[], 'isolines', contourLines);
+    megPlotMap(dataToPlot, clims, [], cmapData, 'Kappa = 100*pi', [],[], 'isolines', contourLines);
     h = findobj(gca,'Type','contour');
     h.LineWidth = lw;
     
@@ -195,11 +203,8 @@ for s = subjectsToLoad
         dataDir       = fullfile(fmsRootPath,'data', subject{s}); % Where to save images?
         figureDir       = fullfile(fmsRootPath,'figures', subject{s}); % Where to save images?
         
-        % Make figure and data dir for subject, if non-existing
+        % Make figure dir for subject, if non-existing
         if ~exist(figureDir,'dir'); mkdir(figureDir); end
-        if ~exist(dataDir,'dir'); mkdir(dataDir); end
-        
-%         save(fullfile(dataDir, sprintf('%s_mixturePredictions_contour_%s_highResFlag%d.mat', subject{s}, headmodelType, highResSurf)), 'w');
         figurewrite(fullfile(figureDir, sprintf('%s_mixturePredictions_%s_%d-%d_%2.1f_%s_highResFlag%d', subject{s}, area, eccenLimitDeg(1), eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf)),[],[1 300],'.',1);
     end
 end
@@ -208,10 +213,12 @@ end
 %% Take mean across subjects and plot if requested
 if plotMeanSubject
     
-    w.V1c_mn = mean(w.V1c,1);
-    w.V1i_mn = mean(w.V1i,1);
-    w.V1m_mn = mean(w.V1m,1);
+    % Take average across subjects
+    w.V1c_mn = squeeze(nanmean(w.V1c,1));
+    w.V1i_mn = squeeze(nanmean(w.V1i,1));
+    w.V1m_mn = squeeze(nanmean(w.V1m,1));
     
+    %  Plot asynchronous (kappa = 0)
     figure(1); set(gcf, 'Color', 'w', 'Position', [1, 1, 1680, 999]); clf; hold all;
     subplot(nrows, ncols,1);
     dataToPlot = w.V1i_mn(1,:);
@@ -220,31 +227,29 @@ if plotMeanSubject
     h = findobj(gca,'Type','contour');
     h.LineWidth = lw;
     
+    % Plot synchronous (kappa = 100*pi)
     subplot(nrows, ncols,nrMixedKappas+2);
     dataToPlot = w.V1c_mn(1,:);
     if contourPercentile>10; contourLines = [1 1]*prctile(dataToPlot, contourPercentile); else contourLines = contourPercentile; end
-    megPlotMap(dataToPlot, clims, [], cmapData, 'Kappa = 10*pi', [],[], 'isolines', contourLines);
+    megPlotMap(dataToPlot, clims, [], cmapData, 'Kappa = 100*pi', [],[], 'isolines', contourLines);
     h = findobj(gca,'Type','contour');
     h.LineWidth = lw;
     
+    % Plot variations of synchrony (mixtures)
     for k = 1:nrMixedKappas
         subplot(nrows, ncols,k+1);
-        dataToPlot = w.V1m(k,:);
+        dataToPlot = w.V1m_mn(k,:);
         if contourPercentile>10; contourLines = [1 1]*prctile(dataToPlot, contourPercentile); else contourLines = contourPercentile; end
         megPlotMap(dataToPlot, clims, [], cmapData, labels(k), [],[], 'isolines', contourLines);
         h = findobj(gca,'Type','contour');
         h.LineWidth = lw;
     end
     
+    % Save figure if requested
     if saveFig
-        figureDir       = fullfile(fmsRootPath,'figures', 'average'); % Where to save images?
-        dataDir       = fullfile(fmsRootPath,'data', 'average'); % Where to save images?
-        
+        % Where to save images?
+        figureDir  = fullfile(fmsRootPath,'figures', 'average');   
         if ~exist(figureDir,'dir'); mkdir(figureDir); end
-        if ~exist(dataDir,'dir'); mkdir(dataDir); end
-        
-        % Plot data and save data
-%         save(fullfile(dataDir, sprintf('mixturePredictions_averge_%s_highResFlag%d.mat',headmodelType,highResSurf)), 'w');
-        figurewrite(fullfile(figureDir, sprintf('mixturePredictions_%s_%d-%d_%2.1f_%s_highResFlag%d', area, eccenLimitDeg(1), eccenLimitDeg(2),contourPercentile, headmodelType, highResSurf)),[],[1 300],'.',1);
+        figurewrite(fullfile(figureDir, sprintf('mixturePredictions_%s_%d-%d_%2.1f_%s_highResFlag%d_AVERAGE', area, eccenLimitDeg(1), eccenLimitDeg(2),contourPercentile, headmodelType, highResSurf)),[],[1 300],'.',1);
     end
 end
