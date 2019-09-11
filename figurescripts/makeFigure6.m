@@ -54,7 +54,7 @@ p.KeepUnmatched = true;
 p.addParameter('subjectsToPlot', 12);
 p.addParameter('plotMeanSubject', true, @islogical)
 p.addParameter('saveFig', true, @islogical);
-p.addParameter('headmodelType', 'BEM', @(x) any(x,{'OS', 'BEM'}));
+p.addParameter('headmodelType', 'OS', @(x) any(x,{'OS', 'BEM'}));
 p.addParameter('highResSurf', false, @islogical);
 p.addParameter('area', 'V123', @(x) any(x,{'V1', 'V2', 'V3','V123'}));
 p.addParameter('eccenLimitDeg', [0.18 11], @isnumeric);
