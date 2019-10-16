@@ -42,18 +42,21 @@ p.addParameter('contourPercentile', 93.6, @isnumeric);      % Percentile of the 
 p.addParameter('maxColormapPercentile', 97.5, @isnumeric);  % At what percentile of data are we truncating colormap?
 p.addParameter('signedColorbar', true, @islogical);        % Plot signed colormap (true) or only positive values (false)? 
 p.addParameter('snrThresh',1, @isnumeric);                  % Threshold amplitudes by 1 SD of SNR
+p.addParameter('useSLPower', false, @islogical);          % Plot SL power instead of amplitudes from spectrum (default: false)
 p.parse(varargin{:});
 
 % Rename variables
-subjectsToPlot      = p.Results.subjectsToPlot;
-plotMeanSubject     = p.Results.plotMeanSubject;
-saveFig             = p.Results.saveFig;
-useSLIncohSpectrum  = p.Results.useSLIncohSpectrum;
-doSOIcomparison     = p.Results.doSOIcomparison;
-contourPercentile   = p.Results.contourPercentile;
-maxColormapPercentile = p.Results.maxColormapPercentile;
-signedColorbar      = p.Results.signedColorbar;
-snrThresh           = p.Results.snrThresh;
+subjectsToPlot          = p.Results.subjectsToPlot;
+plotMeanSubject         = p.Results.plotMeanSubject;
+saveFig                 = p.Results.saveFig;
+useSLIncohSpectrum      = p.Results.useSLIncohSpectrum;
+doSOIcomparison         = p.Results.doSOIcomparison;
+contourPercentile       = p.Results.contourPercentile;
+maxColormapPercentile   = p.Results.maxColormapPercentile;
+signedColorbar          = p.Results.signedColorbar;
+snrThresh               = p.Results.snrThresh;
+useSLPower              = p.Results.useSLPower;
+
 
 % Define subjects
 subject         = {'wlsubj002', ... % S1 - Full, Left, Right stim experiment
@@ -141,6 +144,12 @@ for s = subjectsToLoad
         ampl{s}.sl.blank = data.sl.blank_coherent;
     end
     
+    % Convert SL amplitudes to power (by squaring) if requested
+    if useSLPower
+        ampl{s}.sl.full = ampl{s}.sl.full.^2;
+        ampl{s}.sl.blank = ampl{s}.sl.blank.^2;
+    end
+    
     % Update broadband power for each subject, always from incoherent spectrum
     ampl{s}.bb.full  = data.bb.full;
     ampl{s}.bb.blank = data.bb.blank;
@@ -180,17 +189,9 @@ for s = subjectsToLoad
     %% 2. Get contrast between full and blank for SL and BB data
 
     % Take difference between mean of full and blank epochs for each subject
-    % and dataset (sl or bb)    
+    % and dataset (sl or bb)
     diffFullBlankSL(s,:) = nanmean(ampl{s}.sl.full,1) - nanmean(ampl{s}.sl.blank,1);
     diffFullBlankBB(s,:) = nanmean(ampl{s}.bb.full,1) - nanmean(ampl{s}.bb.blank,1);
-    
-    % there is a difference between the datasets in terms of scaling units
-    % session 1-6 are in fempto Tesla  whereas 7-12 are in Tesla
-    % TODO: handle this more gracefully? Maybe just mark the sessions?
-    if max(diffFullBlankSL(s,:)) < 1^-14
-        diffFullBlankSL(s,:) = diffFullBlankSL(s,:) .* 10^15;
-        diffFullBlankBB(s,:) = diffFullBlankBB(s,:) .* 10^15 .* 10^15;
-    end
 end
 
 for s = subjectsToPlot
@@ -205,16 +206,17 @@ for s = subjectsToPlot
          dataToPlot(:,98) = NaN; % Check if this is always a bad channel, and should be dropped earlier in the analysis
     end
      
-    fig_ttl       = {sprintf('Figure4_Observed_MEG_Data_incohSpectrum%d_prctile%2.1f_S%d', useSLIncohSpectrum, contourPercentile, s), ...
-                    sprintf('Figure4_Contour_incohSpectrum%d_prctile%2.1f_S%d', useSLIncohSpectrum, contourPercentile, s)};
+    fig_ttl       = {sprintf('Figure4_Observed_MEG_Data_incohSpectrum%d_prctile%2.1f_S%d_slPower%d', useSLIncohSpectrum, contourPercentile, s, useSLPower), ...
+                    sprintf('Figure4_Contour_incohSpectrum%d_prctile%2.1f_S%d_slPower%d', useSLIncohSpectrum, contourPercentile, s, useSLPower)};
     sub_ttl       = {sprintf('Stimulus locked S%d', s), ...
                      sprintf('Broadband S%d', s)};
     markerType    = '.';
     colorContours = {'y','b'};
     
     % Plot it!
+    figureDirSubj = fullfile(figureDir, subject{s});
+
     if saveFig
-        figureDirSubj = fullfile(figureDir, subject{s});
         if ~exist(figureDirSubj, 'dir'); mkdir(figureDirSubj); end
     end
     
@@ -235,8 +237,8 @@ if plotMeanSubject
     dataToPlot(:,98) = NaN;
     
     % Define figure and subfigure titles
-    fig_ttl         = {sprintf('Figure4_Observed_MEG_Data_incohSpectrum%d_prctile%2.1f_AVERAGE', useSLIncohSpectrum, contourPercentile), ...
-                       sprintf('Figure4_Contour_incohSpectrum%d_prctile%2.1f_AVERAGE', useSLIncohSpectrum, contourPercentile)};
+    fig_ttl         = {sprintf('Figure4_Observed_MEG_Data_incohSpectrum%d_prctile%2.1f_slPower%d_AVERAGE', useSLIncohSpectrum, contourPercentile, useSLPower), ...
+                       sprintf('Figure4_Contour_incohSpectrum%d_prctile%2.1f_slPower%d_AVERAGE', useSLIncohSpectrum, contourPercentile, useSLPower)};
     sub_ttl         = {sprintf('Stimulus locked Average N = %d', length(subject)), ...
                        sprintf('Broadband Average N = %d', length(subject))};
     
