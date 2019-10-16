@@ -51,7 +51,7 @@ wang15.areas      = load(fullfile(anatDir, 'wang15areas_overlay.mat'));
 switch whichVisualAreas
     case 'V123'
         % Get vertices in V1-V3
-        template.(whichVisualAreas)     = (benson17.areas.sub_bs_areas>0 & bensonareas.sub_bs_areas <=3);
+        template.(whichVisualAreas)     = (benson17.areas.sub_bs_areas>0 & benson17.areas.sub_bs_areas <=3);
     
     case 'V1'
         % Get only vertices in V1
