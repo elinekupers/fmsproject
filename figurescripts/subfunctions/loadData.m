@@ -38,14 +38,11 @@ switch type
         % Create function handles for the frequencies that we use
         keepFrequencies    = @(x) x(abIndex);
 
-
-
         %% Load data
         load(sprintf(fullfile(dataDir, 's%02d_conditions.mat'),whichSession));
         load(sprintf(fullfile(dataDir, 's%02d_sensorData.mat'),whichSession));
         load(sprintf(fullfile(dataDir, 's%02d_denoisedData_bb.mat'),whichSession));
         load(sprintf(fullfile(dataDir, 's%02d_denoisedts.mat'),whichSession));
-
 
         % preprocessing parameters (see nppPreprocessData)
         varThreshold        = [0.05 20];
@@ -68,8 +65,7 @@ switch type
             badChannels(badChanIdx) = true;
         end
 
-        fprintf('(%s): S%d - Selected bad channels are: %s\n', mfilename, whichSession, sprintf('%d ', find(badChannels)));
-               
+        fprintf('(%s): S%d - Selected bad channels are: %s\n', mfilename, whichSession, sprintf('%d ', find(badChannels)));              
         
         % Remove bad channels and bad epochs from data and conditions
         sensorData = sensorData(:,~badEpochs, ~badChannels);
@@ -79,6 +75,15 @@ switch type
 
         sl_ts = sensorData;
         bb_ts = denoisedts_bb{1};
+        
+        % there is a difference between the datasets in terms of scaling units
+        % session 1-6 are in fempto Tesla  whereas 7-12 are in Tesla
+        if any(intersect(whichSession, 9:14))
+            assert(max(sl_ts(:), [], 'omitnan') < 1^-12)
+            
+            sl_ts = sl_ts .* 10^15;
+            bb_ts = bb_ts .* 10^15;
+        end
 
         design = zeros(size(conditions,1),3);
         design(conditions == 1,1) = 1; % Full
@@ -115,7 +120,7 @@ switch type
         bb.full  = bb_ts(:,:,condEpochsFull);
         bb.blank = bb_ts(:,:,condEpochsBlank);
 
-        % Compute log power for full and blank epochs at specified frequencies
+        % Compute power (BB) or amplitudes (SL) for full and blank epochs at specified frequencies
         
         % Stimulus locked using incoherent spectrum
         sl.full = getstimlocked(sl.full,slFreq+1);  % Amplitude (so not squared). Square values to get units of power
@@ -137,7 +142,7 @@ switch type
 
         bb.blank  = getbroadband(bb.blank,keepFrequencies,fs); % Broadband data is already in units of power       
         bb.blank   = to157chan(bb.blank, ~badChannels,'nans');
-        
+  
         % Put in data struct
         data.sl = sl;
         data.bb = bb;
