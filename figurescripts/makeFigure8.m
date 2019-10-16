@@ -53,9 +53,9 @@ p.KeepUnmatched = true;
 p.addParameter('subjectsToPlot', 12);
 p.addParameter('plotMeanSubject', true, @islogical)
 p.addParameter('saveFig', true, @islogical);
-p.addParameter('headmodelType', 'OS', @(x) any(x,{'OS', 'BEM'}));
+p.addParameter('headmodelType', 'OS', @(x) any(validatestring(x,{'OS', 'BEM'})));
 p.addParameter('highResSurf', false, @islogical);
-p.addParameter('area', 'V123', @(x) any(x,{'V1', 'V2', 'V3','V123'}));
+p.addParameter('area', 'V123', @(x) any(validatestring(x,{'V1', 'V2', 'V3','V123', 'benson17atlas', 'wang15atlas'})));
 p.addParameter('eccenLimitDeg', [0.18 11], @isnumeric);
 p.addParameter('contourPercentile', 93.6, @isnumeric);
 p.addParameter('maxColormapPercentile', 97.5, @isnumeric);
@@ -120,7 +120,7 @@ for s = subjectsToLoad
     if highResSurf
         bsAnat = fullfile(bsDB, projectName, 'anat', subject{s}, 'highres');
     else
-        bsAnat = fullfile(bsDB, projectName, 'anat', subject{s});
+        bsAnat = fullfile(bsDB, projectName, 'anat', subject{s}, 'lowres');
     end
     
     %% 1. Load relevant matrices
