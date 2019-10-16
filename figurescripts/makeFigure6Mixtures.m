@@ -51,9 +51,9 @@ p.KeepUnmatched = true;
 p.addParameter('subjectsToPlot', 12);
 p.addParameter('plotMeanSubject', true, @islogical)
 p.addParameter('saveFig', true, @islogical);
-p.addParameter('headmodelType', 'OS', @(x) any(x,{'OS', 'BEM'}));
+p.addParameter('headmodelType', 'OS', @(x) any(validatestring(x,{'OS', 'BEM'})));
 p.addParameter('highResSurf', false, @islogical);
-p.addParameter('area', 'V123', @(x) any(x,{'V1', 'V2', 'V3','V123'}));
+p.addParameter('area', 'V123', @(x) any(validatestring(x,{'V1', 'V2', 'V3','V123', 'benson17atlas', 'wang15atlas'})));
 p.addParameter('eccenLimitDeg', [0.18 11], @isnumeric);
 p.addParameter('contourPercentile', 93.6, @isnumeric);
 % p.addParameter('maxColormapPercentile', 97.5, @isnumeric);
@@ -138,11 +138,9 @@ for s = subjectsToLoad
     if highResSurf
         bsAnat = fullfile(bsDB, projectName, 'anat', subject{s}, 'highres');
     else
-        bsAnat = fullfile(bsDB, projectName, 'anat', subject{s});
+        bsAnat = fullfile(bsDB, projectName, 'anat', subject{s}, 'lowres');
     end
-    
-    figure(1); set(1, 'Color', 'w', 'Position', [1, 1, 1680, 999]); clf; hold all;
-    
+        
     %% Loop over kappa params to get predictions
     for k = 1:length(allMixedKappas)
         
@@ -172,7 +170,8 @@ for s = subjectsToLoad
     end
     
     %% Visualize predictions
-    
+    figure(1); clf; set(1, 'Color', 'w', 'Position', [1, 1, 1680, 999]);
+
     % ASYNCHRONOUS (KAPPA=0)
     subplot(nrows, ncols,1);
     dataToPlot = squeeze(w.V1i(s,1,:));
@@ -197,21 +196,24 @@ for s = subjectsToLoad
         megPlotMap(dataToPlot, clims, [], cmapData, labels(k), [],[], 'isolines', contourLines);
         h = findobj(gca,'Type','contour');
         h.LineWidth = lw;
+    
     end
     
     if saveFig
-        dataDir       = fullfile(fmsRootPath,'data', subject{s}); % Where to save images?
-        figureDir       = fullfile(fmsRootPath,'figures', subject{s}); % Where to save images?
-        
+        figureDir     = fullfile(fmsRootPath,'figures', subject{s}); % Where to save images?
         % Make figure dir for subject, if non-existing
         if ~exist(figureDir,'dir'); mkdir(figureDir); end
-        figurewrite(fullfile(figureDir, sprintf('mixturePredictions_%s_%d-%d_%2.1f_%s_highResFlag%d_S%d', area, eccenLimitDeg(1), eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf, s)),[],[1 300],'.',1);
+        figurewrite(fullfile(figureDir, sprintf('mixturePredictions_%s_%d-%d_%2.1f_%s_highResFlag%d_S%d_%d', area, eccenLimitDeg(1), eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf, s, k)),[],[1 300],'.',1);
     end
+    
 end
 
 
 %% Take mean across subjects and plot if requested
 if plotMeanSubject
+    
+    colorContourLines = [linspace(57, 239, 12); linspace(83, 160, 12); linspace(164, 34, 12)];
+    colorContourLines = colorContourLines'./255;
     
     % Take average across subjects
     w.V1c_mn = squeeze(nanmean(w.V1c,1));
@@ -219,7 +221,10 @@ if plotMeanSubject
     w.V1m_mn = squeeze(nanmean(w.V1m,1));
     
     %  Plot asynchronous (kappa = 0)
-    figure(1); set(gcf, 'Color', 'w', 'Position', [1, 1, 1680, 999]); clf; hold all;
+    fH1 = figure(1); clf; set(gcf, 'Color', 'w', 'Position', [1, 1, 1680, 999]); 
+    fH2 = figure(2); clf; set(gcf, 'Color', 'w'); megPlotMap(zeros(1,157)); %colormap([colorMarkers(1:6,:); [1 1 1]; colorMarkers(7:12,:)])
+    
+    figure(fH1); hold all;
     subplot(nrows, ncols,1);
     dataToPlot = w.V1i_mn(1,:);
     if contourPercentile>10; contourLines = [1 1]*prctile(dataToPlot, contourPercentile); else contourLines = contourPercentile; end
@@ -227,7 +232,12 @@ if plotMeanSubject
     h = findobj(gca,'Type','contour');
     h.LineWidth = lw;
     
+    figure(fH2); hold all;
+    contourf(h.XData, h.YData, h.ZData, contourLines, 'LineColor',colorContourLines(1,:), 'Fill','off','LineWidth',2);
+    colorbar off;
+
     % Plot synchronous (kappa = 100*pi)
+    figure(fH1); 
     subplot(nrows, ncols,nrMixedKappas+2);
     dataToPlot = w.V1c_mn(1,:);
     if contourPercentile>10; contourLines = [1 1]*prctile(dataToPlot, contourPercentile); else contourLines = contourPercentile; end
@@ -235,21 +245,38 @@ if plotMeanSubject
     h = findobj(gca,'Type','contour');
     h.LineWidth = lw;
     
-    % Plot variations of synchrony (mixtures)
+    figure(fH2); hold all;
+    contourf(h.XData, h.YData, h.ZData, contourLines, 'LineColor',colorContourLines(12,:), 'Fill','off','LineWidth',2);
+    colorbar off;
+    
     for k = 1:nrMixedKappas
+    % Plot variations of synchrony (mixtures)
+        figure(fH1); 
         subplot(nrows, ncols,k+1);
         dataToPlot = w.V1m_mn(k,:);
         if contourPercentile>10; contourLines = [1 1]*prctile(dataToPlot, contourPercentile); else contourLines = contourPercentile; end
         megPlotMap(dataToPlot, clims, [], cmapData, labels(k), [],[], 'isolines', contourLines);
         h = findobj(gca,'Type','contour');
         h.LineWidth = lw;
+        set(gca,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
+
+        
+        figure(fH2); hold all; 
+        contourf(h.XData, h.YData, h.ZData, contourLines, 'LineColor',colorContourLines(k+1,:), 'Fill','off','LineWidth',2);
+        colorbar off;
     end
     
+        
     % Save figure if requested
     if saveFig
         % Where to save images?
         figureDir  = fullfile(fmsRootPath,'figures', 'average');   
         if ~exist(figureDir,'dir'); mkdir(figureDir); end
+        figure(fH1);
         figurewrite(fullfile(figureDir, sprintf('mixturePredictions_%s_%d-%d_%2.1f_%s_highResFlag%d_AVERAGE', area, eccenLimitDeg(1), eccenLimitDeg(2),contourPercentile, headmodelType, highResSurf)),[],[1 300],'.',1);
+
+        figure(fH2);
+        figurewrite(fullfile(figureDir, sprintf('Contour_mixturePredictions_%s_%d-%d_%2.1f_%s_highResFlag%d_AVERAGE', area, eccenLimitDeg(1), eccenLimitDeg(2),contourPercentile, headmodelType, highResSurf)),[],[1 300],'.',1);
     end
+    
 end
