@@ -54,7 +54,7 @@ p.addParameter('saveFig', true, @islogical);
 p.addParameter('headmodelType', 'OS', @(x) any(validatestring(x,{'OS', 'BEM'})));
 p.addParameter('highResSurf', false, @islogical);
 p.addParameter('area', 'V123', @(x) any(validatestring(x,{'V1', 'V2', 'V3','V123', 'all12areas'})));
-p.addParameter('eccenLimitDeg', [[0.18,11]; [0.18,1]; [1,2]; [2,4]; [4,8]; [8,11]], @isnumeric);
+p.addParameter('eccenLimitDeg', [[0.18,1]; [0.18,2]; [0.18,4]; [0.18,8]; [0.18,11]], @isnumeric);
 p.addParameter('contourPercentile', 93.6, @isnumeric);
 p.addParameter('maxColormapPercentile', 97.5, @isnumeric);
 p.addParameter('signedColorbar', false, @islogical);
@@ -239,7 +239,7 @@ for s = subjectsToPlot
         if ~exist(figureDir,'dir'); mkdir(figureDir); end
         
         set(0, 'currentfigure', fH1);
-        figurewrite(fullfile(figureDir, sprintf('varyEccenPredictions_%s_%d_%s_highResFlag%d_S%d', area, contourPercentile, headmodelType, highResSurf, s)),[],[1 300],'.',1);
+        figurewrite(fullfile(figureDir, sprintf('varyEccenPredictions_%s_%d_%s_highResFlag%d_S%d_cummulative', area, contourPercentile, headmodelType, highResSurf, s)),[],[1 300],'.',1);
     end
 end
 
@@ -334,12 +334,12 @@ if plotMeanSubject
         
         % Plot data and save data
         set(0, 'currentfigure', fH2);
-        figurewrite(fullfile(figureDir, sprintf('varyEccenPredictions_%s_%d_%s_highResFlag%d_AVERAGE', area,contourPercentile, headmodelType, highResSurf)),[],[1 300],'.',1);
+        figurewrite(fullfile(figureDir, sprintf('varyEccenPredictions_%s_%d_%s_highResFlag%d_AVERAGE_cummulative', area,contourPercentile, headmodelType, highResSurf)),[],[1 300],'.',1);
         
         set(0, 'currentfigure', fH3);
-        figurewrite(fullfile(figureDir, sprintf('Contour_Synchr_varyEccenPredictions_%s_%d_%s_highResFlag%d_AVERAGE', area,contourPercentile, headmodelType, highResSurf)),[],0,'.',1);
+        figurewrite(fullfile(figureDir, sprintf('Contour_Synchr_varyEccenPredictions_%s_%d_%s_highResFlag%d_AVERAGE_cummulative', area,contourPercentile, headmodelType, highResSurf)),[],0,'.',1);
         set(0, 'currentfigure', fH4);
-        figurewrite(fullfile(figureDir, sprintf('Contour_Asynchr_varyEccenPredictions_%s_%d_%s_highResFlag%d_AVERAGE', area,contourPercentile, headmodelType, highResSurf)),[],0,'.',1);
+        figurewrite(fullfile(figureDir, sprintf('Contour_Asynchr_varyEccenPredictions_%s_%d_%s_highResFlag%d_AVERAGE_cummulative', area,contourPercentile, headmodelType, highResSurf)),[],0,'.',1);
     end
     
     
