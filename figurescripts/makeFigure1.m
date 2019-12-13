@@ -94,7 +94,7 @@ yl2 = get(gca, 'YLim');
 for ii =12:12:180, plot([ii ii], yl2, '-', 'Color', [100 100 100]./255); end
 
 if saveFigures
-    figurewrite(fullfile(figureDir, 'Figure2A_SpectrumOneChannel'), [],0,'.',1);
+    figurewrite(fullfile(figureDir, 'Figure1A_SpectrumOneChannel'), [],0,'.',1);
 end
 
 %% Plot zoom into broadband frequencies
