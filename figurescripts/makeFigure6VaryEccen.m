@@ -23,7 +23,10 @@ function makeFigure6VaryEccen(varargin)
 %                                     headmodel/surface resolution.
 %   [area]                  :  (str)  visual area to use from Benson et al.
 %                                     (2014) PloS Comp Bio template.
-%                                     Choose from 'V1', 'V2', 'V3', 'V123'
+%                                     Choose from 'V1', 'V2', 'V3', 'V123',
+%                                     'benson17', or 'wang15atlas' (note:
+%                                     eccentricity boundaries cannot be
+%                                     defined when using wang15atlas)
 %   [eccenLimitDeg]         :  (int)  eccentricity limit (deg) of the template.
 %                                     Supposingly matching the stimulus aperture.
 %                                     Can be a single int x, to get [0 x] or
@@ -53,7 +56,7 @@ p.addParameter('plotMeanSubject', true, @islogical)
 p.addParameter('saveFig', true, @islogical);
 p.addParameter('headmodelType', 'OS', @(x) any(validatestring(x,{'OS', 'BEM'})));
 p.addParameter('highResSurf', false, @islogical);
-p.addParameter('area', 'V123', @(x) any(validatestring(x,{'V1', 'V2', 'V3','V123', 'all12areas'})));
+p.addParameter('area', 'V123', @(x) any(validatestring(x,{'V1', 'V2', 'V3','V123', 'benson17atlas', 'wang15atlas'})));
 p.addParameter('eccenLimitDeg', [[0.18,1]; [0.18,2]; [0.18,4]; [0.18,8]; [0.18,11]], @isnumeric);
 p.addParameter('contourPercentile', 93.6, @isnumeric);
 p.addParameter('maxColormapPercentile', 97.5, @isnumeric);
@@ -128,6 +131,7 @@ ncols = nrEccenLimits;
 
 % line with for contour lines
 lw = 2;
+colorContourLines = jet(nrEccenLimits);
 
 %% Loop over subjects to get headmodels
 for s = subjectsToLoad
@@ -174,12 +178,15 @@ end
 for s = subjectsToPlot
     
     fH1 = figure(1); set(fH1, 'Color', 'w', 'Position', [1, 1, 1680, 999]); clf; hold all;
-
+    fH2 = figure(2); clf; set(gcf, 'Color', 'w'); hold all; megPlotMap(zeros(1,157)); drawnow; title('Synchronous sources')
+    fH3 = figure(3); clf; set(gcf, 'Color', 'w'); hold all; megPlotMap(zeros(1,157)); drawnow; title('Asynchronous sources')
+    
     for el = 1:nrEccenLimits
         
         thisEccen = eccenLimitDeg(el,:);
         
-        % ASYNCHRONOUS (KAPPA=100*pi)
+        % SYNCHRONOUS (KAPPA=100*pi)
+        figure(fH1); hold all;
         subplot(nrows, ncols, el);
         dataToPlot = squeeze(w.V1c(s,el,:));
         
@@ -199,13 +206,19 @@ for s = subjectsToPlot
             end
         else, contourLines = []; end
         
+        figure(fH1); hold all;
         megPlotMap(dataToPlot, colormapLims, [], cmapData, {'Synch' labels{el}}, [],[], 'isolines', contourLines);
         h = findobj(gca,'Type','contour');
         h.LineWidth = lw;
         set(gca,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
-
+        
+        % Plot contour
+        figure(fH2); hold all;
+        contourf(h.XData, h.YData, h.ZData, contourLines, 'LineColor',colorContourLines(el,:), 'Fill','off','LineWidth',2);
+        colorbar off;
         
         %% ASYNCHRONOUS (KAPPA=0)
+        figure(fH1);
         subplot(nrows, ncols, ncols+el);
         dataToPlot = squeeze(w.V1i(s,el,:));
         
@@ -226,20 +239,29 @@ for s = subjectsToPlot
         else, contourLines = [];
         end
         
+        figure(fH1);
         megPlotMap(dataToPlot, colormapLims, [], cmapData, {'Asynch' labels{el}}, [],[], 'isolines', contourLines);
         h = findobj(gca,'Type','contour');
         h.LineWidth = lw;
         set(gca,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
         
+        % Plot contour
+        figure(fH3); hold all;
+        contourf(h.XData, h.YData, h.ZData, contourLines, 'LineColor',colorContourLines(el,:), 'Fill','off','LineWidth',2);
+        colorbar off;
+        
     end
-    
-    
+
     if saveFig
         figureDir       = fullfile(fmsRootPath,'figures', subject{s}); % Where to save images?
         if ~exist(figureDir,'dir'); mkdir(figureDir); end
         
         set(0, 'currentfigure', fH1);
-        figurewrite(fullfile(figureDir, sprintf('varyEccenPredictions_%s_%d_%s_highResFlag%d_S%d_cummulative', area, contourPercentile, headmodelType, highResSurf, s)),[],[1 300],'.',1);
+        figurewrite(fullfile(figureDir, sprintf('varyEccenPredictions_%s_%d_%s_highResFlag%d_S%d_cumulative', area, contourPercentile, headmodelType, highResSurf, s)),[],[1 300],'.',1);
+        set(0, 'currentfigure', fH2);
+        figurewrite(fullfile(figureDir, sprintf('Contour_Synchr_varyEccenPredictions_%s_%d_%s_highResFlag%d_cumulative', area,contourPercentile, headmodelType, highResSurf)),[],[1 300],'.',1);
+        set(0, 'currentfigure', fH3);
+        figurewrite(fullfile(figureDir, sprintf('Contour_Asynchr_varyEccenPredictions_%s_%d_%s_highResFlag%d_cumulative', area,contourPercentile, headmodelType, highResSurf)),[],[1 300],'.',1);
     end
 end
 
@@ -248,20 +270,18 @@ end
 %% Take mean across subjects and plot if requested
 if plotMeanSubject
     
-    colorContourLines = [[0 0 0]; jet(5)];
-
     w.V1c_mn = squeeze(nanmean(w.V1c,1));
     w.V1i_mn = squeeze(nanmean(w.V1i,1));
     
-    fH2 = figure(2); clf; set(gcf, 'Color', 'w', 'Position', [1, 1, 1680, 999]); hold all;
-    fH3 = figure(3); clf; set(gcf, 'Color', 'w'); hold all; megPlotMap(zeros(1,157)); drawnow; title('Synchronous sources')
-    fH4 = figure(4); clf; set(gcf, 'Color', 'w'); hold all; megPlotMap(zeros(1,157)); drawnow;  title('Asynchronous sources')
-
+    fH4 = figure(4); clf; set(gcf, 'Color', 'w', 'Position', [1, 1, 1680, 999]); hold all;
+    fH5 = figure(5); clf; set(gcf, 'Color', 'w'); hold all; megPlotMap(zeros(1,157)); colormap(cmapContour); drawnow; title('Synchronous sources')
+    fH6 = figure(6); clf; set(gcf, 'Color', 'w'); hold all; megPlotMap(zeros(1,157)); colormap(cmapContour); drawnow; title('Asynchronous sources')
+    
     
     for el = 1:nrEccenLimits
         %% Visualize predictions SYNCHRONOUS (KAPPA=100*pi)
         
-        figure(fH2); hold all;
+        figure(fH4);
         subplot(nrows, ncols, el);
         dataToPlot = w.V1c_mn(el,:);
         
@@ -281,18 +301,18 @@ if plotMeanSubject
             end
         else, contourLines = []; end
         
-        figure(fH2); hold all;
+        figure(fH4);
         megPlotMap(dataToPlot, colormapLims, [], cmapData, {'Synch' labels{el}}, [],[], 'isolines', contourLines);
         h = findobj(gca,'Type','contour');
         h.LineWidth = lw;
-                
-        figure(fH3); hold all;
+        
+        figure(fH5); hold all;
         contourf(h.XData, h.YData, h.ZData, contourLines, 'LineColor',colorContourLines(el,:), 'Fill','off','LineWidth',2);
         colorbar off;
         
         %% Visualize predictions ASYNCHRONOUS (KAPPA=0)
         
-        figure(fH2); hold all;
+        figure(fH4); hold all;
         subplot(nrows, ncols,nrEccenLimits+el);
         dataToPlot = w.V1i_mn(el,:);
         
@@ -312,34 +332,29 @@ if plotMeanSubject
             end
         else, contourLines = []; end
         
-        figure(fH2); 
+        figure(fH4);
         megPlotMap(dataToPlot, colormapLims, [], cmapData, {'Asynch' labels{el}}, [],[], 'isolines', contourLines);
         h = findobj(gca,'Type','contour');
         h.LineWidth = lw;
         
         
-        figure(fH4); hold all;
+        figure(fH6); hold all;
         contourf(h.XData, h.YData, h.ZData, contourLines, 'LineColor',colorContourLines(el,:), 'Fill','off','LineWidth',2);
         colorbar off;
-        
-    end    
-    
-    
-    
-    
+
+    end
     
     if saveFig
-        figureDir       = fullfile(fmsRootPath,'figures', 'average'); % Where to save images?        
+        figureDir       = fullfile(fmsRootPath,'figures', 'average'); % Where to save images?
         if ~exist(figureDir,'dir'); mkdir(figureDir); end
         
         % Plot data and save data
-        set(0, 'currentfigure', fH2);
-        figurewrite(fullfile(figureDir, sprintf('varyEccenPredictions_%s_%d_%s_highResFlag%d_AVERAGE_cummulative', area,contourPercentile, headmodelType, highResSurf)),[],[1 300],'.',1);
-        
-        set(0, 'currentfigure', fH3);
-        figurewrite(fullfile(figureDir, sprintf('Contour_Synchr_varyEccenPredictions_%s_%d_%s_highResFlag%d_AVERAGE_cummulative', area,contourPercentile, headmodelType, highResSurf)),[],0,'.',1);
         set(0, 'currentfigure', fH4);
-        figurewrite(fullfile(figureDir, sprintf('Contour_Asynchr_varyEccenPredictions_%s_%d_%s_highResFlag%d_AVERAGE_cummulative', area,contourPercentile, headmodelType, highResSurf)),[],0,'.',1);
+        figurewrite(fullfile(figureDir, sprintf('varyEccenPredictions_%s_%d_%s_highResFlag%d_AVERAGE_cumulative', area,contourPercentile, headmodelType, highResSurf)),[],[1 300],'.',1);
+        set(0, 'currentfigure', fH5);
+        figurewrite(fullfile(figureDir, sprintf('Contour_Synchr_varyEccenPredictions_%s_%d_%s_highResFlag%d_AVERAGE_cumulative', area,contourPercentile, headmodelType, highResSurf)),[],[1 300],'.',1);
+        set(0, 'currentfigure', fH6);
+        figurewrite(fullfile(figureDir, sprintf('Contour_Asynchr_varyEccenPredictions_%s_%d_%s_highResFlag%d_AVERAGE_cumulative', area,contourPercentile, headmodelType, highResSurf)),[],[1 300],'.',1);
     end
     
     
