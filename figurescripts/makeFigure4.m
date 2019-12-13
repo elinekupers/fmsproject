@@ -17,9 +17,36 @@ function makeFigure4(varargin)
 %     addpath(genpath('~/matlab/git/toolboxes/meg_utils'))
 %
 % INPUTS:
-%   [subjectsToPlot]  :  (int) subject nr you would like to plot, default is 12
-%   [plotMeanSubject] :  (bool) plot average across all 12 subjets or not?
-%   [saveFig]         :  (bool) save figures or not?
+%   [subjectsToPlot]     : (int)  subject nr to plot (default: 12)
+%   [plotMeanSubject]    : (bool) plot average across all 12 subjets or not?
+%                                 (default: true)
+%   [saveFig]            : (bool) save figures or not? (default: true)
+%   [useSLIncohSpectrum] : (bool) plot SL amplitudes from incoherent spectrum
+%                                 (default: true)
+%   [doSOIcomparison]    : (bool) compare the signal for two groups (syn and 
+%                                 asyn sources) of sensors inside the contour
+%                                 lines of modelpredictions computed by
+%                                 makeFigure 6. SOI stands for sensors of 
+%                                 interest (default: false) 
+%   [contourPercentile]  : (int)  percentile of the data to draw contour 
+%                                 lines? There are two ways to define: 
+%                                 (1) single integer above 10 to get percentile
+%                                 to select X sensors with highest response
+%                                 Use 90.4 for top 15 sensors, or 93.6 for
+%                                 top 10 sensors.
+%                                 (2) single integer below 10 to get contour 
+%                                 lines at equal percentiles of data, e.g.
+%                                 3 => 25 50 75th prctle
+%                                 (default: 93.6) 
+%   [maxColormapPercentile]:(int) percentile of data to truncate colormap
+%                                 (default: 97.5)
+%   [signedColorbar]    : (bool)  plot signed colormap (true) or only 
+%                                 positive values (false)? 
+%                                 (default: true)
+%   [snrThresh]         : (int)   snr threshold for amplitudes
+%                                 (default: 1)
+%   [useSLPower]        : (bool)  plot SL power or amplitudes from spectrum
+%                                 (default: false)
 %
 % Example 1:
 %  makeFigure4('subjectsToPlot', 1, 'plotMeanSubject', false, 'saveFig', true)
@@ -32,17 +59,15 @@ function makeFigure4(varargin)
 p = inputParser;
 p.KeepUnmatched = true;
 p.addParameter('subjectsToPlot', 12);
-p.addParameter('plotMeanSubject', true, @islogical)     % Plot average across subject
-p.addParameter('saveFig', true, @islogical);            % Save figures
-p.addParameter('useSLIncohSpectrum', true, @islogical); % Plot SL amplitudes from incoherent spectrum (default: true)
-p.addParameter('doSOIcomparison', false, @islogical);   % Compare the signal for the two types of SOI (sensors of interest, requires makeFigure1 to be executed)
-p.addParameter('contourPercentile', 93.6, @isnumeric);      % Percentile of the data to draw contour lines? There are two ways to define: single int above or below 10
-                                                            %   default: 97.5th percentile to select Top 10 channels. Or use 90.4 for Top 15 channels
-                                                            %   alternative: get contour lines at equal percentiles of data, use any integer under 10. E.g. 3 lines -> 25 50 75th prctle
-p.addParameter('maxColormapPercentile', 97.5, @isnumeric);  % At what percentile of data are we truncating colormap?
-p.addParameter('signedColorbar', true, @islogical);        % Plot signed colormap (true) or only positive values (false)? 
-p.addParameter('snrThresh',1, @isnumeric);                  % Threshold amplitudes by 1 SD of SNR
-p.addParameter('useSLPower', false, @islogical);          % Plot SL power instead of amplitudes from spectrum (default: false)
+p.addParameter('plotMeanSubject', true, @islogical); 
+p.addParameter('saveFig', true, @islogical); 
+p.addParameter('useSLIncohSpectrum', true, @islogical);
+p.addParameter('doSOIcomparison', false, @islogical);
+p.addParameter('contourPercentile', 93.6, @isnumeric);  
+p.addParameter('maxColormapPercentile', 97.5, @isnumeric); 
+p.addParameter('signedColorbar', true, @islogical);
+p.addParameter('snrThresh',1, @isnumeric);
+p.addParameter('useSLPower', false, @islogical);
 p.parse(varargin{:});
 
 % Rename variables
@@ -56,7 +81,6 @@ maxColormapPercentile   = p.Results.maxColormapPercentile;
 signedColorbar          = p.Results.signedColorbar;
 snrThresh               = p.Results.snrThresh;
 useSLPower              = p.Results.useSLPower;
-
 
 % Define subjects
 subject         = {'wlsubj002', ... % S1 - Full, Left, Right stim experiment

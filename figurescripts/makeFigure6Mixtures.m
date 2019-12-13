@@ -24,6 +24,9 @@ function makeFigure6Mixtures(varargin)
 %   [area]                  :  (str)  visual area to use from Benson et al.
 %                                     (2014) PloS Comp Bio template.
 %                                     Choose from 'V1', 'V2', 'V3', 'V123'
+%                                     'benson17', or 'wang15atlas' (note:
+%                                     eccentricity boundaries cannot be
+%                                     defined when using wang15atlas)
 %   [eccenLimitDeg]         :  (int)  eccentricity limit (deg) of the template.
 %                                     Supposingly matching the stimulus aperture.
 %                                     Can be a single int x, to get [0 x] or
