@@ -1,4 +1,4 @@
-function makeSupplementaryFigure1()
+function makeSupplementaryFigureXX_overlapDataWithPredictions()
 
 % This is a function to make Supplementary Figure 1 from the manuscript about forward
 % modeling coherent and incoherent neural sources to MEG responses.

@@ -1,4 +1,4 @@
-function makeFigure1_plotSpectrumIndividualChannel(exampleSubject)
+function makeFigure1(exampleSubject)
 
 % Function to plot the spectrum of an individual channel for an individual
 % subject.
@@ -121,7 +121,7 @@ yl2 = get(gca, 'YLim');
 for ii =12:12:180, plot([ii ii], yl2, '-', 'Color', [100 100 100]./255); end
 
 if saveFigures
-    figurewrite(fullfile(figureDir, 'Figure2A_SpectrumZoomBroadband'), [],0,'.',1);
+    figurewrite(fullfile(figureDir, 'Figure1A_SpectrumZoomBroadband'), [],0,'.',1);
 end
 
 
@@ -133,7 +133,7 @@ megPlotMap(to157chan(sensorloc,~data.badChannels,'zeros'),[0 1],[],'gray', [], [
 
 
 if saveFigures
-    figurewrite(fullfile(figureDir, 'Figure2A_LocationOfExampleChannel'), [],0,'.',1);
+    figurewrite(fullfile(figureDir, 'Figure1A_LocationOfExampleChannel'), [],0,'.',1);
 end
 
 

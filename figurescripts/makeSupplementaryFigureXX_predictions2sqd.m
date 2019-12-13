@@ -1,4 +1,4 @@
-function makeSupplementaryFigure2()
+function makeSupplementaryFigureXX_predictions2sqd()
 
 % NOTE: This function is under construction
 

@@ -1,8 +1,8 @@
-function makeFigure6VaryEccen(varargin)
+function makeSupplementaryFigure6(varargin)
 %
 % This is a function to make model predictions for different eccentricities
 % for asynchrouns and synchronous sources in early visual cortical sources
-% similar to Figure 6 from the manuscript.
+% similar to Supplementary Figure 6 from the manuscript.
 %
 % To runs this script, you need:
 % (1) Access to the SSMEG folder in the brainstorm data base
@@ -42,11 +42,11 @@ function makeFigure6VaryEccen(varargin)
 %                                     positive values.
 %
 % Example 1:
-%  makeFigure6VaryEccen('subjectsToPlot', 1, 'plotMeanSubject', false, 'saveFig', true)
+%  makeSupplementaryFigure6('subjectsToPlot', 1, 'plotMeanSubject', false, 'saveFig', true)
 % Example 2:
-%  makeFigure6VaryEccen('subjectsToPlot', 12, 'plotMeanSubject', false, 'saveFig', true)
+%  makeSupplementaryFigure6('subjectsToPlot', 12, 'plotMeanSubject', false, 'saveFig', true)
 % Example 3:
-%  makeFigure6VaryEccen('subjectsToPlot', 1:12, 'plotMeanSubject', true, 'saveFig', true)
+%  makeSupplementaryFigure6('subjectsToPlot', 1:12, 'plotMeanSubject', true, 'saveFig', true)
 %
 
 p = inputParser;
@@ -257,11 +257,11 @@ for s = subjectsToPlot
         if ~exist(figureDir,'dir'); mkdir(figureDir); end
         
         set(0, 'currentfigure', fH1);
-        figurewrite(fullfile(figureDir, sprintf('varyEccenPredictions_%s_%d_%s_highResFlag%d_S%d_cumulative', area, contourPercentile, headmodelType, highResSurf, s)),[],[1 300],'.',1);
+        figurewrite(fullfile(figureDir, sprintf('SupplFigure6_varyEccenPredictions_%s_%d_%s_highResFlag%d_S%d_cumulative', area, contourPercentile, headmodelType, highResSurf, s)),[],[1 300],'.',1);
         set(0, 'currentfigure', fH2);
-        figurewrite(fullfile(figureDir, sprintf('Contour_Synchr_varyEccenPredictions_%s_%d_%s_highResFlag%d_cumulative', area,contourPercentile, headmodelType, highResSurf)),[],[1 300],'.',1);
+        figurewrite(fullfile(figureDir, sprintf('SupplFigure6_Contour_Synchr_varyEccenPredictions_%s_%d_%s_highResFlag%d_cumulative', area,contourPercentile, headmodelType, highResSurf)),[],[1 300],'.',1);
         set(0, 'currentfigure', fH3);
-        figurewrite(fullfile(figureDir, sprintf('Contour_Asynchr_varyEccenPredictions_%s_%d_%s_highResFlag%d_cumulative', area,contourPercentile, headmodelType, highResSurf)),[],[1 300],'.',1);
+        figurewrite(fullfile(figureDir, sprintf('SupplFigure6_Contour_Asynchr_varyEccenPredictions_%s_%d_%s_highResFlag%d_cumulative', area,contourPercentile, headmodelType, highResSurf)),[],[1 300],'.',1);
     end
 end
 
@@ -350,11 +350,11 @@ if plotMeanSubject
         
         % Plot data and save data
         set(0, 'currentfigure', fH4);
-        figurewrite(fullfile(figureDir, sprintf('varyEccenPredictions_%s_%d_%s_highResFlag%d_AVERAGE_cumulative', area,contourPercentile, headmodelType, highResSurf)),[],[1 300],'.',1);
+        figurewrite(fullfile(figureDir, sprintf('SupplFigure6_varyEccenPredictions_%s_%d_%s_highResFlag%d_AVERAGE_cumulative', area,contourPercentile, headmodelType, highResSurf)),[],[1 300],'.',1);
         set(0, 'currentfigure', fH5);
-        figurewrite(fullfile(figureDir, sprintf('Contour_Synchr_varyEccenPredictions_%s_%d_%s_highResFlag%d_AVERAGE_cumulative', area,contourPercentile, headmodelType, highResSurf)),[],[1 300],'.',1);
+        figurewrite(fullfile(figureDir, sprintf('SupplFigure6_Contour_Synchr_varyEccenPredictions_%s_%d_%s_highResFlag%d_AVERAGE_cumulative', area,contourPercentile, headmodelType, highResSurf)),[],[1 300],'.',1);
         set(0, 'currentfigure', fH6);
-        figurewrite(fullfile(figureDir, sprintf('Contour_Asynchr_varyEccenPredictions_%s_%d_%s_highResFlag%d_AVERAGE_cumulative', area,contourPercentile, headmodelType, highResSurf)),[],[1 300],'.',1);
+        figurewrite(fullfile(figureDir, sprintf('SupplFigure6_Contour_Asynchr_varyEccenPredictions_%s_%d_%s_highResFlag%d_AVERAGE_cumulative', area,contourPercentile, headmodelType, highResSurf)),[],[1 300],'.',1);
     end
     
     
