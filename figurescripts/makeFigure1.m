@@ -60,8 +60,6 @@ xl = [8 150];
 fok = f;
 fok(f<=xl(1) | f>=xl(2) | mod(f,60) < 2 | mod(f,60) > 58 ) = [];
 xt = [12:12:72, 96,144];
-yt = 1:5;
-yl=[yt(1),yt(end)];
 
 % compute spectrum
 spec = abs(fft(squeeze(data.ts(sensorIdx, :,:))))/size(data.ts,2)*2;
@@ -78,11 +76,19 @@ dataBlank = dataBlank(fok+1,:);
 mn.full = prctile(dataFull,[16,50,84],2);
 mn.blank = prctile(dataBlank,[16,50,84],2);
 
-% plot median
-plot(fok, mn.full(:,2).*10^15.*10^15,  '-',  'Color', colors(1,:), 'LineWidth', 2); hold on;
-plot(fok, mn.blank(:,2).*10^15.*10^15,  '-',  'Color', colors(2,:), 'LineWidth', 2);
+% Multiply with 10^15 to get values in units of fT
+if any(intersect(whichSession, 9:14))
+    mn.full = mn.full.*10^-15.*10^-15;
+    mn.blank = mn.blank.*10^-15.*10^-15;
+end
+
+% plot median 
+plot(fok, mn.full(:,2),  '-',  'Color', colors(1,:), 'LineWidth', 2); hold on;
+plot(fok, mn.blank(:,2),  '-',  'Color', colors(2,:), 'LineWidth', 2);
 
 % format x and y axes
+yt = [1:5];
+yl=[yt(1),yt(end)];
 set(gca, 'XLim', xl, 'XTick', xt, 'XScale', 'log', 'YScale','log');
 set(gca,'ytick',10.^yt, 'ylim',10.^yl, 'TickDir', 'out', 'FontSize', 12);
 box off;
@@ -101,8 +107,8 @@ end
 fH2 = figure('position',[567, 655, 300, 281]); clf(fH2); set(fH2, 'Name', 'Spectrum of one MEG sensor' , 'NumberTitle', 'off');
 
 % plot median
-plot(fok, mn.full(:,2).*10^15.*10^15,  '-',  'Color', colors(1,:), 'LineWidth', 2); hold on;
-plot(fok, mn.blank(:,2).*10^15.*10^15,  '-',  'Color', colors(2,:), 'LineWidth', 2);
+plot(fok, mn.full(:,2),  '-',  'Color', colors(1,:), 'LineWidth', 2); hold on;
+plot(fok, mn.blank(:,2),  '-',  'Color', colors(2,:), 'LineWidth', 2);
 
 % Reset x scale and y tickmarks
 xl = [60 150];
@@ -156,28 +162,30 @@ lfDrop       = f(f<60);
 % Create function handles for the frequencies that we use
 keepFrequencies    = @(x) x(abIndex);
 
-fullIdx = find(data.condEpochsFull==1);
-subsetFullEpochs = fullIdx(randi([1, length(fullIdx)],1, sum(data.condEpochsBlank)));
+for iter = 1:1000
+    fullIdx = find(data.condEpochsFull==1);
+    subsetFullEpochs = fullIdx(randi([1, length(fullIdx)],1, sum(data.condEpochsBlank)));
 
-% Get data
-dataIn = cat(1, data.ts(sensorIdx,:,subsetFullEpochs), data.ts(sensorIdx,:,data.condEpochsBlank));
-bbFull  = log10(getbroadband(dataIn(1,:,:),keepFrequencies,fs)); % Broadband function gives data in units of power
-bbBlank = log10(getbroadband(dataIn(2,:,:),keepFrequencies,fs)); % Broadband function gives data in units of power
+    % Get data
+    dataIn = cat(1, data.ts(sensorIdx,:,subsetFullEpochs), data.ts(sensorIdx,:,data.condEpochsBlank));
+    bbFull  = log10(getbroadband(dataIn(1,:,:),keepFrequencies,fs)); % Broadband function gives data in units of power
+    bbBlank = log10(getbroadband(dataIn(2,:,:),keepFrequencies,fs)); % Broadband function gives data in units of power
         
-slFull  = log10(getstimlocked(dataIn(1,:,:), 13).^2);  % Square to get units of power
-slBlank = log10(getstimlocked(dataIn(2,:,:), 13).^2); % Square to get units of power
+    slFull  = log10(getstimlocked(dataIn(1,:,:), 13).^2);  % Square to get units of power
+    slBlank = log10(getstimlocked(dataIn(2,:,:), 13).^2); % Square to get units of power
               
-% Full field minus blank, averaged across top 5 channels
-diffBB = mean(bbFull - bbBlank);
+    % Full field minus blank, averaged across top 5 channels
+    diffBB = mean(bbFull - bbBlank);
         
-% Add individual subjects stimulus locked results to all results
-diffSL = mean(slFull - slBlank);
-        
-% Calculate percent change
-percentdiff.bb = 100*((10.^diffBB)-1);
-percentdiff.sl = 100*((10.^diffSL)-1);
+    % Add individual subjects stimulus locked results to all results
+    diffSL = mean(slFull - slBlank);
 
-fprintf('Mean change in broadband power: %4.1f%% \n', percentdiff.bb);
-fprintf('Mean change in stimulus locked power: %4.1f%% \n', percentdiff.sl);
+    % Calculate percent change
+    percentdiff.bb(iter,:) = 100*((10.^diffBB)-1);
+    percentdiff.sl(iter,:) = 100*((10.^diffSL)-1);
+end
+
+fprintf('Mean change in broadband power: %4.1f%% \n', mean(percentdiff.bb));
+fprintf('Mean change in stimulus locked power: %4.1f%% \n', mean(percentdiff.sl));
 
 return

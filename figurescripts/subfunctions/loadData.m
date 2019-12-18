@@ -215,6 +215,13 @@ switch type
         condEpochsBlank = condEpochsBlank(~badEpochs,:);
         condEpochsFull  = condEpochsFull(~badEpochs,:);
         
+        if any(intersect(whichSession, 9:14))
+            assert(max(sensorData(:), [], 'omitnan') < 1^-12)
+            
+            sensorData = sensorData .* 10^15;
+            sensorData = sensorData .* 10^15;
+        end
+        
         % Add timeseries and additional info to struct
         data.ts              = sensorData;
         data.condEpochsFull  = condEpochsFull;
