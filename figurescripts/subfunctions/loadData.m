@@ -19,7 +19,7 @@ switch type
      
         data = {snr_sl.coh, snr_bb};
         
-    case 'amplitudes'
+    case {'amplitudes', 'amplitudesHigherHarmonics'}
         
         % Define parameters to get SL and BB data
         fs           = 1000;         % Sample rate
@@ -38,14 +38,11 @@ switch type
         % Create function handles for the frequencies that we use
         keepFrequencies    = @(x) x(abIndex);
 
-
-
         %% Load data
         load(sprintf(fullfile(dataDir, 's%02d_conditions.mat'),whichSession));
         load(sprintf(fullfile(dataDir, 's%02d_sensorData.mat'),whichSession));
         load(sprintf(fullfile(dataDir, 's%02d_denoisedData_bb.mat'),whichSession));
         load(sprintf(fullfile(dataDir, 's%02d_denoisedts.mat'),whichSession));
-
 
         % preprocessing parameters (see nppPreprocessData)
         varThreshold        = [0.05 20];
@@ -68,8 +65,7 @@ switch type
             badChannels(badChanIdx) = true;
         end
 
-        fprintf('(%s): S%d - Selected bad channels are: %s\n', mfilename, whichSession, sprintf('%d ', find(badChannels)));
-               
+        fprintf('(%s): Data session %d - Selected bad channels are: %s\n', mfilename, whichSession, sprintf('%d ', find(badChannels)));              
         
         % Remove bad channels and bad epochs from data and conditions
         sensorData = sensorData(:,~badEpochs, ~badChannels);
@@ -79,6 +75,15 @@ switch type
 
         sl_ts = sensorData;
         bb_ts = denoisedts_bb{1};
+        
+        % there is a difference between the datasets in terms of scaling units
+        % session 1-6 are in fempto Tesla  whereas 7-12 are in Tesla
+        if any(intersect(whichSession, 9:14))
+            assert(max(sl_ts(:), [], 'omitnan') < 1^-12)
+            
+            sl_ts = sl_ts .* 10^15;
+            bb_ts = bb_ts .* 10^15;
+        end
 
         design = zeros(size(conditions,1),3);
         design(conditions == 1,1) = 1; % Full
@@ -87,7 +92,7 @@ switch type
 
         % Define full field condition (first column (2nd and 2rd are right and
         % left, zeros are blanks)
-        condEpochsFull = design(:,1)==1;
+        condEpochsFull = design(:,1);
 
         % Define blank epochs following fullfield epochs and remove bad epochs
         condEpochsBlank = logical([zeros(6,1); design(1:end-6,1)]);
@@ -97,47 +102,62 @@ switch type
         condEpochsFull  = condEpochsFull(~badEpochs,:);
 
         if sum(condEpochsFull==1)~=sum(condEpochsBlank==1)
-            if sum(condEpochsBlank==1) > sum(condEpochsFull==1)
-                idx = find(condEpochsBlank);
-                idx = idx(1:length(find(condEpochsFull)));
-                condEpochsBlank = condEpochsBlank(idx);
-            else
-                idx = find(condEpochsFull);
-                idx = idx(1:sum(condEpochsBlank));
-                condEpochsFull = condEpochsFull(idx);
+            idxFull  = find(condEpochsFull==1);
+            idxBlank = find(condEpochsBlank==1);
+            if numel(idxBlank) > numel(idxFull)
+                condEpochsBlank_truncated = idxBlank(randi([1, length(idxBlank)],1, length(idxFull)));
+                condEpochsFull_truncated = idxFull;
+            elseif numel(idxBlank) < numel(idxFull)
+                condEpochsFull_truncated  = idxFull(randi([1, length(idxFull)],1, length(idxBlank)));
+                condEpochsBlank_truncated = idxBlank;
             end
+        else
+            condEpochsFull_truncated = find(condEpochsFull==1);
+            condEpochsBlank_truncated = find(condEpochsBlank==1);
         end
 
         % Select timeseries in epochs of interest
-        sl.full  = sl_ts(:,:,condEpochsFull);
-        sl.blank = sl_ts(:,:,condEpochsBlank);
+        sl.full  = sl_ts(:,:,condEpochsFull_truncated);
+        sl.blank = sl_ts(:,:,condEpochsBlank_truncated);
 
-        bb.full  = bb_ts(:,:,condEpochsFull);
-        bb.blank = bb_ts(:,:,condEpochsBlank);
+        bb.full  = bb_ts(:,:,condEpochsFull_truncated);
+        bb.blank = bb_ts(:,:,condEpochsBlank_truncated);
 
-        % Compute log power for full and blank epochs at specified frequencies
+        % Compute power (BB) or amplitudes (SL) for full and blank epochs at specified frequencies
+        if strcmp(type, 'amplitudesHigherHarmonics')
+            harmonics12Hz = [72,84,96,108,132,144];
+            harmonicsFreqIdx = @(x) x(harmonics12Hz+1);
+
+            % Stimulus locked using incoherent spectrum
+            sl.full = sqrt(getbroadband(sl.full,harmonicsFreqIdx, fs));  % Units of power, square root to get amplitudes
+            sl.full = to157chan(sl.full, ~badChannels,'nans');
+
+            sl.blank = sqrt(getbroadband(sl.blank,harmonicsFreqIdx, fs)); % Units of power, square root to get amplitudes
+            sl.blank = to157chan(sl.blank, ~badChannels,'nans');
+            
+        else
+            % Stimulus locked using incoherent spectrum
+            sl.full = getstimlocked(sl.full,slFreq+1);  % Amplitude (so not squared). Square values to get units of power
+            sl.full = to157chan(sl.full, ~badChannels,'nans');
+
+            sl.blank = getstimlocked(sl.blank,slFreq+1); % Amplitude (so not squared). Square values to get units of power
+            sl.blank = to157chan(sl.blank, ~badChannels,'nans');
+
+            % Stimulus locked using coherent spectrum
+            sl.full_coherent  = getstimlocked_coherent(sl_ts,slFreq+1, condEpochsFull_truncated);  % Amplitude (so not squared). Square values to get units of power
+            sl.full_coherent  = to157chan(sl.full_coherent, ~badChannels,'nans');
+
+            sl.blank_coherent = getstimlocked_coherent(sl_ts,slFreq+1, condEpochsBlank_truncated); % Amplitude (so not squared). Square values to get units of power
+            sl.blank_coherent = to157chan(sl.blank_coherent, ~badChannels,'nans');
+        end
         
-        % Stimulus locked using incoherent spectrum
-        sl.full = getstimlocked(sl.full,slFreq+1);  % Amplitude (so not squared). Square values to get units of power
-        sl.full = to157chan(sl.full, ~badChannels,'nans');
-
-        sl.blank = getstimlocked(sl.blank,slFreq+1); % Amplitude (so not squared). Square values to get units of power
-        sl.blank = to157chan(sl.blank, ~badChannels,'nans');
-
-        % Stimulus locked using coherent spectrum
-        sl.full_coherent  = getstimlocked_coherent(sl_ts,slFreq+1, condEpochsFull);  % Amplitude (so not squared). Square values to get units of power
-        sl.full_coherent  = to157chan(sl.full_coherent, ~badChannels,'nans');
-
-        sl.blank_coherent = getstimlocked_coherent(sl_ts,slFreq+1, condEpochsBlank); % Amplitude (so not squared). Square values to get units of power
-        sl.blank_coherent = to157chan(sl.blank_coherent, ~badChannels,'nans');
-
         % Broadband
         bb.full   = getbroadband(bb.full ,keepFrequencies,fs); % Broadband data is already in units of power
         bb.full   = to157chan(bb.full, ~badChannels,'nans');
 
         bb.blank  = getbroadband(bb.blank,keepFrequencies,fs); % Broadband data is already in units of power       
         bb.blank   = to157chan(bb.blank, ~badChannels,'nans');
-        
+  
         % Put in data struct
         data.sl = sl;
         data.bb = bb;
@@ -185,14 +205,14 @@ switch type
          sensorData = permute(sensorData, [3 1 2]);
          
         % Define design matrix
-        design = zeros(size(conditions,1),3);
-        design(conditions == 1,1) = 1; % Full
-        design(conditions == 5,2) = 1; % Right
-        design(conditions == 7,3) = 1; % Left
+        design = false(size(conditions,1),3);
+        design(conditions == 1,1) = true; % Full
+        design(conditions == 5,2) = true; % Right
+        design(conditions == 7,3) = true; % Left
 
         % Define full field condition (first column (2nd and 2rd are right and
         % left, zeros are blanks)
-        condEpochsFull = design(:,1)==1;
+        condEpochsFull = design(:,1);
 
         % Define blank epochs following fullfield epochs and remove bad epochs
         condEpochsBlank = logical([zeros(6,1); design(1:end-6,1)]);
@@ -200,6 +220,13 @@ switch type
         % Get rid of bad epochs
         condEpochsBlank = condEpochsBlank(~badEpochs,:);
         condEpochsFull  = condEpochsFull(~badEpochs,:);
+        
+        if any(intersect(whichSession, 9:14))
+            assert(max(sensorData(:), [], 'omitnan') < 1^-12)
+            
+            sensorData = sensorData .* 10^15;
+            sensorData = sensorData .* 10^15;
+        end
         
         % Add timeseries and additional info to struct
         data.ts              = sensorData;

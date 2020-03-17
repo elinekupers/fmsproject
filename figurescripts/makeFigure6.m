@@ -1,18 +1,20 @@
 function makeFigure6(varargin)
-% This is a function to make Figure 6 from the manuscript about forward
-% modeling coherent and incoherent neural sources to MEG responses.
+%
+% This is a function to make Figure 6 from the manuscript using a forward
+% model to predict coherent and incoherent neural sources to MEG responses,
+% WITHOUT CANCELLATION.
 %
 % This figure shows the MEG forward model based on coherent and incoherent
-% predictions coming from vertices located in V1-V3.
+% predictions coming from vertices located in V1 when using an ABSOLUTE
+% gain matrix.
 %
-% To runs this script, you need:
-% (1) Access to the SSMEG folder in the brainstorm data base
-%     (on the winawerlab server under '/Projects/MEG/brainstorm_db/'
-% (2) MEG_utils and Fieldtrip toolbox added to the paths. For example:
-%        tbUse('ForwardModelSynchrony');
-%     or to only add the MEG_utils toolbox:
-%        addpath(genpath('~/matlab/git/toolboxes/meg_utils'))
-% (3) Run the s_visualAreasFS2BS script from this repository
+% To runs this script, you need: (1) Access to the SSMEG folder in the
+% brainstorm data base (2) MEG_utils and Fieldtrip toolbox added to the
+% paths. For example:
+%     tbUse('ForwardModelSynchrony');
+%        or to only add the MEG_utils toolbox:
+%     addpath(genpath('~/matlab/git/toolboxes/meg_utils'))
+%
 %
 % INPUTS:
 %   [subjectsToPlot]        :  (int)  subject nr to plot, default is 12
@@ -26,6 +28,9 @@ function makeFigure6(varargin)
 %   [area]                  :  (str)  visual area to use from Benson et al.
 %                                     (2014) PloS Comp Bio template. 
 %                                     Choose from 'V1', 'V2', 'V3', 'V123'
+%                                     'benson17', or 'wang15atlas' (note:
+%                                     eccentricity boundaries cannot be
+%                                     defined when using wang15atlas)
 %   [eccenLimitDeg]         :  (int)  eccentricity limit (deg) of the template. 
 %                                     Supposingly matching the stimulus aperture. 
 %                                     Can be a single int x, to get [0 x] or 
@@ -39,7 +44,6 @@ function makeFigure6(varargin)
 %   [maxColormapPercentile] :  (int)  percentile of data to truncate colormap
 %   [signedColorbar]        :  (bool) true/false plot signed colormap or only
 %                                     positive values.
-%
 % Example 1:
 %  makeFigure6('subjectsToPlot', 1, 'plotMeanSubject', false, 'saveFig', true)
 % Example 2:
@@ -54,9 +58,9 @@ p.KeepUnmatched = true;
 p.addParameter('subjectsToPlot', 12);
 p.addParameter('plotMeanSubject', true, @islogical)
 p.addParameter('saveFig', true, @islogical);
-p.addParameter('headmodelType', 'BEM', @(x) any(x,{'OS', 'BEM'}));
+p.addParameter('headmodelType', 'OS', @(x) any(validatestring(x,{'OS', 'BEM'})));
 p.addParameter('highResSurf', false, @islogical);
-p.addParameter('area', 'V123', @(x) any(x,{'V1', 'V2', 'V3','V123'}));
+p.addParameter('area', 'V123', @(x) any(validatestring(x,{'V1', 'V2', 'V3','V123', 'benson17atlas', 'wang15atlas'})));
 p.addParameter('eccenLimitDeg', [0.18 11], @isnumeric);
 p.addParameter('contourPercentile', 93.6, @isnumeric);
 p.addParameter('maxColormapPercentile', 97.5, @isnumeric);
@@ -75,35 +79,19 @@ contourPercentile     = p.Results.contourPercentile;
 maxColormapPercentile = p.Results.maxColormapPercentile;
 signedColorbar        = p.Results.signedColorbar;
 
-
-%% 1. Define subjects and synchrony variables
+% Define subjects
 subject         = {'wlsubj002', ... S1 - From exp: Full, Left, Right
-    'wlsubj004', ... S2 - From exp: Full, Left, Right
-    'wlsubj005', ... S3 - From exp: Full, Left, Right
-    'wlsubj006', ... S4 - From exp: Full, Left, Right
-    'wlsubj010', ... S5 - From exp: Full, Left, Right
-    'wlsubj011', ... S6 - From exp: Full, Left, Right
-    'wlsubj048', ... S7 - From exp: Full only
-    'wlsubj046', ... S8 - From exp: Full only
-    'wlsubj039', ... S9 - From exp: Full only
-    'wlsubj059', ... S10 - From exp: Full only
-    'wlsubj067', ... S11 - From exp: Full only
-    'wlsubj070'}; %  S12 - From exp: Full only
-
-% Path to brainstorm database and project name
-bsDB            = '/Volumes/server/Projects/MEG/brainstorm_db/';
-projectName     = 'SSMEG';
-
-% Number of iterations for the random coherence prediction of the forward model
-n        	= 10;        % number of timepoints (ms)
-nrEpochs    = 1000;      % number of epochs
-theta       = 0;         % von mises mean, equal for three distributions (syn, asyn and mix)
-kappa.syn   = 100*pi;    % very narrow von Mises
-kappa.asyn  = 0;         % very broad (uniform) von Mises
-kappa.mix   = 0.27*pi;   % in-between width size von Mises (note: we are not plotting these values for this figure)
-
-% Define vector that can truncate number of sensors
-keep_sensors = logical([ones(157,1); zeros(192-157,1)]); % TODO: Figure out a more generic way to define keep_sensors
+                   'wlsubj004', ... S2 - From exp: Full, Left, Right
+                   'wlsubj005', ... S3 - From exp: Full, Left, Right
+                   'wlsubj006', ... S4 - From exp: Full, Left, Right
+                   'wlsubj010', ... S5 - From exp: Full, Left, Right
+                   'wlsubj011', ... S6 - From exp: Full, Left, Right
+                   'wlsubj048', ... S7 - From exp: Full only
+                   'wlsubj046', ... S8 - From exp: Full only
+                   'wlsubj039', ... S9 - From exp: Full only
+                   'wlsubj059', ... S10 - From exp: Full only
+                   'wlsubj067', ... S11 - From exp: Full only
+                   'wlsubj070'}; %  S12 - From exp: Full only
 
 % Load all subjects when plotting the mean
 if plotMeanSubject
@@ -112,19 +100,38 @@ else
     subjectsToLoad = subjectsToPlot;
 end
 
-%% Loop over subjects
+% Path to brainstorm database and project name
+bsDB            = '/Volumes/server/Projects/MEG/brainstorm_db/';
+projectName     = 'SSMEG';
+
+% Number of iterations for the random coherence prediction of the forward model
+n        	= 10;        % number of timepoints (ms)
+nrEpochs    = 1000;      % number of epochs
+theta       = 0;         % von mises mean, equal for three distributions
+kappa.syn   = 100*pi;     % very narrow von Mises
+kappa.asyn  = 0;         % very broad (uniform) von Mises
+kappa.mix   = 0.27*pi;        % in between width size von Mises
+
+% Define vector that can truncate number of sensors
+keep_sensors = logical([ones(157,1); zeros(192-157,1)]); % TODO: Figure out a more generic way to define keep_sensors
+
+% Loop over subjects
 for s = subjectsToLoad
     
+    % Get subject data and anatomy files
     d = dir(fullfile(bsDB, projectName, 'data', subject{s}, 'R*'));
     bsData = fullfile(d(1).folder, d(1).name);
     
     if highResSurf
         bsAnat = fullfile(bsDB, projectName, 'anat', subject{s}, 'highres');
     else
-        bsAnat = fullfile(bsDB, projectName, 'anat', subject{s});
+        bsAnat = fullfile(bsDB, projectName, 'anat', subject{s}, 'lowres');
     end
+    
     %% 1. Load relevant matrices
     
+    % Simulate coherent and incoherent source time series and compute
+    % predictions from forward model (w)
     G_constrained = getGainMatrix(bsData, keep_sensors, headmodelType, highResSurf);
     
     % Get V1 template limited to 11 degrees eccentricity
@@ -132,86 +139,92 @@ for s = subjectsToLoad
     
     % Simulate coherent, in between or mixture, adn incoherent source time
     % series and compute predictions from forward model (w)
-    tmp = getForwardModelPredictions(G_constrained, template.([area '_StimEccen']), [], n, nrEpochs, theta, kappa);
+    % IMPORTANT: We when we take absolute values of G_contrained there is no cancellation possible
+    tmp.woC = getForwardModelPredictions(abs(G_constrained), template.([area '_StimEccen']), [], n, nrEpochs, theta, kappa);
+    tmp.wC = getForwardModelPredictions(G_constrained, template.([area '_StimEccen']), [], n, nrEpochs, theta, kappa);
     
-    % Compute amplitude across time
-    amps.c = abs(fft(tmp.c,[],2));
-    amps.i = abs(fft(tmp.i,[],2));
+    % Compute amplitude at freq
+    amps.woC.c = abs(fft(tmp.woC.c,[],2));
+    amps.woC.i = abs(fft(tmp.woC.i,[],2));
     
-    % Compute mean weights across epochs at input frequency
-    w.V123c(s,:) = mean(amps.c(:,2,:),3);
-    w.V123i(s,:) = mean(amps.i(:,2,:),3);
+    amps.wC.c = abs(fft(tmp.wC.c,[],2));
+    amps.wC.i = abs(fft(tmp.wC.i,[],2));
+    
+    % Take mean across epochs
+    w.woC.V123c(s,:) = mean(amps.woC.c(:,2,:),3);
+    w.woC.V123i(s,:) = mean(amps.woC.i(:,2,:),3);
+    
+    w.wC.V123c(s,:) = mean(amps.wC.c(:,2,:),3);
+    w.wC.V123i(s,:) = mean(amps.wC.i(:,2,:),3);
     
 end
 
-%% Visualize predictions
-colorConds = {'y','b'};
+%% 3. Visualize predictions from forward model for requested individual subject
+
+colorMarkers = {'y','b'};
 markerType   = '.';
 
-for s = subjectsToPlot
-    dataToPlot   = cat(1,w.V123c(s,:), w.V123i(s,:));
+for exampleSubject = subjectsToPlot
+    
+    dataToPlot   = cat(1, w.woC.V123c(exampleSubject,:), w.woC.V123i(exampleSubject,:));
 
-    sub_ttl      = {sprintf('Synchronous sources S%d', s), ...
-                    sprintf('Asynchronous sources S%d', s)};
+    fig_ttl      = {sprintf('Figure6_ModelPredictions-No_cancellation_%s_%1.2f-%d_prctle%d_%s_highResFlag%d_S%d', ...
+                        area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile,headmodelType, highResSurf, exampleSubject), ...
+                    sprintf('Figure6_Contours-No_cancellation_%s_%1.2f-%d_prctle%d_%s_highResFlag%d_S%d', ...
+                        area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf, exampleSubject)};
+    sub_ttl      = {sprintf('No cancellation: Synchronous sources S%d', exampleSubject), ...
+                    sprintf('No cancellation: Asynchronous sources S%d', exampleSubject), ...
+                    'obsolete'};
                 
-    fig_ttl      = {sprintf('Figure6_ModelPredictions_%s_%1.2f-%d_prctile%2.1f_%s_highResFlag%d_S%d', ...
-                        area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf, s), ...
-                    sprintf('Figure6_Contour_%s_%1.2f-%d_prctile%2.1f_%s_highResFlag%d_S%d', ...
-                        area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf, s)};
-
-    dataDir      = fullfile(fmsRootPath,'data', subject{s}); % Where to save vector of sensors that fall within contours?
-    figureDir    = fullfile(fmsRootPath,'figures', subject{s}); % Where to save images?
+    % Get the correct subject folder to save figures
+    dataDir      = fullfile(fmsRootPath,'data', subject{exampleSubject}); % Where to save vector of sensors that fall within contours?
+    figureDir    = fullfile(fmsRootPath,'figures', subject{exampleSubject}); % Where to save images?
     
     % Make figure and data dir for subject, if non-existing
     if ~exist(figureDir,'dir'); mkdir(figureDir); end
     if ~exist(dataDir,'dir'); mkdir(dataDir); end
     
-    visualizeSensormaps(dataToPlot, maxColormapPercentile, contourPercentile, ...
-                        signedColorbar, colorConds, markerType, fig_ttl, sub_ttl, saveFig, figureDir);
-   
-    
-    % Save sensors of interest falling within the contour lines
-    if saveFig
-        save(fullfile(dataDir, ...
-            sprintf('%s_sensorsWithinContours_Prediction_%s_%1.2f-%d_prctile%2.1f_%s_highResFlag%d_S%d.mat', ...
-            subject{s}, area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf, s)), 'dataToPlot'); 
-    end
-    
+    % Plot it!
+    visualizeSensormaps(dataToPlot, maxColormapPercentile, contourPercentile, signedColorbar, colorMarkers, markerType, fig_ttl, sub_ttl, saveFig, figureDir);
 end
-%% Take mean across subjects and plot if requested
+
+%% Visualize prediction for across subjects
 if plotMeanSubject
     
-    w.V123c_mn = mean(w.V123c,1);
-    w.V123i_mn = mean(w.V123i,1);
+    % Redefine figure dir
+    figureDir    = fullfile(fmsRootPath, 'figures', 'average'); % Where to save images?
     
-    dataToPlot = cat(1,w.V123c_mn, w.V123i_mn);
+    % Take the average across subjects
+    w.woC.V123c_mn     = mean(w.woC.V123c,1);
+    w.woC.V123i_mn     = mean(w.woC.V123i,1);
     
-    fig_ttl    = {sprintf('Figure6_ModelPredictions_%s_%1.2f-%d_prctile%d_%s_highResFlag%d_AVERAGE', ...
-                        area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf), ...
-                  sprintf('Figure6_Contour_%s_%1.2f-%d_prctile%d_%s_highResFlag%d_AVERAGE', ...
-                        area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf)};
-                    
-    sub_ttl    = {sprintf('Synchronous sources - Average N = %d', length(subject)), ...
-                  sprintf('Asynchronous sources - Average N = %d', length(subject))};
+    % Take the average across subjects
+    w.wC.V123c_mn     = mean(w.wC.V123c,1);
+    w.wC.V123i_mn     = mean(w.wC.V123i,1);
     
-    figureDir  = fullfile(fmsRootPath,'figures', 'average'); % Where to save images?
-    dataDir    = fullfile(fmsRootPath,'data', 'average'); % Where to save images?
+    % Take ratio
+    ratioCoh = w.woC.V123c_mn ./ w.wC.V123c_mn;
+    ratioInCoh = w.woC.V123i_mn ./ w.wC.V123i_mn;
     
-    if ~exist(figureDir,'dir'); mkdir(figureDir); end
-    if ~exist(dataDir,'dir'); mkdir(dataDir); end
+    % Define plotting data and figure titles
+    dataToPlot   = cat(1, w.woC.V123c_mn, w.woC.V123i_mn);
     
-    % Plot data and save channels that are located inside the contour lines
-    visualizeSensormaps(dataToPlot, maxColormapPercentile, contourPercentile, signedColorbar, colorConds, markerType, fig_ttl, sub_ttl, saveFig, figureDir);
+    fig_ttl      = {sprintf('Figure6_ModelPredictions-No_cancellation_%s_%1.2f-%d_prctle%2.1f_%s_highResFlag%d_AVERAGE', area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf), ...
+                    sprintf('Figure6_Contours-No_cancellation_%s_%1.2f-%d_prctle%2.1f_%s_highResFlag%d_AVERAGE', area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf)};
+    sub_ttl      = {sprintf('No cancellation: Synchronous sources Average N=%d', length(subject)), ...
+                    sprintf('No cancellation: Asynchronous sources Average N=%d', length(subject))};
+    markerType   = '.';
     
-    % Save sensors of interest falling within the contour lines
-    if saveFig
-        save(fullfile(dataDir, sprintf('sensorsWithinContours_Prediction_%s_%1.2f-%d_prctile%2.1f_%s_highResFlag%d_AVERAGE.mat', ...
-            area,eccenLimitDeg(1),eccenLimitDeg(2),contourPercentile,headmodelType,highResSurf)), 'dataToPlot');
-    end
+    % Plot it!
+    visualizeSensormaps(dataToPlot, maxColormapPercentile, contourPercentile, signedColorbar,colorMarkers, markerType, fig_ttl, sub_ttl, saveFig, figureDir);
+
+    % Plot ratio of with vs without cancellation
+    dataToPlot   = cat(1, ratioCoh, ratioInCoh);
+    fig_ttl      = {sprintf('Figure6_ratioWithVsWithoutCancellation_%s_%1.2f-%d_prctile%2.1f_%s_highResFlag%d_AVERAGE', area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf)};
+    sub_ttl      = {'Syn: Ratio with / without', ...
+                    'Asyn: Ratio with / without'};
+    visualizeSensormaps(dataToPlot, 100, [], signedColorbar, colorMarkers, markerType, fig_ttl, sub_ttl, saveFig, figureDir);
     
 end
 
-% Check toolbox versions
-% out = ver;
-% save(fullfile(fmsRootPath, 'toolboxVersions.mat'),'out')
-
+return
