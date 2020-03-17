@@ -68,6 +68,8 @@ p.addParameter('maxColormapPercentile', 97.5, @isnumeric);
 p.addParameter('signedColorbar', true, @islogical);
 p.addParameter('snrThresh',1, @isnumeric);
 p.addParameter('useSLPower', false, @islogical);
+p.addParameter('amplitudeType', 'amplitudes', ...
+    @(x) any(validatestring(x,{'amplitudes', 'amplitudesHigherHarmonics'})));
 p.parse(varargin{:});
 
 % Rename variables
@@ -81,6 +83,7 @@ maxColormapPercentile   = p.Results.maxColormapPercentile;
 signedColorbar          = p.Results.signedColorbar;
 snrThresh               = p.Results.snrThresh;
 useSLPower              = p.Results.useSLPower;
+amplitudeType           = p.Results.amplitudeType;
 
 % Define subjects
 subject         = {'wlsubj002', ... % S1 - Full, Left, Right stim experiment
@@ -97,7 +100,7 @@ subject         = {'wlsubj002', ... % S1 - Full, Left, Right stim experiment
                    'wlsubj070'};    % S12 - Full  stim only experiment
 
 % Set up paths
-figureDir        = fullfile(fmsRootPath, 'figures'); % Where to save images?
+figureDir        = fullfile(fmsRootPath, 'figuresHigherHarmonics'); % Where to save images?
 dataDir          = fullfile(fmsRootPath, 'data');    % Where to get data?
 
 % Number of bootstraps when comparing sensors of interest (those that fall
@@ -153,13 +156,13 @@ for s = subjectsToLoad
     snr(s,2,:) = data{2};
     
     % Get amplitude data
-    data = loadData(fullfile(dataDir, subject{s}), whichSession,'amplitudes');
+    data = loadData(fullfile(dataDir, subject{s}), whichSession,amplitudeType);
     
     % Update SL amplitudes for each subject, either with coherent or incoherent spectrum
     if useSLIncohSpectrum
         ampl{s}.sl.full  = data.sl.full;
         ampl{s}.sl.blank = data.sl.blank;
-        if strcmp(subject{s},'wlsubj059')
+        if (~strcmp(amplitudeType, 'amplitudesHigherHarmonics') && strcmp(subject{s},'wlsubj059'))
             ampl{s}.sl.full  = data.sl.full_coherent;
             ampl{s}.sl.blank = data.sl.blank_coherent;
         end
