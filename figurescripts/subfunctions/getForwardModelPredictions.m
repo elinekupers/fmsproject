@@ -34,7 +34,7 @@ end
 
 if ~exist('kappa', 'var') || isempty(kappa)
     kappa.asyn = 0; % (inverse) width of distribution
-    kappa.syn = 20*pi;
+    kappa.syn = 100*pi;
     kappa.mix = pi;
 end
 
