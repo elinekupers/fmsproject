@@ -185,7 +185,7 @@ for iter = 1:1000
     percentdiff.sl(iter,:) = 100*((10.^diffSL)-1);
 end
 
-fprintf('Mean change in broadband power: %4.1f%% \n', mean(percentdiff.bb));
-fprintf('Mean change in stimulus locked power: %4.1f%% \n', mean(percentdiff.sl));
+fprintf('Mean change in broadband power: %4.1f%%, with sd %1.1f%%\n', mean(percentdiff.bb),std(percentdiff.bb));
+fprintf('Mean change in stimulus locked power: %4.1f%%, with sd %1.1f%%\n', mean(percentdiff.sl),std(percentdiff.sl));
 
 return
