@@ -19,7 +19,7 @@ switch type
      
         data = {snr_sl.coh, snr_bb};
         
-    case {'amplitudes', 'amplitudes84Hz'}
+    case {'amplitudes', 'amplitudesHigherHarmonics'}
         
         % Define parameters to get SL and BB data
         fs           = 1000;         % Sample rate
@@ -65,7 +65,7 @@ switch type
             badChannels(badChanIdx) = true;
         end
 
-        fprintf('(%s): S%d - Selected bad channels are: %s\n', mfilename, whichSession, sprintf('%d ', find(badChannels)));              
+        fprintf('(%s): Data session %d - Selected bad channels are: %s\n', mfilename, whichSession, sprintf('%d ', find(badChannels)));              
         
         % Remove bad channels and bad epochs from data and conditions
         sensorData = sensorData(:,~badEpochs, ~badChannels);
@@ -124,26 +124,32 @@ switch type
         bb.blank = bb_ts(:,:,condEpochsBlank_truncated);
 
         % Compute power (BB) or amplitudes (SL) for full and blank epochs at specified frequencies
-        if strcmp(type, 'amplitudes84Hz')
-            slFreq = 84;
-            abIndex =  83;
-            keepFrequencies = @(x) x(abIndex);
+        if strcmp(type, 'amplitudesHigherHarmonics')
+            harmonics12Hz = [72,84,96,108,132,144];
+            harmonicsFreqIdx = @(x) x(harmonics12Hz+1);
+
+            % Stimulus locked using incoherent spectrum
+            sl.full = sqrt(getbroadband(sl.full,harmonicsFreqIdx, fs));  % Units of power, square root to get amplitudes
+            sl.full = to157chan(sl.full, ~badChannels,'nans');
+
+            sl.blank = sqrt(getbroadband(sl.blank,harmonicsFreqIdx, fs)); % Units of power, square root to get amplitudes
+            sl.blank = to157chan(sl.blank, ~badChannels,'nans');
+            
+        else
+            % Stimulus locked using incoherent spectrum
+            sl.full = getstimlocked(sl.full,slFreq+1);  % Amplitude (so not squared). Square values to get units of power
+            sl.full = to157chan(sl.full, ~badChannels,'nans');
+
+            sl.blank = getstimlocked(sl.blank,slFreq+1); % Amplitude (so not squared). Square values to get units of power
+            sl.blank = to157chan(sl.blank, ~badChannels,'nans');
+
+            % Stimulus locked using coherent spectrum
+            sl.full_coherent  = getstimlocked_coherent(sl_ts,slFreq+1, condEpochsFull_truncated);  % Amplitude (so not squared). Square values to get units of power
+            sl.full_coherent  = to157chan(sl.full_coherent, ~badChannels,'nans');
+
+            sl.blank_coherent = getstimlocked_coherent(sl_ts,slFreq+1, condEpochsBlank_truncated); % Amplitude (so not squared). Square values to get units of power
+            sl.blank_coherent = to157chan(sl.blank_coherent, ~badChannels,'nans');
         end
-        
-        % Stimulus locked using incoherent spectrum
-        sl.full = getstimlocked(sl.full,slFreq+1);  % Amplitude (so not squared). Square values to get units of power
-        sl.full = to157chan(sl.full, ~badChannels,'nans');
-
-        sl.blank = getstimlocked(sl.blank,slFreq+1); % Amplitude (so not squared). Square values to get units of power
-        sl.blank = to157chan(sl.blank, ~badChannels,'nans');
-
-        % Stimulus locked using coherent spectrum
-        sl.full_coherent  = getstimlocked_coherent(sl_ts,slFreq+1, condEpochsFull_truncated);  % Amplitude (so not squared). Square values to get units of power
-        sl.full_coherent  = to157chan(sl.full_coherent, ~badChannels,'nans');
-
-        sl.blank_coherent = getstimlocked_coherent(sl_ts,slFreq+1, condEpochsBlank_truncated); % Amplitude (so not squared). Square values to get units of power
-        sl.blank_coherent = to157chan(sl.blank_coherent, ~badChannels,'nans');
-        
         
         % Broadband
         bb.full   = getbroadband(bb.full ,keepFrequencies,fs); % Broadband data is already in units of power
