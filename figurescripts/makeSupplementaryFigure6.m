@@ -1,8 +1,12 @@
 function makeSupplementaryFigure6(varargin)
-%
-% This is a function to make model predictions for different eccentricities
-% for asynchrouns and synchronous sources in early visual cortical sources
-% similar to Supplementary Figure 6 from the manuscript.
+% This is a function to make Supplementary Figure 6 from the manuscript:
+%   A visual encoding model links magnetoencephalography
+%   signals to neural synchrony in human cortex.
+%       by Kupers, Benson, Winawer (YEAR) JOURNAL.
+
+% This figure shows model predictions for different stimulus eccentricities
+% for asynchronous and synchronous sources in early visual cortical
+% sources.
 %
 % To runs this script, you need:
 % (1) Access to the SSMEG folder in the brainstorm data base
@@ -37,7 +41,6 @@ function makeSupplementaryFigure6(varargin)
 %                                     Top15 sensors = 90.4. Top10 sensors = 93.6
 %                                     To get contour lines at equal percentiles
 %                                     of data, use any integer under 10.
-%   [maxColormapPercentile] :  (int)  percentile of data to truncate colormap
 %   [signedColorbar]        :  (bool) true/false plot signed colormap or only
 %                                     positive values.
 %   [singleColorbarFlag]    :  (bool) Use a single colorbar per row,instead of 
@@ -61,7 +64,6 @@ p.addParameter('highResSurf', false, @islogical);
 p.addParameter('area', 'V123', @(x) any(validatestring(x,{'V1', 'V2', 'V3','V123', 'benson18atlas', 'wang15atlas'})));
 p.addParameter('eccenLimitDeg', [[0.18,1]; [0.18,2]; [0.18,4]; [0.18,8]; [0.18,11]], @isnumeric);
 p.addParameter('contourPercentile', 93.6, @isnumeric);
-p.addParameter('maxColormapPercentile', 100, @isnumeric);
 p.addParameter('signedColorbar', false, @islogical);
 p.addParameter('singleColorbarFlag', true, @islogical);
 p.parse(varargin{:});
@@ -75,24 +77,12 @@ highResSurf           = p.Results.highResSurf;
 area                  = p.Results.area;
 eccenLimitDeg         = p.Results.eccenLimitDeg;
 contourPercentile     = p.Results.contourPercentile;
-maxColormapPercentile = p.Results.maxColormapPercentile;
 signedColorbar        = p.Results.signedColorbar;
 
 %% 0. Define subjects and paths
 
-subject         = {'wlsubj002', ... S1 - From exp: Full, Left, Right
-    'wlsubj004', ... S2 - From exp: Full, Left, Right
-    'wlsubj005', ... S3 - From exp: Full, Left, Right
-    'wlsubj006', ... S4 - From exp: Full, Left, Right
-    'wlsubj010', ... S5 - From exp: Full, Left, Right
-    'wlsubj011', ... S6 - From exp: Full, Left, Right
-    'wlsubj048', ... S7 - From exp: Full only
-    'wlsubj046', ... S8 - From exp: Full only
-    'wlsubj039', ... S9 - From exp: Full only
-    'wlsubj059', ... S10 - From exp: Full only
-    'wlsubj067', ... S11 - From exp: Full only
-    'wlsubj070'}; %  S12 - From exp: Full only
-
+% Get subject names and corresponding data session number
+subject = getSubjectIDs;
 
 % Load all subjects when plotting the mean
 if plotMeanSubject
@@ -188,10 +178,9 @@ for s = subjectsToPlot
     fH3 = figure(3); clf; set(gcf, 'Color', 'w'); hold all; megPlotMap(zeros(1,157)); drawnow; title('Asynchronous sources')
     
     colormapLimits = [0 max(squeeze(w.V1c(s,nrEccenLimits,:))./maxSynFullStim)];
+    
     for el = 1:nrEccenLimits
-        
-        thisEccen = eccenLimitDeg(el,:);
-        
+                
         % SYNCHRONOUS (KAPPA=100*pi)
         figure(fH1); hold all;
         subplot(nrows, ncols, el);

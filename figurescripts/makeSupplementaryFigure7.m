@@ -1,8 +1,11 @@
 function makeSupplementaryFigure7(varargin)
-%
 % This is a function to make model predictions for different mixtures of
 % synchrony levels in early visual cortical sources as shown in
-% Supplementary Figure 7 from the manuscript.
+% Supplementary Figure 7 from the manuscript:
+%
+%   A visual encoding model links magnetoencephalography
+%   signals to neural synchrony in human cortex.
+%       by Kupers, Benson, Winawer (YEAR) JOURNAL.
 %
 % To runs this script, you need:
 % (1) Access to the SSMEG folder in the brainstorm data base
@@ -40,11 +43,11 @@ function makeSupplementaryFigure7(varargin)
 %   [signedColorbar]        :  (bool) true/false plot signed colormap or only
 %                                     positive values.
 %
-% Example 1:
+% Example 1: Plot first subject
 %  makeSupplementaryFigure7('subjectsToPlot', 1, 'plotMeanSubject', false, 'saveFig', true)
-% Example 2:
+% Example 2: Plot example subject in manuscript (S12)
 %  makeSupplementaryFigure7('subjectsToPlot', 12, 'plotMeanSubject', false, 'saveFig', true)
-% Example 3:
+% Example 3: Plot all subjects and group average
 %  makeSupplementaryFigure7('subjectsToPlot', 1:12, 'plotMeanSubject', true, 'saveFig', true)
 %
 
