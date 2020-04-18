@@ -1,4 +1,40 @@
 function [data, badChannels] = loadData(dataDir, whichSession, type)
+% Load data for analysis and figures of the manuscript:
+%   A visual encoding model links magnetoencephalography
+%   signals to neural synchrony in human cortex.
+%       by Kupers, Benson, Winawer (YEAR) JOURNAL.
+%
+% INPUTS:
+%   [dataDir]         : (str)  directory to get observed MEG data
+%   [whichSession]    : (int)  data session number for subject 
+%   [type]            : (str)  load different types of data, choice from:
+%                               - 'SNR': signal-to-noise ratio
+%                               - 'amplitudes': 12 Hz stimulus-locked
+%                                   amplitudes & broadband power (60-150
+%                                   Hz, excl harmonics)
+%                               - 'amplitudesHigherHarmonics': 
+%                                   higher stimulus-locked harmonics in the
+%                                   same frequency range as broadband power
+%                                   (72,84,96,108,132,144 Hz) & broadband
+%                                   power (60-150 Hz, excl harmonics)
+%                               - 'timeseries': sensor time series, so not
+%                                   summarized into a stimulus-locked or
+%                                   broadband data component
+% OUTPUTS:
+%   [data]           : (struct) requested data
+%                               - 'SNR': cell with sl and bb snr
+%                                       {(1xsensors),(1xsensors)}
+%                               - 'amplitudes': struct with sl and bb
+%                                   contrast (full-blank) (1xsensors)
+%                               - 'timeseries': struct with  
+%                                   ts (sensors x epochs x time),
+%                                   condEpochsFull  (1xepochs)
+%                                   condEpochsBlank (1xepochs)
+%                                   badChannels     (1xsensors)
+%   [badChannels]    : (vector) boolean marking all sensors labeled as bad
+%
+%
+% By Eline Kupers, NYU (2017)
 
 
 switch type
@@ -65,6 +101,12 @@ switch type
             badChannels(badChanIdx) = true;
         end
 
+        % For some reason the preprocessing steps didn't take out bad
+        % channel 98 in several sessions, so we do it manually here.
+        if intersect(whichSession, [1:7,10,12]) 
+            badChannels(98) = true; 
+        end
+        
         fprintf('(%s): Data session %d - Selected bad channels are: %s\n', mfilename, whichSession, sprintf('%d ', find(badChannels)));              
         
         % Remove bad channels and bad epochs from data and conditions
@@ -75,6 +117,10 @@ switch type
 
         sl_ts = sensorData;
         bb_ts = denoisedts_bb{1};
+        
+        if intersect(whichSession, [1:7,10,12]) 
+            bb_ts(98,:,:) = []; 
+        end
         
         % there is a difference between the datasets in terms of scaling units
         % session 1-6 are in fempto Tesla  whereas 7-12 are in Tesla
@@ -122,7 +168,7 @@ switch type
 
         bb.full  = bb_ts(:,:,condEpochsFull_truncated);
         bb.blank = bb_ts(:,:,condEpochsBlank_truncated);
-
+        
         % Compute power (BB) or amplitudes (SL) for full and blank epochs at specified frequencies
         if strcmp(type, 'amplitudesHigherHarmonics')
             harmonics12Hz = [72,84,96,108,132,144];
@@ -197,6 +243,12 @@ switch type
          
          % ---- Define first epochs in order to remove later ------------------
          badEpochs(1:6:end) = 1;
+         
+         % For some reason the preprocessing steps didn't take out bad
+         % channel 98 in several sessions, so we do it manually here.
+         if intersect(whichSession, [1:7,10,12]) 
+            badChannels(98) = true; 
+         end
          
          % Remove bad channels and bad epochs from data and conditions
          sensorData = sensorData(:,~badEpochs, ~badChannels);
