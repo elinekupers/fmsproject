@@ -53,6 +53,8 @@ function makeFigure5(varargin)
 %  makeFigure4('subjectsToPlot', 12, 'plotMeanSubject', false, 'saveFig', true)
 % Example 3:
 %  makeFigure4('subjectsToPlot', 1:12, 'plotMeanSubject', true, 'saveFig', true)
+%
+% By Eline Kupers (NYU) 2017
 
 %% 0. Set up paths and define parameters
 
@@ -148,14 +150,16 @@ for s = subjectsToLoad
     
 end
 
-%% Take mean across subjects and plot if requested
+%% Visualize predictions
     
-% take mean
+% Take mean across subjects
 w.V123c_mn = mean(w.V123c,1);
 w.V123i_mn = mean(w.V123i,1);
 
+% Get max of synchronous prediction to normalize all data to
 maxSynAverage = max(w.V123c_mn);
     
+% Plot average across subject if requested
 if plotMeanSubject
     
     w.V123c_mn_norm = w.V123c_mn./maxSynAverage;
@@ -193,10 +197,9 @@ for s = subjectsToPlot
                         area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf, singleColorbarFlag,s), ...
                     sprintf('Figure5_Contour_%s_%1.2f-%d_prctile%2.1f_%s_highResFlag%d_singleColorbarFlag%d_S%d', ...
                         area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf, singleColorbarFlag,s)};
-
-    figureDir    = fullfile(fmsRootPath,'figures', subject{s}); % Where to save images?
     
     % Make figure and data dir for subject, if non-existing
+    figureDir    = fullfile(fmsRootPath,'figures', subject{s}); % Where to save images?
     if ~exist(figureDir,'dir'); mkdir(figureDir); end
     
     visualizeSensormaps(dataToPlot, maxColormapPercentile, contourPercentile, ...

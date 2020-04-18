@@ -99,6 +99,10 @@ amplitudeType           = p.Results.amplitudeType;
 figureDir        = fullfile(fmsRootPath, 'figures'); % Where to save images?
 dataDir          = fullfile(fmsRootPath, 'data');    % Where to get data?
 
+% Plotting params
+markerType    = '.';
+colorContours = {'y','b'};
+
 % Preallocate space for matrices
 diffFullBlankSL = NaN(length(subject),157);
 diffFullBlankBB = diffFullBlankSL;
@@ -171,8 +175,6 @@ for s = subjectsToPlot
                      sprintf('Figure3_Contour_incohSpectrum%d_prctile%2.1f_S%d_slPower%d_singleColorbarFlag%d', useSLIncohSpectrum, contourPercentile, s, useSLPower,singleColorbarFlag)};
     sub_ttl       = {sprintf('Stimulus locked S%d', s), ...
                      sprintf('Broadband S%d', s)};
-    markerType    = '.';
-    colorContours = {'y','b'};
     
     if saveFig
         figureDirSubj = fullfile(figureDir, subject{s});
@@ -196,7 +198,6 @@ if plotMeanSubject
     % Concatenate data
     dataToPlot      = cat(1, nanmean(diffFullBlankSL,1) .* snrThreshMask.sl.group', ...
                              nanmean(diffFullBlankBB,1) .* snrThreshMask.bb.group');
-    dataToPlot(:,98) = NaN;
     
     % Define figure and subfigure titles
     fig_ttl         = {sprintf('Figure3_Observed_MEG_Data_incohSpectrum%d_prctile%2.1f_slPower%d_singleColorbarFlag%d_AVERAGE', useSLIncohSpectrum, contourPercentile, useSLPower,singleColorbarFlag), ...

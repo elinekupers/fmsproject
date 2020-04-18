@@ -28,7 +28,7 @@ function makeFigure7(varargin)
 %   [area]                  :  (str)  visual area to use from Benson et al.
 %                                     (2014) PloS Comp Bio template.
 %                                     Choose from 'V1', 'V2', 'V3', 'V123'
-%                                     'benson17', or 'wang15atlas' (note:
+%                                     'benson18', or 'wang15atlas' (note:
 %                                     eccentricity boundaries cannot be
 %                                     defined when using wang15atlas)
 %   [eccenLimitDeg]         :  (int)  eccentricity limit (deg) of the template.
@@ -52,6 +52,9 @@ function makeFigure7(varargin)
 %  makeFigure6('subjectsToPlot', 12, 'plotMeanSubject', false, 'saveFig', true)
 % Example 3:
 %  makeFigure6('subjectsToPlot', 1:12, 'plotMeanSubject', true, 'saveFig', true)
+%
+%
+% By Eline Kupers (NYU) 2019
 
 %% 0. Set up paths and define parameters
 
@@ -62,7 +65,7 @@ p.addParameter('plotMeanSubject', true, @islogical)
 p.addParameter('saveFig', true, @islogical);
 p.addParameter('headmodelType', 'OS', @(x) any(validatestring(x,{'OS', 'BEM'})));
 p.addParameter('highResSurf', false, @islogical);
-p.addParameter('area', 'V123', @(x) any(validatestring(x,{'V1', 'V2', 'V3','V123', 'benson17atlas', 'wang15atlas'})));
+p.addParameter('area', 'V123', @(x) any(validatestring(x,{'V1', 'V2', 'V3','V123', 'benson18atlas', 'wang15atlas'})));
 p.addParameter('eccenLimitDeg', [0.18 11], @isnumeric);
 p.addParameter('contourPercentile', 93.6, @isnumeric);
 p.addParameter('maxColormapPercentile', 100, @isnumeric);
@@ -109,7 +112,11 @@ kappa.mix   = 0.27*pi;   % in between width size von Mises
 % Define vector that can truncate number of sensors
 keep_sensors = logical([ones(157,1); zeros(192-157,1)]); % TODO: Figure out a more generic way to define keep_sensors
 
-% Loop over subjects
+% Define plotting params
+colorMarkers = {'y','b'};
+markerType   = '.';
+
+%% Loop over subjects
 for s = subjectsToLoad
     
     % Get subject data and anatomy files
@@ -152,10 +159,8 @@ for s = subjectsToLoad
     w.wC.V123i(s,:) = mean(amps.wC.i(:,2,:),3);
     
 end
-%% 3. Visualize predictions from forward model for average across subjcts
 
-colorMarkers = {'y','b'};
-markerType   = '.';
+%% 2. Get average across subjects
 
 % Take the average across subjects (with Cancellation)
 w.wC.V123c_mn       = mean(w.wC.V123c,1);
@@ -177,7 +182,7 @@ w.woC.V123i_mn_norm = w.woC.V123i_mn./maxSynAverage;
 ratioCoh_norm   = w.woC.V123c_mn_norm ./ w.wC.V123c_mn_norm;
 ratioInCoh_norm = w.woC.V123i_mn_norm ./ w.wC.V123i_mn_norm;
 
-
+% Visualize predictions from forward model for group average
 if plotMeanSubject
     
     % Redefine figure dir
@@ -187,10 +192,9 @@ if plotMeanSubject
     dataToPlot   = cat(1, w.woC.V123c_mn_norm, w.woC.V123i_mn_norm);
     
     fig_ttl      = {sprintf('Figure7_ModelPredictions-No_cancellation_%s_%1.2f-%d_prctle%2.1f_%s_highResFlag%d_singleColorbarFlag%d_AVERAGE', area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf,singleColorbarFlag), ...
-        sprintf('Figure7_Contours-No_cancellation_%s_%1.2f-%d_prctle%2.1f_%s_highResFlag%d_singleColorbarFlag%d_AVERAGE', area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf,singleColorbarFlag)};
+                    sprintf('Figure7_Contours-No_cancellation_%s_%1.2f-%d_prctle%2.1f_%s_highResFlag%d_singleColorbarFlag%d_AVERAGE', area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf,singleColorbarFlag)};
     sub_ttl      = {sprintf('No cancellation: Synchronous sources Average N=%d', length(subject)), ...
-        sprintf('No cancellation: Asynchronous sources Average N=%d', length(subject))};
-    markerType   = '.';
+                    sprintf('No cancellation: Asynchronous sources Average N=%d', length(subject))};
     
     % Plot it!
     visualizeSensormaps(dataToPlot, maxColormapPercentile, contourPercentile, ...
@@ -200,33 +204,28 @@ if plotMeanSubject
     dataToPlot = cat(1, ratioCoh_norm, ratioInCoh_norm);
     fig_ttl      = {sprintf('Figure7_ratioWithVsWithoutCancellation_%s_%1.2f-%d_prctile%2.1f_%s_highResFlag%d_singleColorbarFlag%d_AVERAGE', area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf,singleColorbarFlag)};
     sub_ttl      = {'Syn: ratio with / without', ...
-        'Asyn: ratio with / without'};
+                    'Asyn: ratio with / without'};
   
     visualizeSensormaps(dataToPlot, 100, [], signedColorbar, singleColorbarFlag, colorMarkers, ...
             markerType, fig_ttl, sub_ttl, saveFig, figureDir);
 end
 
-%% Plot for requested individual subject
+%% 3. Plot for requested individual subject
 for exampleSubject = subjectsToPlot
     
     dataToPlot   = cat(1, (w.woC.V123c(exampleSubject,:)./maxSynAverage), ...
                           (w.woC.V123i(exampleSubject,:)./maxSynAverage));
     
     fig_ttl      = {sprintf('Figure7_ModelPredictions-No_cancellation_%s_%1.2f-%d_prctle%d_%s_highResFlag%d_singleColorbarFlag%d_S%d', ...
-        area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile,headmodelType, highResSurf, singleColorbarFlag, exampleSubject), ...
-        sprintf('Figure7_Contours-No_cancellation_%s_%1.2f-%d_prctle%d_%s_highResFlag%d_singleColorbarFlag%d_S%d', ...
-        area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf, singleColorbarFlag,exampleSubject)};
+                      area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile,headmodelType, highResSurf, singleColorbarFlag, exampleSubject), ...
+                    sprintf('Figure7_Contours-No_cancellation_%s_%1.2f-%d_prctle%d_%s_highResFlag%d_singleColorbarFlag%d_S%d', ...
+                      area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf, singleColorbarFlag,exampleSubject)};
     sub_ttl      = {sprintf('No cancellation: Synchronous sources S%d', exampleSubject), ...
-        sprintf('No cancellation: Asynchronous sources S%d', exampleSubject), ...
-        'obsolete'};
-    
-    % Get the correct subject folder to save figures
-    dataDir      = fullfile(fmsRootPath,'data', subject{exampleSubject}); % Where to save vector of sensors that fall within contours?
-    figureDir    = fullfile(fmsRootPath,'figures', subject{exampleSubject}); % Where to save images?
-    
+                    sprintf('No cancellation: Asynchronous sources S%d', exampleSubject)};
+        
     % Make figure and data dir for subject, if non-existing
+    figureDir    = fullfile(fmsRootPath,'figures', subject{exampleSubject}); % Where to save images?
     if ~exist(figureDir,'dir'); mkdir(figureDir); end
-    if ~exist(dataDir,'dir'); mkdir(dataDir); end
     
     % Plot it!
     visualizeSensormaps(dataToPlot, maxColormapPercentile, contourPercentile, ...
