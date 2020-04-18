@@ -1,5 +1,4 @@
 function [template, polarang, eccen] = getTemplate(anatDir, whichVisualAreas, stimEccen)
-
 % Function to load Brainstorm mesh templates of visual areas. Templates
 % should be created from Benson Docker for a particular Freesurfer subject,
 % and downsampled to Brainstorm mesh and saved in anat folder in Brainstorm
@@ -77,6 +76,10 @@ end
 
 % For reference, get polar angle of each vertex in degrees (not used for now)
 benson.polarang.sub_bs_angle_rad = pi/180*(90-benson.polarang.sub_bs_angle);
+
+% define other maps for output
+polarang = benson.polarang;
+eccen    = benson.eccen;
 
 % Limit to stimulus eccentricity
 if ~isempty(stimEccen)
