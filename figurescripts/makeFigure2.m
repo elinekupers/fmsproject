@@ -43,6 +43,8 @@ function makeFigure2(varargin)
 %   [signedColorbar]    : (bool)  plot signed colormap (true) or only 
 %                                 positive values (false)? 
 %                                 (default: true)
+%   [singleColorbarFlag]: (bool)  Use a single colorbar per row,instead of 
+%                                 per individual plot (default: false)
 %   [snrThresh]         : (int)   snr threshold for amplitudes
 %                                 (default: 1)
 %   [useSLPower]        : (bool)  plot SL power or amplitudes from spectrum
@@ -66,6 +68,7 @@ p.addParameter('doSOIcomparison', false, @islogical);
 p.addParameter('contourPercentile', 93.6, @isnumeric);  
 p.addParameter('maxColormapPercentile', 97.5, @isnumeric); 
 p.addParameter('signedColorbar', true, @islogical);
+p.addParameter('singleColorbarFlag', false, @islogical);
 p.addParameter('snrThresh',1, @isnumeric);
 p.addParameter('useSLPower', false, @islogical);
 p.addParameter('amplitudeType', 'amplitudes', ...
@@ -81,6 +84,7 @@ doSOIcomparison         = p.Results.doSOIcomparison;
 contourPercentile       = p.Results.contourPercentile;
 maxColormapPercentile   = p.Results.maxColormapPercentile;
 signedColorbar          = p.Results.signedColorbar;
+singleColorbarFlag      = p.Results.singleColorbarFlag;
 snrThresh               = p.Results.snrThresh;
 useSLPower              = p.Results.useSLPower;
 amplitudeType           = p.Results.amplitudeType;
@@ -233,8 +237,8 @@ for s = subjectsToPlot
          dataToPlot(:,98) = NaN; % Check if this is always a bad channel, and should be dropped earlier in the analysis
     end
      
-    fig_ttl       = {sprintf('Figure2_Observed_MEG_Data_incohSpectrum%d_prctile%2.1f_S%d_slPower%d', useSLIncohSpectrum, contourPercentile, s, useSLPower), ...
-                    sprintf('Figure2_Contour_incohSpectrum%d_prctile%2.1f_S%d_slPower%d', useSLIncohSpectrum, contourPercentile, s, useSLPower)};
+    fig_ttl       = {sprintf('Figure2_Observed_MEG_Data_incohSpectrum%d_prctile%2.1f_S%d_slPower%d_singleColorbarFlag%d', useSLIncohSpectrum, contourPercentile, s, useSLPower,singleColorbarFlag), ...
+                    sprintf('Figure2_Contour_incohSpectrum%d_prctile%2.1f_S%d_slPower%d_singleColorbarFlag%d', useSLIncohSpectrum, contourPercentile, s, useSLPower,singleColorbarFlag)};
     sub_ttl       = {sprintf('Stimulus locked S%d', s), ...
                      sprintf('Broadband S%d', s)};
     markerType    = '.';
@@ -247,7 +251,8 @@ for s = subjectsToPlot
         if ~exist(figureDirSubj, 'dir'); mkdir(figureDirSubj); end
     end
     
-    visualizeSensormaps(dataToPlot, maxColormapPercentile, contourPercentile, signedColorbar, colorContours, markerType, fig_ttl, sub_ttl, saveFig, figureDirSubj);
+    visualizeSensormaps(dataToPlot, maxColormapPercentile, contourPercentile, ...
+        signedColorbar, singleColorbarFlag, colorContours, markerType, fig_ttl, sub_ttl, saveFig, figureDirSubj);
 end
 
 %% 4. Plot average across subjects if requested
@@ -264,8 +269,8 @@ if plotMeanSubject
     dataToPlot(:,98) = NaN;
     
     % Define figure and subfigure titles
-    fig_ttl         = {sprintf('Figure2_Observed_MEG_Data_incohSpectrum%d_prctile%2.1f_slPower%d_AVERAGE', useSLIncohSpectrum, contourPercentile, useSLPower), ...
-                       sprintf('Figure2_Contour_incohSpectrum%d_prctile%2.1f_slPower%d_AVERAGE', useSLIncohSpectrum, contourPercentile, useSLPower)};
+    fig_ttl         = {sprintf('Figure2_Observed_MEG_Data_incohSpectrum%d_prctile%2.1f_slPower%d_singleColorbarFlag%d_AVERAGE', useSLIncohSpectrum, contourPercentile, useSLPower,singleColorbarFlag), ...
+                       sprintf('Figure2_Contour_incohSpectrum%d_prctile%2.1f_slPower%d_singleColorbarFlag%d_AVERAGE', useSLIncohSpectrum, contourPercentile, useSLPower,singleColorbarFlag)};
     sub_ttl         = {sprintf('Stimulus locked Average N = %d', length(subject)), ...
                        sprintf('Broadband Average N = %d', length(subject))};
     
@@ -274,7 +279,8 @@ if plotMeanSubject
     if ~exist(figureDirAvg,'dir'); mkdir(figureDirAvg); end
     
     % Plot it!
-    visualizeSensormaps(dataToPlot, maxColormapPercentile, contourPercentile, signedColorbar, colorContours, markerType, fig_ttl, sub_ttl, saveFig, figureDirAvg);
+    visualizeSensormaps(dataToPlot, maxColormapPercentile, contourPercentile, ...
+        signedColorbar, singleColorbarFlag, colorContours, markerType, fig_ttl, sub_ttl, saveFig, figureDirAvg);
 end
 
 %% 5. If requested: Make barplot of bootstrapped data of sensors that fall within contour 
