@@ -9,11 +9,12 @@ function [template, polarang, eccen] = getTemplate(anatDir, whichVisualAreas, st
 % anatDir            : [str] path to subject's anatomy folder in Brainstorm database
 % whichVisualAreas   : [str] string to define whether you want templates
 %                            from all early visual areas ['V123'], 'V1',
-%                            'V2', or 'V3', all 12 areas in the Benson 17
-%                            atlas: 'benson17atlas', or all in the Wang 15
-%                            atlas: 'wang15atlas'. Note that the wang atlas
-%                            does not contain polar angle/eccen maps, so we
-%                            will use all vertices.
+%                            'V2', or 'V3', all 12 areas in the Benson et 
+%                            al. 2018 atlas: 'benson18atlas', or all in
+%                            the Wang et al. 2015 atlas: 'wang15atlas'.
+%                            Note that the wang atlas does not contain
+%                            polar angle/eccen maps, so we will use all
+%                            vertices.
 % stimEccen          : [int] or [vect] eccentricity in degrees to limit vertices in template.
 
 % OUTPUTS:
@@ -42,32 +43,32 @@ end
 % eccen    = load(fullfile(anatDir, 'eccen_overlay.mat')); % [1xNsources] Nonzero value represents vertex preferred eccentricity in degrees, zeros refer to outside of visual cortex
 % polarang = load(fullfile(anatDir, 'angle_overlay.mat')); % [1xNsources] Nonzero value represents vertex preferred polar angle in degrees, zeros refer to outside of visual cortex
 
-benson17.areas    = load(fullfile(anatDir, 'benson14areas_overlay.mat')); % [1xNsources] Every value between [1 and 3] is inside V1-3, zeros refer to outside of visual cortex, 4-12 are other visual areas
-benson17.eccen    = load(fullfile(anatDir, 'benson14eccen_overlay.mat')); % [1xNsources] Nonzero value represents vertex preferred eccentricity in degrees, zeros refer to outside of visual cortex, 
-benson17.polarang = load(fullfile(anatDir, 'benson14angle_overlay.mat')); % [1xNsources] Nonzero value represents vertex preferred polar angle in degrees, zeros refer to outside of visual cortex
+benson.areas    = load(fullfile(anatDir, 'benson14areas_overlay.mat')); % [1xNsources] Every value between [1 and 3] is inside V1-3, zeros refer to outside of visual cortex, 4-12 are other visual areas
+benson.eccen    = load(fullfile(anatDir, 'benson14eccen_overlay.mat')); % [1xNsources] Nonzero value represents vertex preferred eccentricity in degrees, zeros refer to outside of visual cortex, 
+benson.polarang = load(fullfile(anatDir, 'benson14angle_overlay.mat')); % [1xNsources] Nonzero value represents vertex preferred polar angle in degrees, zeros refer to outside of visual cortex
 
 wang15.areas      = load(fullfile(anatDir, 'wang15areas_overlay.mat')); 
 
 switch whichVisualAreas
     case 'V123'
         % Get vertices in V1-V3
-        template.(whichVisualAreas)     = (benson17.areas.sub_bs_areas>0 & benson17.areas.sub_bs_areas <=3);
+        template.(whichVisualAreas)     = (benson.areas.sub_bs_areas>0 & benson.areas.sub_bs_areas <=3);
     
     case 'V1'
         % Get only vertices in V1
-        template.(whichVisualAreas)     = benson17.areas.sub_bs_areas==1; 
+        template.(whichVisualAreas)     = benson.areas.sub_bs_areas==1; 
         
     case 'V2'
          % Get only vertices in V2
-        template.(whichVisualAreas)     = benson17.areas.sub_bs_areas==2;
+        template.(whichVisualAreas)     = benson.areas.sub_bs_areas==2;
         
     case 'V3'
         % Get only vertices in V3
-        template.(whichVisualAreas)     = benson17.areas.sub_bs_areas==3;
+        template.(whichVisualAreas)     = benson.areas.sub_bs_areas==3;
     
-    case 'benson17atlas'
+    case 'benson18atlas'
         % Get vertices in all 12 visual areas (1:  'V1', 2: 'V2',  3: 'V3',  4: 'hV4',  5: 'VO1', 6:  'VO2',  7: 'LO1', 8: 'LO2', 9: 'TO1', 10: 'TO2', 11: 'V3b', 12: 'V3a'
-        template.(whichVisualAreas)     = benson17.areas.sub_bs_areas > 0;
+        template.(whichVisualAreas)     = benson.areas.sub_bs_areas > 0;
         
     case 'wang15atlas'
         template.(whichVisualAreas)     = wang15.areas.sub_bs_wang > 0;
@@ -75,7 +76,7 @@ switch whichVisualAreas
 end
 
 % For reference, get polar angle of each vertex in degrees (not used for now)
-benson17.polarang.sub_bs_angle_rad = pi/180*(90-benson17.polarang.sub_bs_angle);
+benson.polarang.sub_bs_angle_rad = pi/180*(90-benson.polarang.sub_bs_angle);
 
 % Limit to stimulus eccentricity
 if ~isempty(stimEccen)
@@ -89,12 +90,12 @@ if ~isempty(stimEccen)
         eccenMask = ones(size(template.(whichVisualAreas)));
         warning('(%): stimEccen will not be used with wang15atlas', mfilename)
     else
-        eccenMask = zeros(size(benson17.eccen.sub_bs_eccen));
+        eccenMask = zeros(size(benson.eccen.sub_bs_eccen));
     
         if length(stimEccen)==1     
-            eccenMask((benson17.eccen.sub_bs_eccen<=stimEccen(1))) = 1;
+            eccenMask((benson.eccen.sub_bs_eccen<=stimEccen(1))) = 1;
         elseif length(stimEccen)==2
-            eccenMask((benson17.eccen.sub_bs_eccen>=stimEccen(1)) & (benson17.eccen.sub_bs_eccen<=stimEccen(2))) = 1;        
+            eccenMask((benson.eccen.sub_bs_eccen>=stimEccen(1)) & (benson.eccen.sub_bs_eccen<=stimEccen(2))) = 1;        
         end
         
     end
