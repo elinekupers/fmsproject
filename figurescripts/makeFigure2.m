@@ -1,49 +1,58 @@
-function makeFigure2(varargin)
+function makeFigure1(exampleSubject)
+
 % Function to plot the spectrum of an individual channel for an individual
-% subject for the manuscript:
-%   A visual encoding model links magnetoencephalography
-%   signals to neural synchrony in human cortex.
-%       by Kupers, Benson, Winawer (YEAR) JOURNAL.
-%
-% INPUTS:
-%   [subjectsToPlot]        :  (int)  subject nr to plot (default: 12)
-%
-% Example: Plot example subject in manuscript (S12)
-%  makeFigure2('subjectsToPlot', 12, 'saveFig', true)
-%
-%
-% By Eline Kupers, NYU (2017)
+% subject.
 
-p = inputParser;
-p.KeepUnmatched = true;
-p.addParameter('subjectsToPlot', 12);
-p.addParameter('saveFig', true, @islogical);
-p.parse(varargin{:});
-
-% Rename variables
-subjectsToPlot        = p.Results.subjectsToPlot;
-saveFig               = p.Results.saveFig;
-
-% Get subject names and their corresponding data session number
-[subject, dataSession] = getSubjectIDs;
+subject         = {'wlsubj002','wlsubj004','wlsubj005','wlsubj006','wlsubj010','wlsubj011','wlsubj048', 'wlsubj046','wlsubj039','wlsubj059', 'wlsubj067', 'wlsubj070'};
+if nargin < 1; exampleSubject  = 12; end % Which example subject to show if not defined
 
 % Set up paths
-figureDir              = fullfile(fmsRootPath, 'figures', subject{subjectsToPlot}); % Where to save images?
+figureDir              = fullfile(fmsRootPath, 'figures', subject{exampleSubject}); % Where to save images?
 dataDir                = fullfile(fmsRootPath, 'data');    % Where to get data?
+saveFigures            = false;      % Save figures in the figure folder?
+
 
 %% 1. Load subject's data
 
-% Go from subject to session nr
-whichSession = dataSession(subjectsToPlot);
+switch subject{exampleSubject}
+    % Go from subject to session nr
+    case 'wlsubj002'
+        whichSession = 2;
+    case 'wlsubj004'
+        whichSession = 7;
+    case 'wlsubj005'
+        whichSession = 8;
+    case 'wlsubj006'
+        whichSession = 1;
+    case 'wlsubj010'
+        whichSession = 6;
+    case 'wlsubj011'
+        whichSession = 5;
+    case 'wlsubj048'
+        whichSession = 9; % Full field Only
+    case 'wlsubj046'
+        whichSession = 10; % Full field Only
+    case 'wlsubj039'
+        whichSession = 11; % Full field Only
+    case 'wlsubj059'
+        whichSession = 12; % Full field Only
+    case 'wlsubj067'
+        whichSession = 13; % Full field Only
+    case 'wlsubj070'
+        whichSession = 14; % Full field Only
+end
     
 % Get amplitude data
-data = loadData(fullfile(dataDir, subject{subjectsToPlot}), whichSession,'timeseries');
+data = loadData(fullfile(dataDir, subject{exampleSubject}), whichSession,'timeseries');
 
 % Define MEG sensor to plot
 sensorIdx = 1;
                
 % Define color to plot full conditions
 colors    = [0 0 0; 126 126 126]./255;
+
+% Spectrum of example channel
+fH = figure('position',[0,300,500,500]); clf(fH); set(fH, 'Name', 'Spectrum of one MEG sensor' , 'NumberTitle', 'off');
 
 % Define axes
 f = (0:999);
@@ -73,10 +82,6 @@ if any(intersect(whichSession, 9:14))
     mn.blank = mn.blank.*10^-15.*10^-15;
 end
 
-
-%% Plot Spectrum of example channel
-fH = figure('position',[0,300,500,500]); clf(fH); set(fH, 'Name', 'Spectrum of one MEG sensor' , 'NumberTitle', 'off');
-
 % plot median 
 plot(fok, mn.full(:,2),  '-',  'Color', colors(1,:), 'LineWidth', 2); hold on;
 plot(fok, mn.blank(:,2),  '-',  'Color', colors(2,:), 'LineWidth', 2);
@@ -94,8 +99,8 @@ title(sprintf('Channel %d', sensorIdx));
 yl2 = get(gca, 'YLim');
 for ii =12:12:180, plot([ii ii], yl2, '-', 'Color', [100 100 100]./255); end
 
-if saveFig
-    figurewrite(fullfile(figureDir, 'Figure2A_SpectrumOneChannel'), [],0,'.',1);
+if saveFigures
+    figurewrite(fullfile(figureDir, 'Figure1A_SpectrumOneChannel'), [],0,'.',1);
 end
 
 %% Plot zoom into broadband frequencies
@@ -121,8 +126,8 @@ title(sprintf('Channel %d', sensorIdx));
 yl2 = get(gca, 'YLim');
 for ii =12:12:180, plot([ii ii], yl2, '-', 'Color', [100 100 100]./255); end
 
-if saveFig
-    figurewrite(fullfile(figureDir, 'Figure2B_SpectrumZoomBroadband'), [],0,'.',1);
+if saveFigures
+    figurewrite(fullfile(figureDir, 'Figure1A_SpectrumZoomBroadband'), [],0,'.',1);
 end
 
 
@@ -131,10 +136,10 @@ figure;
 sensorloc = ones(1,size(data.ts,1))*0.5;
 sensorloc(sensorIdx)=1;
 megPlotMap(to157chan(sensorloc,~data.badChannels,'zeros'),[0 1],[],'gray', [], [], [], 'interpmethod', 'nearest'); colorbar off
-title('White = Sensor location, Black = bad sensor');
 
-if saveFig
-    figurewrite(fullfile(figureDir, 'Figure2Inset_LocationOfExampleChannel'), [],0,'.',1);
+
+if saveFigures
+    figurewrite(fullfile(figureDir, 'Figure1A_LocationOfExampleChannel'), [],0,'.',1);
 end
 
 
