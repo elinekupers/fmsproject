@@ -1,457 +1,186 @@
 function makeFigure2(varargin)
-%
-% This is a function to make Figure 2 from the manuscript about forward
-% modeling coherent and incoherent neural sources to MEG responses.
-%
-% This figure shows the empirical finding of two different spatial patterns
-% for a stimulus-locked response and an asynchronous broadband response to
-% a large field flickering (12 Hz) dartboard pattern.
-%
-% To runs this script, you need:
-% (1) the data from the denoiseproject in the data folder of its FMS
-%     code repository
-%
-% (2) MEG_utils toolbox added to the paths. For example:
-%     tbUse('ForwardModelSynchrony');
-%        or to only add the MEG_utils toolbox:
-%     addpath(genpath('~/matlab/git/toolboxes/meg_utils'))
+% Function to plot the spectrum of an individual channel for an individual
+% subject for the manuscript:
+%   A visual encoding model links magnetoencephalography
+%   signals to neural synchrony in human cortex.
+%       by Kupers, Benson, Winawer (YEAR) JOURNAL.
 %
 % INPUTS:
-%   [subjectsToPlot]     : (int)  subject nr to plot (default: 12)
-%   [plotMeanSubject]    : (bool) plot average across all 12 subjets or not?
-%                                 (default: true)
-%   [saveFig]            : (bool) save figures or not? (default: true)
-%   [useSLIncohSpectrum] : (bool) plot SL amplitudes from incoherent spectrum
-%                                 (default: true)
-%   [doSOIcomparison]    : (bool) compare the signal for two groups (syn and 
-%                                 asyn sources) of sensors inside the contour
-%                                 lines of modelpredictions computed by
-%                                 makeFigure 6. SOI stands for sensors of 
-%                                 interest (default: false) 
-%   [contourPercentile]  : (int)  percentile of the data to draw contour 
-%                                 lines? There are two ways to define: 
-%                                 (1) single integer above 10 to get percentile
-%                                 to select X sensors with highest response
-%                                 Use 90.4 for top 15 sensors, or 93.6 for
-%                                 top 10 sensors.
-%                                 (2) single integer below 10 to get contour 
-%                                 lines at equal percentiles of data, e.g.
-%                                 3 => 25 50 75th prctle
-%                                 (default: 93.6) 
-%   [maxColormapPercentile]:(int) percentile of data to truncate colormap
-%                                 (default: 97.5)
-%   [signedColorbar]    : (bool)  plot signed colormap (true) or only 
-%                                 positive values (false)? 
-%                                 (default: true)
-%   [singleColorbarFlag]: (bool)  Use a single colorbar per row,instead of 
-%                                 per individual plot (default: false)
-%   [snrThresh]         : (int)   snr threshold for amplitudes
-%                                 (default: 1)
-%   [useSLPower]        : (bool)  plot SL power or amplitudes from spectrum
-%                                 (default: false)
+%   [subjectsToPlot]        :  (int)  subject nr to plot (default: 12)
 %
-% Example 1:
-%  makeFigure2('subjectsToPlot', 1, 'plotMeanSubject', false, 'saveFig', true)
-% Example 2:
-%  makeFigure2('subjectsToPlot', 12, 'plotMeanSubject', false, 'saveFig', true)
-% Example 3:
-%  makeFigure2('subjectsToPlot', 1:12, 'plotMeanSubject', true, 'saveFig', true)
+% Example: Plot example subject in manuscript (S12)
+%  makeFigure2('subjectsToPlot', 12, 'saveFig', true)
+%
+%
+% By Eline Kupers, NYU (2017)
 
-%% 0. Set up paths and define parameters
 p = inputParser;
 p.KeepUnmatched = true;
 p.addParameter('subjectsToPlot', 12);
-p.addParameter('plotMeanSubject', true, @islogical); 
-p.addParameter('saveFig', true, @islogical); 
-p.addParameter('useSLIncohSpectrum', true, @islogical);
-p.addParameter('doSOIcomparison', false, @islogical);
-p.addParameter('contourPercentile', 93.6, @isnumeric);  
-p.addParameter('maxColormapPercentile', 97.5, @isnumeric); 
-p.addParameter('signedColorbar', true, @islogical);
-p.addParameter('singleColorbarFlag', false, @islogical);
-p.addParameter('snrThresh',1, @isnumeric);
-p.addParameter('useSLPower', false, @islogical);
-p.addParameter('amplitudeType', 'amplitudes', ...
-    @(x) any(validatestring(x,{'amplitudes', 'amplitudesHigherHarmonics'})));
+p.addParameter('saveFig', true, @islogical);
 p.parse(varargin{:});
 
 % Rename variables
-subjectsToPlot          = p.Results.subjectsToPlot;
-plotMeanSubject         = p.Results.plotMeanSubject;
-saveFig                 = p.Results.saveFig;
-useSLIncohSpectrum      = p.Results.useSLIncohSpectrum;
-doSOIcomparison         = p.Results.doSOIcomparison;
-contourPercentile       = p.Results.contourPercentile;
-maxColormapPercentile   = p.Results.maxColormapPercentile;
-signedColorbar          = p.Results.signedColorbar;
-singleColorbarFlag      = p.Results.singleColorbarFlag;
-snrThresh               = p.Results.snrThresh;
-useSLPower              = p.Results.useSLPower;
-amplitudeType           = p.Results.amplitudeType;
+subjectsToPlot        = p.Results.subjectsToPlot;
+saveFig               = p.Results.saveFig;
 
-% Define subjects
-subject         = {'wlsubj002', ... % S1 - Full, Left, Right stim experiment
-                   'wlsubj004', ... % S2 - Full, Left, Right stim experiment
-                   'wlsubj005', ... % S3 - Full, Left, Right stim experiment
-                   'wlsubj006', ... % S4 - Full, Left, Right stim experiment
-                   'wlsubj010', ... % S5 - Full, Left, Right stim experiment
-                   'wlsubj011', ... % S6 - Full, Left, Right stim experiment
-                   'wlsubj048', ... % S7 - Full  stim only experiment
-                   'wlsubj046', ... % S8 - Full  stim only experiment
-                   'wlsubj039', ... % S9 - Full  stim only experiment
-                   'wlsubj059', ... % S10 - Full  stim only experiment
-                   'wlsubj067', ... % S11 - Full  stim only experiment
-                   'wlsubj070'};    % S12 - Full  stim only experiment
+% Get subject names and their corresponding data session number
+[subject, dataSession] = getSubjectIDs;
 
 % Set up paths
-figureDir        = fullfile(fmsRootPath, 'figuresHigherHarmonics'); % Where to save images?
-dataDir          = fullfile(fmsRootPath, 'data');    % Where to get data?
-
-% Number of bootstraps when comparing sensors of interest (those that fall
-% within contour lines) between stimulus-locked and broadband responses
-nboot = 1000;
-
-% Preallocate space for matrices
-diffFullBlankSL = NaN(length(subject),157);
-diffFullBlankBB = diffFullBlankSL;
-
-% Load all subjects when plotting the mean
-if plotMeanSubject
-    subjectsToLoad = 1:length(subject);
-else
-    subjectsToLoad = subjectsToPlot;
-end
+figureDir              = fullfile(fmsRootPath, 'figures', subject{subjectsToPlot}); % Where to save images?
+dataDir                = fullfile(fmsRootPath, 'data');    % Where to get data?
 
 %% 1. Load subject's data
 
-for s = subjectsToLoad
+% Go from subject to session nr
+whichSession = dataSession(subjectsToPlot);
     
-    % Go from subject to session nr
-    switch subject{s}
-        case 'wlsubj002' % S1 - Full, Left, Right stim experiment
-            whichSession = 2;
-        case 'wlsubj004' % S2 - Full, Left, Right stim experiment
-            whichSession = 7;
-        case 'wlsubj005' % S3 - Full, Left, Right stim experiment
-            whichSession = 8;
-        case 'wlsubj006' % S4 - Full, Left, Right stim experiment
-            whichSession = 1;
-        case 'wlsubj010' % S5 - Full, Left, Right stim experiment
-            whichSession = 6;
-        case 'wlsubj011' % S6 - Full, Left, Right stim experiment
-            whichSession = 5;
-        case 'wlsubj048' % S7 - Full  stim only experiment
-            whichSession = 9;
-        case 'wlsubj046' % S8 - Full  stim only experiment
-            whichSession = 10;
-        case 'wlsubj039' % S9 - Full  stim only experiment
-            whichSession = 11;
-        case 'wlsubj059' % S10 - Full  stim only experiment
-            whichSession = 12;
-        case 'wlsubj067' % S11 - Full  stim only experiment
-            whichSession = 13;
-        case 'wlsubj070' % S12 - Full  stim only experiment
-            whichSession = 14;
-    end
-    
-    % Get SNR data
-    data = loadData(fullfile(dataDir, subject{s}),whichSession,'SNR');
-    snr(s,1,:) = data{1};
-    snr(s,2,:) = data{2};
-    
-    % Get amplitude data
-    data = loadData(fullfile(dataDir, subject{s}), whichSession,amplitudeType);
-    
-    % Update SL amplitudes for each subject, either with coherent or incoherent spectrum
-    if useSLIncohSpectrum
-        ampl{s}.sl.full  = data.sl.full;
-        ampl{s}.sl.blank = data.sl.blank;
-        if (~strcmp(amplitudeType, 'amplitudesHigherHarmonics') && strcmp(subject{s},'wlsubj059'))
-            ampl{s}.sl.full  = data.sl.full_coherent;
-            ampl{s}.sl.blank = data.sl.blank_coherent;
-        end
-    else
-        ampl{s}.sl.full  = data.sl.full_coherent;
-        ampl{s}.sl.blank = data.sl.blank_coherent;
-    end
-    
-    % Convert SL amplitudes to power (by squaring) if requested
-    if useSLPower
-        ampl{s}.sl.full = ampl{s}.sl.full.^2;
-        ampl{s}.sl.blank = ampl{s}.sl.blank.^2;
-    end
-    
-    % Update broadband power for each subject, always from incoherent spectrum
-    ampl{s}.bb.full  = data.bb.full;
-    ampl{s}.bb.blank = data.bb.blank;
-    
-    clear data bb sl snr_sl snr_bb data;
-    
-    if doSOIcomparison
-        % If requested, one can calculate the amplitude for the sensors
-        % predicted by the model to have the highest response. We call these
-        % sensors the SOI (sensors of interest) and sensor indices are saved by
-        % the figurescript makeFigure2. We can compare the SOI from simulations
-        % with incoherent/random or coherent/uniform time series, or their union.
-        
-        %  Get sensors of interest based on forward model predictions
-        %  (sensorsOfInterest is boolean of 2x157)
-        tmp = load(fullfile(dataDir, subject{subjectsToPlot}, sprintf('%s_sensorsOfInterestFromPrediction', subject{subjectsToPlot})));
-        
-        % Row 1 SOI based on single subject uniform forward model prediction
-        % Row 2 SOI based on single subject random forward model prediction
-        soi = logical(tmp.sensorsOfInterest); clear sensorsOfInterest; clear tmp;
-        
-        % Find the sensors for the single subject for uniform and random phase
-        % forward model predictions
-        uniformSensors = find(soi(1,:));
-        randomSensors  = find(soi(2,:));
-        
-        % Get union and separate sensors for only uniform or random phase predictions
-        singleSubject.unionUR       = intersect(uniformSensors, randomSensors);
-        singleSubject.onlyUniform   = uniformSensors(~ismember(uniformSensors,singleSubject.unionUR));
-        singleSubject.onlyRandom    = randomSensors(~ismember(randomSensors,singleSubject.unionUR));
-        
-        clear uniformSensors randomSensors;
-    end
+% Get amplitude data
+data = loadData(fullfile(dataDir, subject{subjectsToPlot}), whichSession,'timeseries');
 
+% Define MEG sensor to plot
+sensorIdx = 1;
+               
+% Define color to plot full conditions
+colors    = [0 0 0; 126 126 126]./255;
 
+% Define axes
+f = (0:999);
+xl = [8 150];
+fok = f;
+fok(f<=xl(1) | f>=xl(2) | mod(f,60) < 2 | mod(f,60) > 58 ) = [];
+xt = [12:12:72, 96,144];
 
-    %% 2. Get contrast between full and blank for SL and BB data
+% compute spectrum
+spec = abs(fft(squeeze(data.ts(sensorIdx, :,:))))/size(data.ts,2)*2;
 
-    % Take difference between mean of full and blank epochs for each subject
-    % and dataset (sl or bb)
-    diffFullBlankSL(s,:) = nanmean(ampl{s}.sl.full,1) - nanmean(ampl{s}.sl.blank,1);
-    diffFullBlankBB(s,:) = nanmean(ampl{s}.bb.full,1) - nanmean(ampl{s}.bb.blank,1);
+% compute power for epochs corresponding to a condition and
+% trim data to specific frequencies
+dataFull = spec(:,data.condEpochsFull).^2;
+dataFull = dataFull(fok+1,:);
+
+dataBlank = spec(:,data.condEpochsBlank).^2;
+dataBlank = dataBlank(fok+1,:);
+
+% Get the median
+mn.full = prctile(dataFull,[16,50,84],2);
+mn.blank = prctile(dataBlank,[16,50,84],2);
+
+% Multiply with 10^15 to get values in units of fT
+if any(intersect(whichSession, 9:14))
+    mn.full = mn.full.*10^-15.*10^-15;
+    mn.blank = mn.blank.*10^-15.*10^-15;
 end
 
-for s = subjectsToPlot
-    %% 3. Plot subject
-    snrThreshMask.sl.single = abs(squeeze(snr(s,1,:))) > snrThresh;
-    snrThreshMask.bb.single = abs(squeeze(snr(s,2,:))) > snrThresh;
 
-    dataToPlot   = cat(1, diffFullBlankSL(s,:) .* snrThreshMask.sl.single', ...
-        diffFullBlankBB(s,:) .* snrThreshMask.bb.single');
- 
-    if intersect(s, [1:7,10,12]) % [HACK: for some reason the preprocessing steps didn't take out bad channel 98 in most sessions]
-         dataToPlot(:,98) = NaN; % Check if this is always a bad channel, and should be dropped earlier in the analysis
-    end
-     
-    fig_ttl       = {sprintf('Figure2_Observed_MEG_Data_incohSpectrum%d_prctile%2.1f_S%d_slPower%d_singleColorbarFlag%d', useSLIncohSpectrum, contourPercentile, s, useSLPower,singleColorbarFlag), ...
-                    sprintf('Figure2_Contour_incohSpectrum%d_prctile%2.1f_S%d_slPower%d_singleColorbarFlag%d', useSLIncohSpectrum, contourPercentile, s, useSLPower,singleColorbarFlag)};
-    sub_ttl       = {sprintf('Stimulus locked S%d', s), ...
-                     sprintf('Broadband S%d', s)};
-    markerType    = '.';
-    colorContours = {'y','b'};
-    
-    % Plot it!
-    figureDirSubj = fullfile(figureDir, subject{s});
+%% Plot Spectrum of example channel
+fH = figure('position',[0,300,500,500]); clf(fH); set(fH, 'Name', 'Spectrum of one MEG sensor' , 'NumberTitle', 'off');
 
-    if saveFig
-        if ~exist(figureDirSubj, 'dir'); mkdir(figureDirSubj); end
-    end
-    
-    visualizeSensormaps(dataToPlot, maxColormapPercentile, contourPercentile, ...
-        signedColorbar, singleColorbarFlag, colorContours, markerType, fig_ttl, sub_ttl, saveFig, figureDirSubj);
+% plot median 
+plot(fok, mn.full(:,2),  '-',  'Color', colors(1,:), 'LineWidth', 2); hold on;
+plot(fok, mn.blank(:,2),  '-',  'Color', colors(2,:), 'LineWidth', 2);
+
+% format x and y axes
+yt = [1:5];
+yl=[yt(1),yt(end)];
+set(gca, 'XLim', xl, 'XTick', xt, 'XScale', 'log', 'YScale','log');
+set(gca,'ytick',10.^yt, 'ylim',10.^yl, 'TickDir', 'out', 'FontSize', 12);
+box off;
+
+% label figure, add stimulus harmonic lines, and make it look nice
+xlabel('Frequency (Hz)'); ylabel('Power (fT^2)');
+title(sprintf('Channel %d', sensorIdx));
+yl2 = get(gca, 'YLim');
+for ii =12:12:180, plot([ii ii], yl2, '-', 'Color', [100 100 100]./255); end
+
+if saveFig
+    figurewrite(fullfile(figureDir, 'Figure2A_SpectrumOneChannel'), [],0,'.',1);
 end
 
-%% 4. Plot average across subjects if requested
+%% Plot zoom into broadband frequencies
+fH2 = figure('position',[567, 655, 300, 281]); clf(fH2); set(fH2, 'Name', 'Spectrum of one MEG sensor' , 'NumberTitle', 'off');
 
-if plotMeanSubject
-    
-    % Get snr mask for group data
-    snrThreshMask.sl.group  = abs(squeeze(nanmean(snr(:,1,:),1))) > snrThresh;
-    snrThreshMask.bb.group  = abs(squeeze(nanmean(snr(:,2,:),1))) > snrThresh;
-    
-    % Concatenate data
-    dataToPlot      = cat(1, nanmean(diffFullBlankSL,1) .* snrThreshMask.sl.group', ...
-                             nanmean(diffFullBlankBB,1) .* snrThreshMask.bb.group');
-    dataToPlot(:,98) = NaN;
-    
-    % Define figure and subfigure titles
-    fig_ttl         = {sprintf('Figure2_Observed_MEG_Data_incohSpectrum%d_prctile%2.1f_slPower%d_singleColorbarFlag%d_AVERAGE', useSLIncohSpectrum, contourPercentile, useSLPower,singleColorbarFlag), ...
-                       sprintf('Figure2_Contour_incohSpectrum%d_prctile%2.1f_slPower%d_singleColorbarFlag%d_AVERAGE', useSLIncohSpectrum, contourPercentile, useSLPower,singleColorbarFlag)};
-    sub_ttl         = {sprintf('Stimulus locked Average N = %d', length(subject)), ...
-                       sprintf('Broadband Average N = %d', length(subject))};
-    
-    % Make figure dir for average subject, if non-existing
-    figureDirAvg       = fullfile(figureDir,'average'); % Where to save images?
-    if ~exist(figureDirAvg,'dir'); mkdir(figureDirAvg); end
-    
-    % Plot it!
-    visualizeSensormaps(dataToPlot, maxColormapPercentile, contourPercentile, ...
-        signedColorbar, singleColorbarFlag, colorContours, markerType, fig_ttl, sub_ttl, saveFig, figureDirAvg);
+% plot median
+plot(fok, mn.full(:,2),  '-',  'Color', colors(1,:), 'LineWidth', 2); hold on;
+plot(fok, mn.blank(:,2),  '-',  'Color', colors(2,:), 'LineWidth', 2);
+
+% Reset x scale and y tickmarks
+xl = [60 150];
+yl = [1 2.1];
+yt = [1 2];
+
+% format x and y axes
+set(gca, 'XLim', xl, 'XTick', xt, 'XScale', 'log', 'YScale','log');
+set(gca,'ytick',10.^yt, 'ylim',10.^yl, 'TickDir', 'out', 'FontSize', 12);
+box off;
+
+% label figure, add stimulus harmonic lines, and make it look nice
+xlabel('Frequency (Hz)'); ylabel('Power (T^2)');
+title(sprintf('Channel %d', sensorIdx));
+yl2 = get(gca, 'YLim');
+for ii =12:12:180, plot([ii ii], yl2, '-', 'Color', [100 100 100]./255); end
+
+if saveFig
+    figurewrite(fullfile(figureDir, 'Figure2B_SpectrumZoomBroadband'), [],0,'.',1);
 end
 
-%% 5. If requested: Make barplot of bootstrapped data of sensors that fall within contour 
-% lines and compare across subjects anatomy and forward model phase
 
-if doSOIcomparison
-    
-    % Bootstrap across epochs if requested to compare SOIs
-    fns = fieldnames(singleSubject);
-    
-    % Loop over fieldnames (sensors of interest)
-    for ii = 1:numel(fns)
-        
-        % Example subject
-        bootstat{1}.sl.full.(fns{ii})  = bootstrp(nboot, @(x) nanmean(x,1), ampl{1}.sl.full(:,singleSubject.(fns{ii})));
-        bootstat{1}.sl.blank.(fns{ii})  = bootstrp(nboot, @(x) nanmean(x,1), ampl{1}.sl.blank(:,singleSubject.(fns{ii})));
-        
-        % take difference between full and blank
-        bootstat{1}.sl.diff.(fns{ii}) = mean([bootstat{1}.sl.full.(fns{ii}) - bootstat{1}.sl.blank.(fns{ii})],2);
-        
-        bootstat{1}.bb.full.(fns{ii})  = bootstrp(nboot, @(x) nanmean(x,1), ampl{1}.bb.full(:,singleSubject.(fns{ii})));
-        bootstat{1}.bb.blank.(fns{ii})  = bootstrp(nboot, @(x) nanmean(x,1), ampl{1}.bb.blank(:,singleSubject.(fns{ii})));
-        
-        bootstat{1}.bb.diff.(fns{ii}) = mean([bootstat{1}.bb.full.(fns{ii}) - bootstat{1}.bb.blank.(fns{ii})],2);
-        
-        if plotMeanSubject
-            % Get sensors of interest from forward model
-            tmp = load(fullfile(dataDir, 'average', sprintf('Average_sensorsOfInterestFromPrediction_%s', area)));
-            soi = logical(tmp.sensorsOfInterest); clear sensorsOfInterest; clear tmp;
-            
-            % And again based on the average across subjects
-            uniformSensors = find(soi(1,:));
-            randomSensors = find(soi(2,:));
-            
-            % Get union and separate sensors for only uniform or random phase predictions
-            averageSubject.unionUR      = intersect(uniformSensors, randomSensors);
-            averageSubject.onlyUniform  = uniformSensors(~ismember(uniformSensors,averageSubject.unionUR));
-            averageSubject.onlyRandom   = randomSensors(~ismember(randomSensors,averageSubject.unionUR));
-            
-            % Group average
-            bootstatGroup.sl.(fns{ii}) = bootstrp(nboot, @(x) nanmean(x,2), diffFullBlankSL(:,averageSubject.(fns{ii})));
-            bootstatGroup.bb.(fns{ii}) = bootstrp(nboot, @(x) nanmean(x,2), diffFullBlankBB(:,averageSubject.(fns{ii})));
-        end
-    end
-    
-    % Make figure
-    figure; set(gcf, 'Position', [509, 238, 672, 1072], 'Color','w')
-    labels = {'Union', 'Only Uniform', 'Only Random'};
-    ttls   = {'SL one subject',  'SL group average', 'BB one subject', 'BB group average'};
-    
-    dataAllBox = {bootstat{1}.sl.diff, bootstatGroup.sl, bootstat{1}.bb.diff, bootstatGroup.bb};
-    
-    ylims = [-10 50; -10 50; -2 3; -2 3];
-    
-    for dd = 1:4
-        subplot(2,2,dd)
-        
-        boxplot([nanmean(dataAllBox{dd}.unionUR,2), nanmean(dataAllBox{dd}.onlyUniform,2), nanmean(dataAllBox{dd}.onlyRandom,2)], ...
-            'PlotStyle','traditional', 'Widths',0.2,'MedianStyle','line','Colors','mrb'); hold on
-        plot([-0.5 4.5], [0 0],'k', 'LineWidth',2)
-        
-        box off; ylabel('Amplitudes (fT)');
-        set(gca,'TickDir','out', 'XTickLabel', labels, 'XTickLabelRotation',45, 'FontSize',12,'LineWidth',2, 'YLim', ylims(dd,:));
-        title(ttls{dd});
-        
-    end
-    
-    if saveFig
-        hgexport(gcf,fullfile(figureDir,'Figure2_SOI_boxplot'))
-    end
-    
+%% Visualize where channel is on mesh
+figure;
+sensorloc = ones(1,size(data.ts,1))*0.5;
+sensorloc(sensorIdx)=1;
+megPlotMap(to157chan(sensorloc,~data.badChannels,'zeros'),[0 1],[],'gray', [], [], [], 'interpmethod', 'nearest'); colorbar off
+title('White = Sensor location, Black = bad sensor');
+
+if saveFig
+    figurewrite(fullfile(figureDir, 'Figure2Inset_LocationOfExampleChannel'), [],0,'.',1);
 end
+
+
+%% Calculate increase in SL and BB
+
+% Define frequencies to compute the broadband power
+fs           = 1000;         % Sample rate
+f            = 0:150;        % Limit frequencies to [0 150] Hz
+slFreq       = 12;           % Stimulus-locked frequency
+tol          = 1.5;          % Exclude frequencies within +/- tol of sl_freq
+slDrop       = f(mod(f, slFreq) <= tol | mod(f, slFreq) > slFreq - tol);
+
+% Exclude all frequencies below 60 Hz when computing broadband power
+lfDrop       = f(f<60);
+
+% Define the frequenies and indices into the frequencies used to compute
+% broadband power
+[~, abIndex] = setdiff(f, [slDrop lfDrop]);
+
+% Create function handles for the frequencies that we use
+keepFrequencies    = @(x) x(abIndex);
+
+for iter = 1:1000
+    fullIdx = find(data.condEpochsFull==1);
+    subsetFullEpochs = fullIdx(randi([1, length(fullIdx)],1, sum(data.condEpochsBlank)));
+
+    % Get data
+    dataIn = cat(1, data.ts(sensorIdx,:,subsetFullEpochs), data.ts(sensorIdx,:,data.condEpochsBlank));
+    bbFull  = log10(getbroadband(dataIn(1,:,:),keepFrequencies,fs)); % Broadband function gives data in units of power
+    bbBlank = log10(getbroadband(dataIn(2,:,:),keepFrequencies,fs)); % Broadband function gives data in units of power
+        
+    slFull  = log10(getstimlocked(dataIn(1,:,:), 13).^2);  % Square to get units of power
+    slBlank = log10(getstimlocked(dataIn(2,:,:), 13).^2); % Square to get units of power
+              
+    % Full field minus blank, averaged across top 5 channels
+    diffBB = mean(bbFull - bbBlank);
+        
+    % Add individual subjects stimulus locked results to all results
+    diffSL = mean(slFull - slBlank);
+
+    % Calculate percent change
+    percentdiff.bb(iter,:) = 100*((10.^diffBB)-1);
+    percentdiff.sl(iter,:) = 100*((10.^diffSL)-1);
+end
+
+fprintf('Mean change in broadband power: %4.1f%%, with sd %1.1f%%\n', mean(percentdiff.bb),std(percentdiff.bb));
+fprintf('Mean change in stimulus locked power: %4.1f%%, with sd %1.1f%%\n', mean(percentdiff.sl),std(percentdiff.sl));
 
 return
-%% OBSOLETE code
-
-% %% Get contrast by bootstrapping over epochs
-%     bootstat = cell(1,length(subject));
-%
-%     % Loop over fieldnames (sensors of interest)
-%     for s = 1:length(subject)
-%
-%         % Example subject
-%         bootstat{s}.sl.full.all  = bootstrp(nboot, @(x) nanmean(x,1), ampl{s}.sl.full);
-%         bootstat{s}.sl.blank.all = bootstrp(nboot, @(x) nanmean(x,1), ampl{s}.sl.blank);
-%
-%         % take difference between full and blank
-%         bootstat{s}.sl.diff.all  = mean([bootstat{s}.sl.full.all - bootstat{s}.sl.blank.all],1);
-%
-%         bootstat{s}.bb.full.all  = bootstrp(nboot, @(x) nanmean(x,1), ampl{s}.bb.full);
-%         bootstat{s}.bb.blank.all = bootstrp(nboot, @(x) nanmean(x,1), ampl{s}.bb.blank);
-%
-%         bootstat{s}.bb.diff.all  = mean([bootstat{s}.bb.full.all - bootstat{s}.bb.blank.all],1);
-%
-%     end
-%
-%     if plotMeanSubject
-%         % Group average
-%         bootstatGroup.sl.all = bootstrp(nboot, @(x) nanmean(x,1), diffFullBlankSL);
-%         bootstatGroup.bb.all = bootstrp(nboot, @(x) nanmean(x,1), diffFullBlankBB);
-%     end
-
-
-% Plot mean of 6 subjects
-
-%
-% % Define color range
-% cLims = [-1 1]*prctile(sl_snr, 95);
-%
-% % Plot average subject
-% fH = figure('position',[1,600,1400,800]); set(gcf, 'Name', 'Figure 2B, Average across subject', 'NumberTitle', 'off');
-% [fH,ch] = megPlotMap(sl_snr,cLims,fH,'bipolar',[],data_hdr,cfg, ...
-%     'isolines', contourLim*max(cLims)*[1 1], ...
-%     'highlightchannel', sl_snr > contourLim*max(cLims), ...
-%     'highlightmarker', '*');
-%
-% % colormap(bipolar);
-% c = findobj(fH,'Type','Contour'); c.LineWidth = 4;
-%
-%
-%
-% set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
-%
-% cLims = [-1 1]*prctile(bb_snr, 95);
-%
-% subplot(1,2,2)
-% [~,ch] = megPlotMap(bb_snr,cLims,gcf,'bipolar',[],data_hdr,cfg,'isolines', contourLim*max(cLims)*[1 1]); colormap(bipolar);
-% set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
-%
-% if saveFig
-%     figurewrite(fullfile(figureDir,'Figure2_SLBB_average'),[],0,'.',1);
-%     hgexport(gcf,fullfile(figureDir,'Figure2_SLBB_average_2'))
-% end
-
-% (more obsolete?) Plot mean of 6 subjects with CI from contour lines
-
-% allData  = {squeeze(sl_all)',squeeze(bb_all)'};
-% clims    = {climsSL,climsBB};
-% nBoot    = 50;
-%
-%
-% meshplotFigHandleFun = @(x) megPlotMap(x, [],[],bipolar,[],[],[],'isolines', 1);
-% getContourStruct     = @(x) findobj(x.Children,'Type','Contour');
-% getXYZData           = @(x) cat(3,x.XData,x.YData,x.ZData);
-%
-% ft_warning off
-%
-% for d = 1:2
-%
-%     bootData = allData{d};
-%     bootstat = bootstrp(nBoot, @(x) mean(x,1), bootData);
-%
-%     for ii = 1:nBoot
-%         close all;
-%         c              = getContourStruct(meshplotFigHandleFun(bootstat(ii,:)));
-%         xyz(ii,:,:,:)= getXYZData(c);
-%         clear c
-%     end
-%
-%
-%     figure('position',[1,600,1400,800]); set(gcf, 'Name', 'Figure 2B, Average across subject', 'NumberTitle', 'off');
-%     subplot(121); megPlotMap(mean(bootData,1),clims{d},[],bipolar); hold all;
-%     for ii = 1:nBoot
-%         contour(squeeze(xyz(ii,:,:,1)),squeeze(xyz(ii,:,:,2)),squeeze(xyz(ii,:,:,3)),1, 'k-');
-%     end
-% %     set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
-%
-%     figurewrite(fullfile(figureDir, sprintf('Figure2_dataCI_average%d',d)), [],0,'.',1);
-%
-% end
-%
-% ft_warning on
-
-
