@@ -1,6 +1,8 @@
-function makeFigure4(varargin)
-% This is a function to make Figure 6 from the manuscript about forward
-% modeling coherent and incoherent neural sources to MEG responses.
+function makeFigure5(varargin)
+% This is a function to make Figure 5 from the manuscript:
+%   A visual encoding model links magnetoencephalography
+%   signals to neural synchrony in human cortex.
+%       by Kupers, Benson, Winawer (YEAR) JOURNAL.
 %
 % This figure shows the MEG forward model based on coherent and incoherent
 % predictions coming from vertices located in V1-V3.
@@ -84,18 +86,8 @@ singleColorbarFlag    = p.Results.singleColorbarFlag;
 
 
 %% 1. Define subjects and synchrony variables
-subject         = {'wlsubj002', ... S1 - From exp: Full, Left, Right
-    'wlsubj004', ... S2 - From exp: Full, Left, Right
-    'wlsubj005', ... S3 - From exp: Full, Left, Right
-    'wlsubj006', ... S4 - From exp: Full, Left, Right
-    'wlsubj010', ... S5 - From exp: Full, Left, Right
-    'wlsubj011', ... S6 - From exp: Full, Left, Right
-    'wlsubj048', ... S7 - From exp: Full only
-    'wlsubj046', ... S8 - From exp: Full only
-    'wlsubj039', ... S9 - From exp: Full only
-    'wlsubj059', ... S10 - From exp: Full only
-    'wlsubj067', ... S11 - From exp: Full only
-    'wlsubj070'}; %  S12 - From exp: Full only
+% Get subject names and corresponding data session number
+subject = getSubjectIDs;
 
 % Path to brainstorm database and project name
 bsDB            = '/Volumes/server/Projects/MEG/brainstorm_db/';
@@ -118,6 +110,11 @@ if plotMeanSubject
 else
     subjectsToLoad = subjectsToPlot;
 end
+
+% Plotting params
+colorConds = {'y','b'};
+markerType   = '.';
+
 
 %% Loop over subjects
 for s = subjectsToLoad
@@ -151,10 +148,6 @@ for s = subjectsToLoad
     
 end
 
-%% Visualize predictions
-colorConds = {'y','b'};
-markerType   = '.';
-
 %% Take mean across subjects and plot if requested
     
 % take mean
@@ -170,65 +163,44 @@ if plotMeanSubject
     
     dataToPlot = cat(1,w.V123c_mn_norm, w.V123i_mn_norm);
     
-    fig_ttl    = {sprintf('Figure4_ModelPredictions_%s_%1.2f-%d_prctile%d_%s_highResFlag%d_singleColorbarFlag%d_AVERAGE', ...
+    fig_ttl    = {sprintf('Figure5_ModelPredictions_%s_%1.2f-%d_prctile%d_%s_highResFlag%d_singleColorbarFlag%d_AVERAGE', ...
                         area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf,singleColorbarFlag), ...
-                  sprintf('Figure4_Contour_%s_%1.2f-%d_prctile%d_%s_highResFlag%d_singleColorbarFlag%d_AVERAGE', ...
+                  sprintf('Figure5_Contour_%s_%1.2f-%d_prctile%d_%s_highResFlag%d_singleColorbarFlag%d_AVERAGE', ...
                         area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf,singleColorbarFlag)};
                     
     sub_ttl    = {sprintf('Synchronous sources - Average N = %d', length(subject)), ...
                   sprintf('Asynchronous sources - Average N = %d', length(subject))};
     
-    figureDir  = fullfile(fmsRootPath,'figures', 'average'); % Where to save images?
-    dataDir    = fullfile(fmsRootPath,'data', 'average'); % Where to save images?
-    
+    figureDir  = fullfile(fmsRootPath,'figures', 'average'); % Where to save images?    
     if ~exist(figureDir,'dir'); mkdir(figureDir); end
-    if ~exist(dataDir,'dir'); mkdir(dataDir); end
     
     % Plot data and save channels that are located inside the contour lines
     visualizeSensormaps(dataToPlot, maxColormapPercentile, contourPercentile, signedColorbar, singleColorbarFlag, colorConds, markerType, fig_ttl, sub_ttl, saveFig, figureDir);
-    
-    % Save sensors of interest falling within the contour lines
-    if saveFig
-        save(fullfile(dataDir, sprintf('sensorsWithinContours_Prediction_%s_%1.2f-%d_prctile%2.1f_%s_highResFlag%d_singleColorbarFlag%d_AVERAGE.mat', ...
-            area,eccenLimitDeg(1),eccenLimitDeg(2),contourPercentile,headmodelType,highResSurf,singleColorbarFlag)), 'dataToPlot');
-    end
     
 end
 
 %% For individual subjects, normalized by mean
 for s = subjectsToPlot
-%     maxSynSubject = max(w.V123c(s,:));
     synData = w.V123c(s,:)./maxSynAverage;
     asynData = w.V123i(s,:)./maxSynAverage;
-
     
     dataToPlot   = cat(1,synData, asynData);
 
     sub_ttl      = {sprintf('Synchronous sources S%d', s), ...
                     sprintf('Asynchronous sources S%d', s)};
                 
-    fig_ttl      = {sprintf('Figure4_ModelPredictions_%s_%1.2f-%d_prctile%2.1f_%s_highResFlag%d_singleColorbarFlag%d_S%d', ...
+    fig_ttl      = {sprintf('Figure5_ModelPredictions_%s_%1.2f-%d_prctile%2.1f_%s_highResFlag%d_singleColorbarFlag%d_S%d', ...
                         area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf, singleColorbarFlag,s), ...
-                    sprintf('Figure4_Contour_%s_%1.2f-%d_prctile%2.1f_%s_highResFlag%d_singleColorbarFlag%d_S%d', ...
+                    sprintf('Figure5_Contour_%s_%1.2f-%d_prctile%2.1f_%s_highResFlag%d_singleColorbarFlag%d_S%d', ...
                         area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf, singleColorbarFlag,s)};
 
-    dataDir      = fullfile(fmsRootPath,'data', subject{s}); % Where to save vector of sensors that fall within contours?
     figureDir    = fullfile(fmsRootPath,'figures', subject{s}); % Where to save images?
     
     % Make figure and data dir for subject, if non-existing
     if ~exist(figureDir,'dir'); mkdir(figureDir); end
-    if ~exist(dataDir,'dir'); mkdir(dataDir); end
     
     visualizeSensormaps(dataToPlot, maxColormapPercentile, contourPercentile, ...
                         signedColorbar, singleColorbarFlag, colorConds, markerType, fig_ttl, sub_ttl, saveFig, figureDir);
-   
-    
-    % Save sensors of interest falling within the contour lines
-    if saveFig
-        save(fullfile(dataDir, ...
-            sprintf('%s_sensorsWithinContours_Prediction_%s_%1.2f-%d_prctile%2.1f_%s_highResFlag%d_singleColorbarFlag%d_S%d.mat', ...
-            subject{s}, area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf,singleColorbarFlag, s)), 'dataToPlot'); 
-    end
     
 end
 

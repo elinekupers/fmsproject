@@ -1,186 +1,222 @@
-function makeFigure2(varargin)
-% Function to plot the spectrum of an individual channel for an individual
-% subject for the manuscript:
+function makeFigure3(varargin)
+% This is a function to make Figure 3 from the manuscript:
 %   A visual encoding model links magnetoencephalography
 %   signals to neural synchrony in human cortex.
 %       by Kupers, Benson, Winawer (YEAR) JOURNAL.
 %
+% This figure shows the empirical finding of two different spatial patterns
+% for a stimulus-locked response and an asynchronous broadband response to
+% a large field flickering (12 Hz) dartboard pattern.
+%
+% To runs this script, you need:
+% (1) the data from the denoiseproject in the data folder of its FMS
+%     code repository
+%
+% (2) MEG_utils toolbox added to the paths. For example:
+%     tbUse('ForwardModelSynchrony');
+%        or to only add the MEG_utils toolbox:
+%     addpath(genpath('~/matlab/git/toolboxes/meg_utils'))
+%
 % INPUTS:
-%   [subjectsToPlot]        :  (int)  subject nr to plot (default: 12)
+%   [subjectsToPlot]     : (int)  subject nr to plot (default: 12)
+%   [plotMeanSubject]    : (bool) plot average across all 12 subjets or not?
+%                                 (default: true)
+%   [saveFig]            : (bool) save figures or not? (default: true)
+%   [useSLIncohSpectrum] : (bool) plot SL amplitudes from incoherent spectrum
+%                                 (default: true)
+%   [contourPercentile]  : (int)  percentile of the data to draw contour 
+%                                 lines? There are two ways to define: 
+%                                 (1) single integer above 10 to get percentile
+%                                 to select X sensors with highest response
+%                                 Use 90.4 for top 15 sensors, or 93.6 for
+%                                 top 10 sensors.
+%                                 (2) single integer below 10 to get contour 
+%                                 lines at equal percentiles of data, e.g.
+%                                 3 => 25 50 75th prctle
+%                                 (default: 93.6) 
+%   [maxColormapPercentile]:(int) percentile of data to truncate colormap
+%                                 (default: 97.5)
+%   [signedColorbar]    : (bool)  plot signed colormap (true) or only 
+%                                 positive values (false)? 
+%                                 (default: true)
+%   [singleColorbarFlag]: (bool)  Use a single colorbar per row,instead of 
+%                                 per individual plot (default: false)
+%   [snrThresh]         : (int)   snr threshold for amplitudes
+%                                 (default: 1)
+%   [useSLPower]        : (bool)  plot SL power or amplitudes from spectrum
+%                                 (default: false)
+%   [amplitudeType]     : (str)   plot amplitude at stimulus contrast 
+%                                 reversal rate: 12 Hz (use 'amplitudes'),
+%                                 or mean of amplitudes at the higher
+%                                 frequencies used to define the broadband
+%                                 power: 72,84,96,108,132,144 Hz (use
+%                                 'amplitudesHigherHarmonics') (default is
+%                                 'amplitudes')
 %
-% Example: Plot example subject in manuscript (S12)
-%  makeFigure2('subjectsToPlot', 12, 'saveFig', true)
+% Example 1: Plot first subject
+%  makeFigure2('subjectsToPlot', 1, 'plotMeanSubject', false, 'saveFig', true)
+% Example 2: Plot example subject in manuscript (S12)
+%  makeFigure2('subjectsToPlot', 12, 'plotMeanSubject', false, 'saveFig', true)
+% Example 3: Plot all subjects and group average
+%  makeFigure2('subjectsToPlot', 1:12, 'plotMeanSubject', true, 'saveFig', true)
 %
-%
-% By Eline Kupers, NYU (2017)
+% By Eline Kupers (NYU) 2017
 
+%% 0. Set up paths and define parameters
 p = inputParser;
 p.KeepUnmatched = true;
 p.addParameter('subjectsToPlot', 12);
-p.addParameter('saveFig', true, @islogical);
+p.addParameter('plotMeanSubject', true, @islogical); 
+p.addParameter('saveFig', true, @islogical); 
+p.addParameter('useSLIncohSpectrum', true, @islogical);
+p.addParameter('contourPercentile', 93.6, @isnumeric);  
+p.addParameter('maxColormapPercentile', 97.5, @isnumeric); 
+p.addParameter('signedColorbar', true, @islogical);
+p.addParameter('singleColorbarFlag', false, @islogical);
+p.addParameter('snrThresh',1, @isnumeric);
+p.addParameter('useSLPower', false, @islogical);
+p.addParameter('amplitudeType', 'amplitudes', ...
+    @(x) any(validatestring(x,{'amplitudes', 'amplitudesHigherHarmonics'})));
 p.parse(varargin{:});
 
 % Rename variables
-subjectsToPlot        = p.Results.subjectsToPlot;
-saveFig               = p.Results.saveFig;
+subjectsToPlot          = p.Results.subjectsToPlot;
+plotMeanSubject         = p.Results.plotMeanSubject;
+saveFig                 = p.Results.saveFig;
+useSLIncohSpectrum      = p.Results.useSLIncohSpectrum;
+contourPercentile       = p.Results.contourPercentile;
+maxColormapPercentile   = p.Results.maxColormapPercentile;
+signedColorbar          = p.Results.signedColorbar;
+singleColorbarFlag      = p.Results.singleColorbarFlag;
+snrThresh               = p.Results.snrThresh;
+useSLPower              = p.Results.useSLPower;
+amplitudeType           = p.Results.amplitudeType;
 
-% Get subject names and their corresponding data session number
+% Get subject names and corresponding data session number
 [subject, dataSession] = getSubjectIDs;
 
 % Set up paths
-figureDir              = fullfile(fmsRootPath, 'figures', subject{subjectsToPlot}); % Where to save images?
-dataDir                = fullfile(fmsRootPath, 'data');    % Where to get data?
+figureDir        = fullfile(fmsRootPath, 'figures'); % Where to save images?
+dataDir          = fullfile(fmsRootPath, 'data');    % Where to get data?
+
+% Preallocate space for matrices
+diffFullBlankSL = NaN(length(subject),157);
+diffFullBlankBB = diffFullBlankSL;
+
+% Load all subjects when plotting the mean
+if plotMeanSubject
+    subjectsToLoad = 1:length(subject);
+else
+    subjectsToLoad = subjectsToPlot;
+end
+
+ampl = cell(size(subjectsToLoad));
 
 %% 1. Load subject's data
-
-% Go from subject to session nr
-whichSession = dataSession(subjectsToPlot);
+for s = subjectsToLoad
     
-% Get amplitude data
-data = loadData(fullfile(dataDir, subject{subjectsToPlot}), whichSession,'timeseries');
+    % Go from subject to session nr
+    whichSession = dataSession(s);
+    
+    % Get SNR data
+    data = loadData(fullfile(dataDir, subject{s}),whichSession,'SNR');
+    SNR(s,1,:) = data{1}; %#ok<AGROW>
+    SNR(s,2,:) = data{2}; %#ok<AGROW>
+    
+    % Get amplitude data
+    data = loadData(fullfile(dataDir, subject{s}), whichSession, amplitudeType);
+    
+    % Update SL amplitudes for each subject, either with coherent or incoherent spectrum
+    if useSLIncohSpectrum
+        ampl{s}.sl.full  = data.sl.full;
+        ampl{s}.sl.blank = data.sl.blank;
+        if (~strcmp(amplitudeType, 'amplitudesHigherHarmonics') && strcmp(subject{s},'wlsubj059'))
+            ampl{s}.sl.full  = data.sl.full_coherent;
+            ampl{s}.sl.blank = data.sl.blank_coherent;
+        end
+    else
+        ampl{s}.sl.full  = data.sl.full_coherent;
+        ampl{s}.sl.blank = data.sl.blank_coherent;
+    end
+    
+    % Convert SL amplitudes to power (by squaring) if requested
+    if useSLPower
+        ampl{s}.sl.full = ampl{s}.sl.full.^2;
+        ampl{s}.sl.blank = ampl{s}.sl.blank.^2;
+    end
+    
+    % Update broadband power for each subject, always from incoherent spectrum
+    ampl{s}.bb.full  = data.bb.full;
+    ampl{s}.bb.blank = data.bb.blank;
+    
+    clear data bb sl snr_sl snr_bb data;
 
-% Define MEG sensor to plot
-sensorIdx = 1;
-               
-% Define color to plot full conditions
-colors    = [0 0 0; 126 126 126]./255;
+    %% 2. Get contrast between full and blank for SL and BB data
 
-% Define axes
-f = (0:999);
-xl = [8 150];
-fok = f;
-fok(f<=xl(1) | f>=xl(2) | mod(f,60) < 2 | mod(f,60) > 58 ) = [];
-xt = [12:12:72, 96,144];
-
-% compute spectrum
-spec = abs(fft(squeeze(data.ts(sensorIdx, :,:))))/size(data.ts,2)*2;
-
-% compute power for epochs corresponding to a condition and
-% trim data to specific frequencies
-dataFull = spec(:,data.condEpochsFull).^2;
-dataFull = dataFull(fok+1,:);
-
-dataBlank = spec(:,data.condEpochsBlank).^2;
-dataBlank = dataBlank(fok+1,:);
-
-% Get the median
-mn.full = prctile(dataFull,[16,50,84],2);
-mn.blank = prctile(dataBlank,[16,50,84],2);
-
-% Multiply with 10^15 to get values in units of fT
-if any(intersect(whichSession, 9:14))
-    mn.full = mn.full.*10^-15.*10^-15;
-    mn.blank = mn.blank.*10^-15.*10^-15;
+    % Take difference between mean of full and blank epochs for each subject
+    % and dataset (sl or bb)
+    diffFullBlankSL(s,:) = nanmean(ampl{s}.sl.full,1) - nanmean(ampl{s}.sl.blank,1);
+    diffFullBlankBB(s,:) = nanmean(ampl{s}.bb.full,1) - nanmean(ampl{s}.bb.blank,1);
 end
 
+for s = subjectsToPlot
+    %% 3. Plot subject
+    snrThreshMask.sl.single = abs(squeeze(SNR(s,1,:))) > snrThresh;
+    snrThreshMask.bb.single = abs(squeeze(SNR(s,2,:))) > snrThresh;
 
-%% Plot Spectrum of example channel
-fH = figure('position',[0,300,500,500]); clf(fH); set(fH, 'Name', 'Spectrum of one MEG sensor' , 'NumberTitle', 'off');
-
-% plot median 
-plot(fok, mn.full(:,2),  '-',  'Color', colors(1,:), 'LineWidth', 2); hold on;
-plot(fok, mn.blank(:,2),  '-',  'Color', colors(2,:), 'LineWidth', 2);
-
-% format x and y axes
-yt = [1:5];
-yl=[yt(1),yt(end)];
-set(gca, 'XLim', xl, 'XTick', xt, 'XScale', 'log', 'YScale','log');
-set(gca,'ytick',10.^yt, 'ylim',10.^yl, 'TickDir', 'out', 'FontSize', 12);
-box off;
-
-% label figure, add stimulus harmonic lines, and make it look nice
-xlabel('Frequency (Hz)'); ylabel('Power (fT^2)');
-title(sprintf('Channel %d', sensorIdx));
-yl2 = get(gca, 'YLim');
-for ii =12:12:180, plot([ii ii], yl2, '-', 'Color', [100 100 100]./255); end
-
-if saveFig
-    figurewrite(fullfile(figureDir, 'Figure2A_SpectrumOneChannel'), [],0,'.',1);
+    dataToPlot   = cat(1, diffFullBlankSL(s,:) .* snrThreshMask.sl.single', ...
+        diffFullBlankBB(s,:) .* snrThreshMask.bb.single');
+     
+    fig_ttl       = {sprintf('Figure3_Observed_MEG_Data_incohSpectrum%d_prctile%2.1f_S%d_slPower%d_singleColorbarFlag%d', useSLIncohSpectrum, contourPercentile, s, useSLPower,singleColorbarFlag), ...
+                     sprintf('Figure3_Contour_incohSpectrum%d_prctile%2.1f_S%d_slPower%d_singleColorbarFlag%d', useSLIncohSpectrum, contourPercentile, s, useSLPower,singleColorbarFlag)};
+    sub_ttl       = {sprintf('Stimulus locked S%d', s), ...
+                     sprintf('Broadband S%d', s)};
+    markerType    = '.';
+    colorContours = {'y','b'};
+    
+    if saveFig
+        figureDirSubj = fullfile(figureDir, subject{s});
+        if ~exist(figureDirSubj, 'dir'); mkdir(figureDirSubj); end
+    else, figureDirSubj = []; 
+    end
+    
+    % Plot it!
+    visualizeSensormaps(dataToPlot, maxColormapPercentile, contourPercentile, ...
+        signedColorbar, singleColorbarFlag, colorContours, markerType, fig_ttl, sub_ttl, saveFig, figureDirSubj);
 end
 
-%% Plot zoom into broadband frequencies
-fH2 = figure('position',[567, 655, 300, 281]); clf(fH2); set(fH2, 'Name', 'Spectrum of one MEG sensor' , 'NumberTitle', 'off');
+%% 4. Plot average across subjects if requested
 
-% plot median
-plot(fok, mn.full(:,2),  '-',  'Color', colors(1,:), 'LineWidth', 2); hold on;
-plot(fok, mn.blank(:,2),  '-',  'Color', colors(2,:), 'LineWidth', 2);
-
-% Reset x scale and y tickmarks
-xl = [60 150];
-yl = [1 2.1];
-yt = [1 2];
-
-% format x and y axes
-set(gca, 'XLim', xl, 'XTick', xt, 'XScale', 'log', 'YScale','log');
-set(gca,'ytick',10.^yt, 'ylim',10.^yl, 'TickDir', 'out', 'FontSize', 12);
-box off;
-
-% label figure, add stimulus harmonic lines, and make it look nice
-xlabel('Frequency (Hz)'); ylabel('Power (T^2)');
-title(sprintf('Channel %d', sensorIdx));
-yl2 = get(gca, 'YLim');
-for ii =12:12:180, plot([ii ii], yl2, '-', 'Color', [100 100 100]./255); end
-
-if saveFig
-    figurewrite(fullfile(figureDir, 'Figure2B_SpectrumZoomBroadband'), [],0,'.',1);
+if plotMeanSubject
+    
+    % Get snr mask for group data
+    snrThreshMask.sl.group  = abs(squeeze(nanmean(SNR(:,1,:),1))) > snrThresh;
+    snrThreshMask.bb.group  = abs(squeeze(nanmean(SNR(:,2,:),1))) > snrThresh;
+    
+    % Concatenate data
+    dataToPlot      = cat(1, nanmean(diffFullBlankSL,1) .* snrThreshMask.sl.group', ...
+                             nanmean(diffFullBlankBB,1) .* snrThreshMask.bb.group');
+    dataToPlot(:,98) = NaN;
+    
+    % Define figure and subfigure titles
+    fig_ttl         = {sprintf('Figure3_Observed_MEG_Data_incohSpectrum%d_prctile%2.1f_slPower%d_singleColorbarFlag%d_AVERAGE', useSLIncohSpectrum, contourPercentile, useSLPower,singleColorbarFlag), ...
+                       sprintf('Figure3_Contour_incohSpectrum%d_prctile%2.1f_slPower%d_singleColorbarFlag%d_AVERAGE', useSLIncohSpectrum, contourPercentile, useSLPower,singleColorbarFlag)};
+    sub_ttl         = {sprintf('Stimulus locked Average N = %d', length(subject)), ...
+                       sprintf('Broadband Average N = %d', length(subject))};
+    
+    % Make figure dir for average subject, if non-existing
+    if saveFig
+        figureDirAvg       = fullfile(figureDir,'average'); % Where to save images?
+        if ~exist(figureDirAvg,'dir'); mkdir(figureDirAvg); end
+    else, figureDirAvg = []; 
+    end
+    
+    % Plot it!
+    visualizeSensormaps(dataToPlot, maxColormapPercentile, contourPercentile, ...
+        signedColorbar, singleColorbarFlag, colorContours, markerType, fig_ttl, sub_ttl, saveFig, figureDirAvg);
 end
-
-
-%% Visualize where channel is on mesh
-figure;
-sensorloc = ones(1,size(data.ts,1))*0.5;
-sensorloc(sensorIdx)=1;
-megPlotMap(to157chan(sensorloc,~data.badChannels,'zeros'),[0 1],[],'gray', [], [], [], 'interpmethod', 'nearest'); colorbar off
-title('White = Sensor location, Black = bad sensor');
-
-if saveFig
-    figurewrite(fullfile(figureDir, 'Figure2Inset_LocationOfExampleChannel'), [],0,'.',1);
-end
-
-
-%% Calculate increase in SL and BB
-
-% Define frequencies to compute the broadband power
-fs           = 1000;         % Sample rate
-f            = 0:150;        % Limit frequencies to [0 150] Hz
-slFreq       = 12;           % Stimulus-locked frequency
-tol          = 1.5;          % Exclude frequencies within +/- tol of sl_freq
-slDrop       = f(mod(f, slFreq) <= tol | mod(f, slFreq) > slFreq - tol);
-
-% Exclude all frequencies below 60 Hz when computing broadband power
-lfDrop       = f(f<60);
-
-% Define the frequenies and indices into the frequencies used to compute
-% broadband power
-[~, abIndex] = setdiff(f, [slDrop lfDrop]);
-
-% Create function handles for the frequencies that we use
-keepFrequencies    = @(x) x(abIndex);
-
-for iter = 1:1000
-    fullIdx = find(data.condEpochsFull==1);
-    subsetFullEpochs = fullIdx(randi([1, length(fullIdx)],1, sum(data.condEpochsBlank)));
-
-    % Get data
-    dataIn = cat(1, data.ts(sensorIdx,:,subsetFullEpochs), data.ts(sensorIdx,:,data.condEpochsBlank));
-    bbFull  = log10(getbroadband(dataIn(1,:,:),keepFrequencies,fs)); % Broadband function gives data in units of power
-    bbBlank = log10(getbroadband(dataIn(2,:,:),keepFrequencies,fs)); % Broadband function gives data in units of power
-        
-    slFull  = log10(getstimlocked(dataIn(1,:,:), 13).^2);  % Square to get units of power
-    slBlank = log10(getstimlocked(dataIn(2,:,:), 13).^2); % Square to get units of power
-              
-    % Full field minus blank, averaged across top 5 channels
-    diffBB = mean(bbFull - bbBlank);
-        
-    % Add individual subjects stimulus locked results to all results
-    diffSL = mean(slFull - slBlank);
-
-    % Calculate percent change
-    percentdiff.bb(iter,:) = 100*((10.^diffBB)-1);
-    percentdiff.sl(iter,:) = 100*((10.^diffSL)-1);
-end
-
-fprintf('Mean change in broadband power: %4.1f%%, with sd %1.1f%%\n', mean(percentdiff.bb),std(percentdiff.bb));
-fprintf('Mean change in stimulus locked power: %4.1f%%, with sd %1.1f%%\n', mean(percentdiff.sl),std(percentdiff.sl));
 
 return
+
+
+

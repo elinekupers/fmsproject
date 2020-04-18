@@ -1,12 +1,12 @@
-function makeFigure6(varargin)
-%
-% This is a function to make Figure 6 from the manuscript using a forward
-% model to predict coherent and incoherent neural sources to MEG responses,
-% WITHOUT CANCELLATION.
+function makeFigure7(varargin)
+% This is a function to make Figure 7 from the manuscript:
+%   A visual encoding model links magnetoencephalography
+%   signals to neural synchrony in human cortex.
+%       by Kupers, Benson, Winawer (YEAR) JOURNAL.
 %
 % This figure shows the MEG forward model based on coherent and incoherent
 % predictions coming from vertices located in V1 when using an ABSOLUTE
-% gain matrix.
+% gain matrix (so propagation of magnetic fields WITHOUT CANCELLATION).
 %
 % To runs this script, you need: (1) Access to the SSMEG folder in the
 % brainstorm data base (2) MEG_utils and Fieldtrip toolbox added to the
@@ -84,19 +84,8 @@ signedColorbar        = p.Results.signedColorbar;
 singleColorbarFlag    = p.Results.singleColorbarFlag;
 
 
-% Define subjects
-subject         = {'wlsubj002', ... S1 - From exp: Full, Left, Right
-    'wlsubj004', ... S2 - From exp: Full, Left, Right
-    'wlsubj005', ... S3 - From exp: Full, Left, Right
-    'wlsubj006', ... S4 - From exp: Full, Left, Right
-    'wlsubj010', ... S5 - From exp: Full, Left, Right
-    'wlsubj011', ... S6 - From exp: Full, Left, Right
-    'wlsubj048', ... S7 - From exp: Full only
-    'wlsubj046', ... S8 - From exp: Full only
-    'wlsubj039', ... S9 - From exp: Full only
-    'wlsubj059', ... S10 - From exp: Full only
-    'wlsubj067', ... S11 - From exp: Full only
-    'wlsubj070'}; %  S12 - From exp: Full only
+% Get subject names
+subject = getSubjectIDs;
 
 % Load all subjects when plotting the mean
 if plotMeanSubject
@@ -109,13 +98,13 @@ end
 bsDB            = '/Volumes/server/Projects/MEG/brainstorm_db/';
 projectName     = 'SSMEG';
 
-% Number of iterations for the random coherence prediction of the forward model
+% Define params for forward model
 n        	= 10;        % number of timepoints (ms)
 nrEpochs    = 1000;      % number of epochs
 theta       = 0;         % von mises mean, equal for three distributions
-kappa.syn   = 100*pi;     % very narrow von Mises
+kappa.syn   = 100*pi;    % very narrow von Mises
 kappa.asyn  = 0;         % very broad (uniform) von Mises
-kappa.mix   = 0.27*pi;        % in between width size von Mises
+kappa.mix   = 0.27*pi;   % in between width size von Mises
 
 % Define vector that can truncate number of sensors
 keep_sensors = logical([ones(157,1); zeros(192-157,1)]); % TODO: Figure out a more generic way to define keep_sensors
@@ -197,8 +186,8 @@ if plotMeanSubject
     % Define plotting data and figure titles
     dataToPlot   = cat(1, w.woC.V123c_mn_norm, w.woC.V123i_mn_norm);
     
-    fig_ttl      = {sprintf('Figure6_ModelPredictions-No_cancellation_%s_%1.2f-%d_prctle%2.1f_%s_highResFlag%d_singleColorbarFlag%d_AVERAGE', area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf,singleColorbarFlag), ...
-        sprintf('Figure6_Contours-No_cancellation_%s_%1.2f-%d_prctle%2.1f_%s_highResFlag%d_singleColorbarFlag%d_AVERAGE', area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf,singleColorbarFlag)};
+    fig_ttl      = {sprintf('Figure7_ModelPredictions-No_cancellation_%s_%1.2f-%d_prctle%2.1f_%s_highResFlag%d_singleColorbarFlag%d_AVERAGE', area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf,singleColorbarFlag), ...
+        sprintf('Figure7_Contours-No_cancellation_%s_%1.2f-%d_prctle%2.1f_%s_highResFlag%d_singleColorbarFlag%d_AVERAGE', area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf,singleColorbarFlag)};
     sub_ttl      = {sprintf('No cancellation: Synchronous sources Average N=%d', length(subject)), ...
         sprintf('No cancellation: Asynchronous sources Average N=%d', length(subject))};
     markerType   = '.';
@@ -209,7 +198,7 @@ if plotMeanSubject
     
     % Plot log of ratio of with vs without cancellation
     dataToPlot = cat(1, ratioCoh_norm, ratioInCoh_norm);
-    fig_ttl      = {sprintf('Figure6_ratioWithVsWithoutCancellation_%s_%1.2f-%d_prctile%2.1f_%s_highResFlag%d_singleColorbarFlag%d_AVERAGE', area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf,singleColorbarFlag)};
+    fig_ttl      = {sprintf('Figure7_ratioWithVsWithoutCancellation_%s_%1.2f-%d_prctile%2.1f_%s_highResFlag%d_singleColorbarFlag%d_AVERAGE', area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf,singleColorbarFlag)};
     sub_ttl      = {'Syn: ratio with / without', ...
         'Asyn: ratio with / without'};
   
@@ -223,9 +212,9 @@ for exampleSubject = subjectsToPlot
     dataToPlot   = cat(1, (w.woC.V123c(exampleSubject,:)./maxSynAverage), ...
                           (w.woC.V123i(exampleSubject,:)./maxSynAverage));
     
-    fig_ttl      = {sprintf('Figure6_ModelPredictions-No_cancellation_%s_%1.2f-%d_prctle%d_%s_highResFlag%d_singleColorbarFlag%d_S%d', ...
+    fig_ttl      = {sprintf('Figure7_ModelPredictions-No_cancellation_%s_%1.2f-%d_prctle%d_%s_highResFlag%d_singleColorbarFlag%d_S%d', ...
         area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile,headmodelType, highResSurf, singleColorbarFlag, exampleSubject), ...
-        sprintf('Figure6_Contours-No_cancellation_%s_%1.2f-%d_prctle%d_%s_highResFlag%d_singleColorbarFlag%d_S%d', ...
+        sprintf('Figure7_Contours-No_cancellation_%s_%1.2f-%d_prctle%d_%s_highResFlag%d_singleColorbarFlag%d_S%d', ...
         area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf, singleColorbarFlag,exampleSubject)};
     sub_ttl      = {sprintf('No cancellation: Synchronous sources S%d', exampleSubject), ...
         sprintf('No cancellation: Asynchronous sources S%d', exampleSubject), ...
