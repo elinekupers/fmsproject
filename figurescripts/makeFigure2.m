@@ -27,7 +27,7 @@ saveFig               = p.Results.saveFig;
 [subject, dataSession] = getSubjectIDs;
 
 % Set up paths
-figureDir              = fullfile(fmsRootPath, 'figures', subject{exampleSubject}); % Where to save images?
+figureDir              = fullfile(fmsRootPath, 'figures', subject{subjectsToPlot}); % Where to save images?
 dataDir                = fullfile(fmsRootPath, 'data');    % Where to get data?
 
 
@@ -37,7 +37,7 @@ dataDir                = fullfile(fmsRootPath, 'data');    % Where to get data?
 whichSession = dataSession(subjectsToPlot);
     
 % Get amplitude data
-data = loadData(fullfile(dataDir, subject{exampleSubject}), whichSession,'timeseries');
+data = loadData(fullfile(dataDir, subject{subjectsToPlot}), whichSession,'timeseries');
 
 % Define MEG sensor to plot
 sensorIdx = 1;
@@ -132,7 +132,7 @@ sensorloc(sensorIdx)=1;
 megPlotMap(to157chan(sensorloc,~data.badChannels,'zeros'),[0 1],[],'gray', [], [], [], 'interpmethod', 'nearest'); colorbar off
 title('White = Sensor location, Black = bad sensor');
 
-if saveFigures
+if saveFig
     figurewrite(fullfile(figureDir, 'Figure2Inset_LocationOfExampleChannel'), [],0,'.',1);
 end
 
