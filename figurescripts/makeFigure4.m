@@ -26,7 +26,7 @@ function makeFigure4(varargin)
 %   [area]                  :  (str)  visual area to use from Benson et al.
 %                                     (2014) PloS Comp Bio template. 
 %                                     Choose from 'V1', 'V2', 'V3', 'V123'
-%                                     'benson17', or 'wang15atlas' (note:
+%                                     'benson18atlas', or 'wang15atlas' (note:
 %                                     eccentricity boundaries cannot be
 %                                     defined when using wang15atlas)
 %   [eccenLimitDeg]         :  (int)  eccentricity limit (deg) of the template. 
@@ -42,6 +42,8 @@ function makeFigure4(varargin)
 %   [maxColormapPercentile] :  (int)  percentile of data to truncate colormap
 %   [signedColorbar]        :  (bool) true/false plot signed colormap or only
 %                                     positive values.
+%   [singleColorbarFlag]    :  (bool) Use a single colorbar per row,instead of 
+%                                     per individual plot (default: true)
 %
 % Example 1:
 %  makeFigure4('subjectsToPlot', 1, 'plotMeanSubject', false, 'saveFig', true)
@@ -59,11 +61,12 @@ p.addParameter('plotMeanSubject', true, @islogical)
 p.addParameter('saveFig', true, @islogical);
 p.addParameter('headmodelType', 'OS', @(x) any(validatestring(x,{'OS', 'BEM'})));
 p.addParameter('highResSurf', false, @islogical);
-p.addParameter('area', 'V123', @(x) any(validatestring(x,{'V1', 'V2', 'V3','V123', 'benson17atlas', 'wang15atlas'})));
+p.addParameter('area', 'V123', @(x) any(validatestring(x,{'V1', 'V2', 'V3','V123', 'benson18atlas', 'wang15atlas'})));
 p.addParameter('eccenLimitDeg', [0.18 11], @isnumeric);
 p.addParameter('contourPercentile', 93.6, @isnumeric);
-p.addParameter('maxColormapPercentile', 97.5, @isnumeric);
+p.addParameter('maxColormapPercentile', 100, @isnumeric);
 p.addParameter('signedColorbar', false, @islogical);
+p.addParameter('singleColorbarFlag', true, @islogical);
 p.parse(varargin{:});
 
 % Rename variables
@@ -77,6 +80,7 @@ eccenLimitDeg         = p.Results.eccenLimitDeg;
 contourPercentile     = p.Results.contourPercentile;
 maxColormapPercentile = p.Results.maxColormapPercentile;
 signedColorbar        = p.Results.signedColorbar;
+singleColorbarFlag    = p.Results.singleColorbarFlag;
 
 
 %% 1. Define subjects and synchrony variables
@@ -151,48 +155,25 @@ end
 colorConds = {'y','b'};
 markerType   = '.';
 
-for s = subjectsToPlot
-    dataToPlot   = cat(1,w.V123c(s,:), w.V123i(s,:));
-
-    sub_ttl      = {sprintf('Synchronous sources S%d', s), ...
-                    sprintf('Asynchronous sources S%d', s)};
-                
-    fig_ttl      = {sprintf('Figure4_ModelPredictions_%s_%1.2f-%d_prctile%2.1f_%s_highResFlag%d_S%d', ...
-                        area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf, s), ...
-                    sprintf('Figure4_Contour_%s_%1.2f-%d_prctile%2.1f_%s_highResFlag%d_S%d', ...
-                        area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf, s)};
-
-    dataDir      = fullfile(fmsRootPath,'data', subject{s}); % Where to save vector of sensors that fall within contours?
-    figureDir    = fullfile(fmsRootPath,'figures', subject{s}); % Where to save images?
-    
-    % Make figure and data dir for subject, if non-existing
-    if ~exist(figureDir,'dir'); mkdir(figureDir); end
-    if ~exist(dataDir,'dir'); mkdir(dataDir); end
-    
-    visualizeSensormaps(dataToPlot, maxColormapPercentile, contourPercentile, ...
-                        signedColorbar, colorConds, markerType, fig_ttl, sub_ttl, saveFig, figureDir);
-   
-    
-    % Save sensors of interest falling within the contour lines
-    if saveFig
-        save(fullfile(dataDir, ...
-            sprintf('%s_sensorsWithinContours_Prediction_%s_%1.2f-%d_prctile%2.1f_%s_highResFlag%d_S%d.mat', ...
-            subject{s}, area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf, s)), 'dataToPlot'); 
-    end
-    
-end
 %% Take mean across subjects and plot if requested
+    
+% take mean
+w.V123c_mn = mean(w.V123c,1);
+w.V123i_mn = mean(w.V123i,1);
+
+maxSynAverage = max(w.V123c_mn);
+    
 if plotMeanSubject
     
-    w.V123c_mn = mean(w.V123c,1);
-    w.V123i_mn = mean(w.V123i,1);
+    w.V123c_mn_norm = w.V123c_mn./maxSynAverage;
+    w.V123i_mn_norm = w.V123i_mn./maxSynAverage;
     
-    dataToPlot = cat(1,w.V123c_mn, w.V123i_mn);
+    dataToPlot = cat(1,w.V123c_mn_norm, w.V123i_mn_norm);
     
-    fig_ttl    = {sprintf('Figure4_ModelPredictions_%s_%1.2f-%d_prctile%d_%s_highResFlag%d_AVERAGE', ...
-                        area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf), ...
-                  sprintf('Figure4_Contour_%s_%1.2f-%d_prctile%d_%s_highResFlag%d_AVERAGE', ...
-                        area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf)};
+    fig_ttl    = {sprintf('Figure4_ModelPredictions_%s_%1.2f-%d_prctile%d_%s_highResFlag%d_singleColorbarFlag%d_AVERAGE', ...
+                        area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf,singleColorbarFlag), ...
+                  sprintf('Figure4_Contour_%s_%1.2f-%d_prctile%d_%s_highResFlag%d_singleColorbarFlag%d_AVERAGE', ...
+                        area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf,singleColorbarFlag)};
                     
     sub_ttl    = {sprintf('Synchronous sources - Average N = %d', length(subject)), ...
                   sprintf('Asynchronous sources - Average N = %d', length(subject))};
@@ -204,12 +185,49 @@ if plotMeanSubject
     if ~exist(dataDir,'dir'); mkdir(dataDir); end
     
     % Plot data and save channels that are located inside the contour lines
-    visualizeSensormaps(dataToPlot, maxColormapPercentile, contourPercentile, signedColorbar, colorConds, markerType, fig_ttl, sub_ttl, saveFig, figureDir);
+    visualizeSensormaps(dataToPlot, maxColormapPercentile, contourPercentile, signedColorbar, singleColorbarFlag, colorConds, markerType, fig_ttl, sub_ttl, saveFig, figureDir);
     
     % Save sensors of interest falling within the contour lines
     if saveFig
-        save(fullfile(dataDir, sprintf('sensorsWithinContours_Prediction_%s_%1.2f-%d_prctile%2.1f_%s_highResFlag%d_AVERAGE.mat', ...
-            area,eccenLimitDeg(1),eccenLimitDeg(2),contourPercentile,headmodelType,highResSurf)), 'dataToPlot');
+        save(fullfile(dataDir, sprintf('sensorsWithinContours_Prediction_%s_%1.2f-%d_prctile%2.1f_%s_highResFlag%d_singleColorbarFlag%d_AVERAGE.mat', ...
+            area,eccenLimitDeg(1),eccenLimitDeg(2),contourPercentile,headmodelType,highResSurf,singleColorbarFlag)), 'dataToPlot');
+    end
+    
+end
+
+%% For individual subjects, normalized by mean
+for s = subjectsToPlot
+%     maxSynSubject = max(w.V123c(s,:));
+    synData = w.V123c(s,:)./maxSynAverage;
+    asynData = w.V123i(s,:)./maxSynAverage;
+
+    
+    dataToPlot   = cat(1,synData, asynData);
+
+    sub_ttl      = {sprintf('Synchronous sources S%d', s), ...
+                    sprintf('Asynchronous sources S%d', s)};
+                
+    fig_ttl      = {sprintf('Figure4_ModelPredictions_%s_%1.2f-%d_prctile%2.1f_%s_highResFlag%d_singleColorbarFlag%d_S%d', ...
+                        area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf, singleColorbarFlag,s), ...
+                    sprintf('Figure4_Contour_%s_%1.2f-%d_prctile%2.1f_%s_highResFlag%d_singleColorbarFlag%d_S%d', ...
+                        area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf, singleColorbarFlag,s)};
+
+    dataDir      = fullfile(fmsRootPath,'data', subject{s}); % Where to save vector of sensors that fall within contours?
+    figureDir    = fullfile(fmsRootPath,'figures', subject{s}); % Where to save images?
+    
+    % Make figure and data dir for subject, if non-existing
+    if ~exist(figureDir,'dir'); mkdir(figureDir); end
+    if ~exist(dataDir,'dir'); mkdir(dataDir); end
+    
+    visualizeSensormaps(dataToPlot, maxColormapPercentile, contourPercentile, ...
+                        signedColorbar, singleColorbarFlag, colorConds, markerType, fig_ttl, sub_ttl, saveFig, figureDir);
+   
+    
+    % Save sensors of interest falling within the contour lines
+    if saveFig
+        save(fullfile(dataDir, ...
+            sprintf('%s_sensorsWithinContours_Prediction_%s_%1.2f-%d_prctile%2.1f_%s_highResFlag%d_singleColorbarFlag%d_S%d.mat', ...
+            subject{s}, area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf,singleColorbarFlag, s)), 'dataToPlot'); 
     end
     
 end
