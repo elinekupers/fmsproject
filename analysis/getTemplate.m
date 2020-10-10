@@ -64,6 +64,10 @@ switch whichVisualAreas
     case 'V3'
         % Get only vertices in V3
         template.(whichVisualAreas)     = benson.areas.sub_bs_areas==3;
+        
+    case 'V23'
+        % Get vertices in V1-V3
+        template.(whichVisualAreas)     = (benson.areas.sub_bs_areas>=2 & benson.areas.sub_bs_areas<=3);
     
     case 'benson18atlas'
         % Get vertices in all 12 visual areas (1:  'V1', 2: 'V2',  3: 'V3',  4: 'hV4',  5: 'VO1', 6:  'VO2',  7: 'LO1', 8: 'LO2', 9: 'TO1', 10: 'TO2', 11: 'V3b', 12: 'V3a'
