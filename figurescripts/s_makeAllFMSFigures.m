@@ -14,8 +14,7 @@ subjectsToPlot = 12;
 makeFigure2('subjectsToPlot', subjectsToPlot)
 
 %% FIGURE 3
-% Visualize model predictions simulating the MEG sensor responses for 
-% coherent and incoherent neural sources.
+% Visualize MEG sensor data on topographic maps for SSVEF and broadband.
 makeFigure3('subjectsToPlot', subjectsToPlot, 'plotMeanSubject', true, 'saveFig', false)
 
 %% FIGURE 5
@@ -46,13 +45,13 @@ area = 'V1';
 makeFigure5('subjectsToPlot', subjectsToPlot, 'plotMeanSubject', true, 'saveFig', false, 'area', area)
 
 %% Supplementary Figure 4
-% Visualize model predictions for BEM headmodel vs OS headmodelfor group, example subject 
+% Visualize model predictions for BEM headmodel vs OS headmodel for group, example subject 
 subjectsToPlot = 12;
 headmodelType  = 'BEM';
 makeFigure5('subjectsToPlot', subjectsToPlot, 'plotMeanSubject', true, 'saveFig', false, 'headmodelType', headmodelType)
 
 %% Supplementary Figure 5
-% Visualize model predictions for BEM headmodel vs OS headmodelfor group, example subject 
+% Visualize model predictions for different visual areas for group, and example subject 
 subjectsToPlot = 12;
 makeFigure5('subjectsToPlot', subjectsToPlot, 'plotMeanSubject', true, 'saveFig', false, 'area', 'V123')
 makeFigure5('subjectsToPlot', subjectsToPlot, 'plotMeanSubject', true, 'saveFig', false, 'area', 'benson18atlas')
