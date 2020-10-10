@@ -23,17 +23,28 @@ individuals viewing a full-field high contrast-reversing checkerboard stimulus.
 ## Repository overview
 
 - external 			: functions from other repositories
-- figurescripts		: contains separate functions to make manuscript figures 1-4:
-	- subfunctions 	: additional functions needed to run figure scripts
-		- makeFigure1 - compute and plot the forward model prediction for 1 or average across all subjects
-		- makeFigure1Mixtures - same as makeFigure1, but to compute many in between model predictions with different values for von Mises kappa (width of the distribution) 
-		- makeFigure2 - load and plot measured MEG data for 1 or average across all subjects
-		- makeFigure3 - load and plot measured MEG data and overlay with contourlines of model predictions for all subjects
-		- makeFigure4 - compute adjusted forward model, that does not allow for responses to cancel					
+- figurescripts		: contains master script s_makeAllFMSFigures.m, calls separate makeFigureX functions, where X is figure number in manuscript
+	- subfunctions 	: folder with additional functions needed to run figure scripts
+		- makeFigure2 - Visualize visually evoked steady state and broadband MEG sensor responses
+		- makeFigure3 - Visualize MEG sensor data on topographic maps for SSVEF and broadband.
+		- makeFigure5 - Visualize model predictions simulating the MEG sensor responses for coherent and incoherent neural sources.
+		- makeFigure7 - Visualize model predictions that simulating the MEG sensor responses that CANNOT CANCEL for coherent and incoherent neural sources.
+		- makeSupplementaryFigure1 - Visualize all subject's stimulus-locked and broadband response topographies
+		- makeSupplementaryFigure2 - Visualize all subject's V1-V3 model predictions
+		- makeSupplementaryFigure3 - Visualize V1 only model predictions for group, example subject and all individual subjects 
+		- makeSupplementaryFigure4 - Visualize model predictions for BEM headmodel vs OS headmodelfor group, example subject 
+		- makeSupplementaryFigure5 - Visualize model predictions for different visual areas for group, and example subject 
+		- makeSupplementaryFigure6 - Visualize model predictions for different stimulus eccentricitie	
+		- makeSupplementaryFigure7 - Visualize model predictions for different neural synchrony levels
+		- Supplementary Figure for footnote in introduction:
+			Visualize SL data component as difference (stim-blank) in power (amplitude squared), instead of plotting amplitudes (not squared).					
 	
-- mne_alignment		: folder with Python script to check MRI/MEG data alignment
+- external			: code from other toolboxes 
+	- mne_alignment : Python code to do additional check MRI/MEG data alignment
+	- CircStat2012a : Function to make von Mises distribution by Philip Berens (https://www.mathworks.com/matlabcentral/fileexchange/10676-circular-statistics-toolbox-directional-statistics)
+	- knk_utils 	: Functions from Kendrick Kay's utils toolbox (https://github.com/kendrickkay/knkutils)
+	- nppDenoise 	: Functions from NoisePool-PCA denoising toolbox (https://github.com/elinekupers/noisepoolPCADenoise)
 
-- fmsMakeAllFigures.m : master script that calls all makeFigureX functions
 - fmsRootPath.m 		: function to call local path of this repository folder
 
 ## Data
@@ -67,10 +78,10 @@ individuals viewing a full-field high contrast-reversing checkerboard stimulus.
 	2. Run figure script: `makeFigure2('exampleSubject', subjectnr)`
 
 4. How to plot data against model prediction for all subjects?
-	1. Run figure script: `makeFigure3()`
+	1. Run figure script: `makeFigure4()`
 
 5. How to plot model prediction with alternative forward model (no cancellation allowed)
-	1. Run figure script: `makeFigure4()`
+	1. Run figure script: `makeFigure6()`
 
 ## Dependencies
 - Brainstorm toolbox   (to align MEG and MRI and compute gain matrix, https://neuroimage.usc.edu/brainstorm/)
