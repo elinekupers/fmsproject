@@ -66,7 +66,7 @@ switch type
 
         % Exclude all frequencies below 60 Hz when computing broadband power
         lfDrop       = f(f<60);
-
+        
         % Define the frequenies and indices into the frequencies used to compute
         % broadband power
         [~, abIndex] = setdiff(f, [slDrop lfDrop]);
@@ -171,7 +171,7 @@ switch type
         
         % Compute power (BB) or amplitudes (SL) for full and blank epochs at specified frequencies
         if strcmp(type, 'amplitudesHigherHarmonics')
-            harmonics12Hz = [72,84,96,108,132,144];
+            harmonics12Hz = [12:12:48,72:12:150]; %72,84,96,108,132,144
             harmonicsFreqIdx = @(x) x(harmonics12Hz+1);
 
             % Stimulus locked using incoherent spectrum
