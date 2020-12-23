@@ -96,7 +96,7 @@ amplitudeType           = p.Results.amplitudeType;
 [subject, dataSession] = getSubjectIDs;
 
 % Set up paths
-figureDir        = fullfile(fmsRootPath, 'figures'); % Where to save images?
+figureDir        = fullfile(fmsRootPath, 'figures_BBamps'); % Where to save images?
 dataDir          = fullfile(fmsRootPath, 'data');    % Where to get data?
 
 % Plotting params
@@ -149,9 +149,10 @@ for s = subjectsToLoad
         ampl{s}.sl.blank = ampl{s}.sl.blank.^2;
     end
     
-    % Update broadband power for each subject, always from incoherent spectrum
-    ampl{s}.bb.full  = data.bb.full;
-    ampl{s}.bb.blank = data.bb.blank;
+    % Convert broadband power to broadband amplitude for each subject, 
+    % always from incoherent spectrum
+    ampl{s}.bb.full  = sqrt(data.bb.full);
+    ampl{s}.bb.blank = sqrt(data.bb.blank);
     
     clear data bb sl snr_sl snr_bb data;
 
@@ -183,8 +184,8 @@ for s = subjectsToPlot
     end
     
     % Plot it!
-%     visualizeSensormaps(dataToPlot, maxColormapPercentile, contourPercentile, ...
-%         signedColorbar, singleColorbarFlag, colorContours, markerType, fig_ttl, sub_ttl, saveFig, figureDirSubj);
+    visualizeSensormaps(dataToPlot, maxColormapPercentile, contourPercentile, ...
+       signedColorbar, singleColorbarFlag, colorContours, markerType, fig_ttl, sub_ttl, saveFig, figureDirSubj);
     
     fig_ttl2 = sprintf('Figure3_1Daverage_Observed_MEG_Data_incohSpectrum%d_S%d_slPower%d', useSLIncohSpectrum, s, useSLPower);
     visualizePosteriorSensors1D(dataToPlot, fig_ttl2, sub_ttl, saveFig, figureDirSubj)
@@ -216,8 +217,8 @@ if plotMeanSubject
     end
     
     % Plot it!
-%     visualizeSensormaps(dataToPlot, maxColormapPercentile, contourPercentile, ...
-%         signedColorbar, singleColorbarFlag, colorContours, markerType, fig_ttl, sub_ttl, saveFig, figureDirAvg);
+    visualizeSensormaps(dataToPlot, maxColormapPercentile, contourPercentile, ...
+        signedColorbar, singleColorbarFlag, colorContours, markerType, fig_ttl, sub_ttl, saveFig, figureDirAvg);
 
     fig_ttl2 = sprintf('Figure3_1Daverage_Observed_MEG_Data_incohSpectrum%d_slPower%d_AVERAGE', useSLIncohSpectrum, useSLPower);
     visualizePosteriorSensors1D(dataToPlot, fig_ttl2, sub_ttl, saveFig, figureDirAvg)
