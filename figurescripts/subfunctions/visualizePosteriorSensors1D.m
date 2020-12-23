@@ -23,23 +23,32 @@ splineData(2,:) = spline(1:10,mn1Ddata(2,:),xq);
 x = (xq-1);
 x = x-(max(x)/2);
 
-figure; set(gcf, 'color', 'w');
+figure; cla; set(gcf, 'color', 'w');
 subplot(211);
 plot(x,splineData(1,:), 'r-','LineWidth',2); hold on;
 if any(splineData(1,:)<0)
     plot(x,zeros(size(x)), 'k','LineWidth',1);
+    yl = [min(splineData(1,:)), max(splineData(1,:))];
+else 
+    yl = [0, max(splineData(1,:))];
 end
 box off; title(sub_ttl{1})
 set(gca, 'TickDir','out','ticklength',[0.010 0.010], 'FontSize',15);
 ylabel('Amplitude (fT)')
-subplot(212);
+ylim(yl);
+
+subplot(212); cla
 plot(x,splineData(2,:), 'b-','LineWidth',2); hold on;
 if any(splineData(2,:)<0)
     plot(x,zeros(size(x)), 'k','LineWidth',1);
+    yl = [min(splineData(2,:)), max(splineData(2,:))];
+else
+    yl = [0,max(splineData(2,:))];
 end
-box off; title(sub_ttl{1})
+box off; title(sub_ttl{2})
 set(gca, 'TickDir','out','ticklength',[0.010 0.010],'FontSize',15);
 xlabel('x position sensor map'); ylabel('Power (fT^2)')
+ylim(yl);
 
 % Save if requested
 if saveFigures
