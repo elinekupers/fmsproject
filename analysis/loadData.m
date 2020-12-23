@@ -36,7 +36,6 @@ function [data, badChannels] = loadData(dataDir, whichSession, type)
 %
 % By Eline Kupers, NYU (2017)
 
-
 switch type
     case 'SNR'
         bb = load(sprintf(fullfile(dataDir, 's%02d_denoisedData_bb.mat'),whichSession));
@@ -66,7 +65,7 @@ switch type
 
         % Exclude all frequencies below 60 Hz when computing broadband power
         lfDrop       = f(f<60);
-        
+       
         % Define the frequenies and indices into the frequencies used to compute
         % broadband power
         [~, abIndex] = setdiff(f, [slDrop lfDrop]);
@@ -103,6 +102,7 @@ switch type
 
         % For some reason the preprocessing steps didn't take out bad
         % channel 98 in several sessions, so we do it manually here.
+        % This channel is permanently broken and should not be used.
         if intersect(whichSession, [1:7,10,12]) 
             badChannels(98) = true; 
         end
@@ -118,6 +118,7 @@ switch type
         sl_ts = sensorData;
         bb_ts = denoisedts_bb{1};
         
+        % Remove bad channel 98 also for denoised broadband data
         if intersect(whichSession, [1:7,10,12]) 
             bb_ts(98,:,:) = []; 
         end
@@ -140,34 +141,22 @@ switch type
         % left, zeros are blanks)
         condEpochsFull = design(:,1);
 
-        % Define blank epochs following fullfield epochs and remove bad epochs
+        % Define blank epochs following fullfield epochs
         condEpochsBlank = logical([zeros(6,1); design(1:end-6,1)]);
 
-        % Get rid of bad epochs
+        % Remove bad epochs
         condEpochsBlank = condEpochsBlank(~badEpochs,:);
         condEpochsFull  = condEpochsFull(~badEpochs,:);
 
-        if sum(condEpochsFull==1)~=sum(condEpochsBlank==1)
-            idxFull  = find(condEpochsFull==1);
-            idxBlank = find(condEpochsBlank==1);
-            if numel(idxBlank) > numel(idxFull)
-                condEpochsBlank_truncated = idxBlank(randi([1, length(idxBlank)],1, length(idxFull)));
-                condEpochsFull_truncated = idxFull;
-            elseif numel(idxBlank) < numel(idxFull)
-                condEpochsFull_truncated  = idxFull(randi([1, length(idxFull)],1, length(idxBlank)));
-                condEpochsBlank_truncated = idxBlank;
-            end
-        else
-            condEpochsFull_truncated = find(condEpochsFull==1);
-            condEpochsBlank_truncated = find(condEpochsBlank==1);
-        end
+        condEpochsFull = find(condEpochsFull==1);
+        condEpochsBlank = find(condEpochsBlank==1);
 
         % Select timeseries in epochs of interest
-        sl.full  = sl_ts(:,:,condEpochsFull_truncated);
-        sl.blank = sl_ts(:,:,condEpochsBlank_truncated);
+        sl.full  = sl_ts(:,:,condEpochsFull);
+        sl.blank = sl_ts(:,:,condEpochsBlank);
 
-        bb.full  = bb_ts(:,:,condEpochsFull_truncated);
-        bb.blank = bb_ts(:,:,condEpochsBlank_truncated);
+        bb.full  = bb_ts(:,:,condEpochsFull);
+        bb.blank = bb_ts(:,:,condEpochsBlank);
         
         % Compute power (BB) or amplitudes (SL) for full and blank epochs at specified frequencies
         if strcmp(type, 'amplitudesHigherHarmonics')
@@ -190,10 +179,10 @@ switch type
             sl.blank = to157chan(sl.blank, ~badChannels,'nans');
 
             % Stimulus locked using coherent spectrum
-            sl.full_coherent  = getstimlocked_coherent(sl_ts,slFreq+1, condEpochsFull_truncated);  % Amplitude (so not squared). Square values to get units of power
+            sl.full_coherent  = getstimlocked_coherent(sl_ts,slFreq+1, condEpochsFull);  % Amplitude (so not squared). Square values to get units of power
             sl.full_coherent  = to157chan(sl.full_coherent, ~badChannels,'nans');
 
-            sl.blank_coherent = getstimlocked_coherent(sl_ts,slFreq+1, condEpochsBlank_truncated); % Amplitude (so not squared). Square values to get units of power
+            sl.blank_coherent = getstimlocked_coherent(sl_ts,slFreq+1, condEpochsBlank); % Amplitude (so not squared). Square values to get units of power
             sl.blank_coherent = to157chan(sl.blank_coherent, ~badChannels,'nans');
         end
         
