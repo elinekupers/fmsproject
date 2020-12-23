@@ -4,7 +4,7 @@ data/*
 *.m~
 stimulus/*
 figures/*
-figures*/
+figures_*/
 toolboxVersions.mat
 
 
