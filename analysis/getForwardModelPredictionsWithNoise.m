@@ -51,8 +51,8 @@ trialDur      = n/1000;  % seconds
 nrVertices    = length(find(template)); % number of vertices in V1-V3
 
 
-if exist(fullfile(fmsRootPath,'data', subjectID, 'simulatedOnOffData.mat'), 'file')
-    load(fullfile(fmsRootPath,'data', subjectID, 'simulatedOnOffData.mat'),'on', 'off');
+if exist(fullfile(fmsRootPath,'data', subjectID, 'simulatedOnOffData100EpochsEvokedRate30.mat'), 'file')
+    load(fullfile(fmsRootPath,'data', subjectID, 'simulatedOnOffData100EpochsEvokedRate30.mat'),'on', 'off');
 else
     
     %% Circuit parameters
@@ -61,7 +61,7 @@ else
     alpha   = 0.100;    % time constant of neural integrator (s)
     tau     = 0.0023;   % time constant of current response function induced by PSP (s)
     
-    evokedRate      = 50;  % changed to 50 from 15 spikes per s per synapse.
+    evokedRate      = 30;  % changed to 50 from 15 spikes per s per synapse.
     inducedRate     = 15;  % 30-->15 spikes per s per synapse.
     spontaneousRate = 10;  % 10 spikes per s per synapse.
     
@@ -212,7 +212,7 @@ else
     
     
     % Save data
-    save(fullfile(fmsRootPath,'data', subjectID, 'simulatedOnOffData.mat'),'on', 'off', '-v7.3')
+    save(fullfile(fmsRootPath,'data', subjectID, 'simulatedOnOffData100EpochsEvokedRate30.mat'),'on', 'off', '-v7.3')
     
 end
 
