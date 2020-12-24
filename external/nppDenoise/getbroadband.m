@@ -22,6 +22,6 @@ spec = fft(data,[],2);
 spec_amp = abs(spec(:,f_inds,:))/ size(data,2)*2; 
 
 % take the mean across frequencies in log space 
-ab = squeeze(exp(nanmean(log(spec_amp.^2),2)))';
+ab = squeeze(exp(mean(log(spec_amp), 2, 'omitnan')))';
 
 return
