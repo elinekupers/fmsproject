@@ -1,6 +1,4 @@
 .DS_store
-data/*.mat
-data/*
 *.m~
 stimulus/*
 figures/*
