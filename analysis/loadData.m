@@ -1,4 +1,4 @@
-function [data, badChannels] = loadData(dataDir, whichSession, varargin)
+function data = loadData(dataDir, whichSession, varargin)
 % Load data for analysis and figures of the manuscript:
 %   A visual encoding model links magnetoencephalography
 %   signals to neural synchrony in human cortex.
@@ -6,12 +6,12 @@ function [data, badChannels] = loadData(dataDir, whichSession, varargin)
 %
 % INPUTS:
 %   dataDir           : (str)  directory to get observed MEG data
-%   whichSession      : (int)  data session number for subject 
+%   whichSession      : (int)  data session number for subject
 %   [type]            : (str)  load different types of data, choice from:
 %                               - 'amplitudes': 12 Hz stimulus-locked
 %                                   amplitudes & broadband power (60-150
 %                                   Hz, excl harmonics)
-%                               - 'amplitudesHigherHarmonics': 
+%                               - 'amplitudesHigherHarmonics':
 %                                   higher stimulus-locked harmonics in the
 %                                   same frequency range as broadband power
 %                                   (72,84,96,108,132,144 Hz) & broadband
@@ -21,17 +21,17 @@ function [data, badChannels] = loadData(dataDir, whichSession, varargin)
 %                                   broadband data component
 %                               - 'amplitudesCoherentSpectrum': amplitudes
 %                                   using the coherent spectrum. i.e. first
-%                                   taking the average across epochs in 
+%                                   taking the average across epochs in
 %                                   time, then compute abs fft.
 %  [useSLPower]      :  (bool) convert SL amplitudes to power units
 %  [useBBPower]      :  (bool) convert BB amplitudes to power units
 %
 % OUTPUTS:
 %   data             : (struct) requested data
-%                               - 'amplitudes' or 'amplitudesHigherHarmonics': 
+%                               - 'amplitudes' or 'amplitudesHigherHarmonics':
 %                                   struct with sl and bb amps, bootstraps
 %                                   and SNR from contrast (full-blank)
-%                               - 'timeseries': struct with  
+%                               - 'timeseries': struct with
 %                                   ts (sensors x epochs x time),
 %                                   condEpochsFull  (1xepochs)
 %                                   condEpochsBlank (1xepochs)
@@ -57,7 +57,7 @@ useSLPower      = p.Results.useSLPower;
 useBBPower      = p.Results.useBBPower;
 
 switch type
-        
+    
     case {'amplitudes', 'amplitudesHigherHarmonics'}
         
         % Number of bootstraps
@@ -69,65 +69,65 @@ switch type
         slFreq       = 12;           % Stimulus-locked frequency
         tol          = 1.5;          % Exclude frequencies within +/- tol of sl_freq
         slDrop       = f(mod(f, slFreq) <= tol | mod(f, slFreq) > slFreq - tol);
-
+        
         % Exclude all frequencies below 60 Hz when computing broadband power
         lfDrop       = f(f<60);
-       
+        
         % Define the frequenies and indices into the frequencies used to compute
         % broadband power
         [~, abIndex] = setdiff(f, [slDrop lfDrop]);
-
+        
         % Create function handles for the frequencies that we use
         bbFreqIdx    = @(x) x(abIndex);
-
+        
         %% Load data
         load(sprintf(fullfile(dataDir, 's%02d_conditions.mat'),whichSession));
         load(sprintf(fullfile(dataDir, 's%02d_sensorData.mat'),whichSession)); % not denoised
         load(sprintf(fullfile(dataDir, 's%02d_denoisedData_bb.mat'),whichSession));
         load(sprintf(fullfile(dataDir, 's%02d_denoisedts.mat'),whichSession)); % denoised
-
+        
         % preprocessing parameters (see nppPreprocessData)
         varThreshold        = [0.05 20];
         badChannelThreshold = 0.2;
         badEpochThreshold   = 0.2;
         dataChannels        = 1:157;
-
+        
         % Preprocess raw sensordata
         [sensorData, badChannels0, badEpochs0] = nppPreprocessData(sensorData(:,:,dataChannels), ...
             varThreshold, badChannelThreshold, badEpochThreshold, false);
-
+        
         % ---- Define first epochs in order to remove later ------------------
         badEpochs0(1:6:end) = 1;
-
-         % Make sure bad epochs and bad sensors are the same across two datasets
-         assert(isequal(badEpochs,badEpochs0))
-        if ~isequal(badChannels,badChannels0)  
+        
+        % Make sure bad epochs and bad sensors are the same across two datasets
+        assert(isequal(badEpochs,badEpochs0))
+        if ~isequal(badChannels,badChannels0)
             badChanIdx = union(find(badChannels),find(badChannels0));
             badChannels = false(size(badChannels0));
             badChannels(badChanIdx) = true;
         end
-
+        
         % For some reason the preprocessing steps didn't take out bad
         % channel 98 in several sessions, so we do it manually here.
         % This channel is permanently broken and should not be used.
-        if intersect(whichSession, [1:7,10,12]) 
-            badChannels(98) = true; 
+        if intersect(whichSession, [1:7,10,12])
+            badChannels(98) = true;
         end
         
-        fprintf('(%s): Data session %d - Selected bad channels are: %s\n', mfilename, whichSession, sprintf('%d ', find(badChannels)));              
+        fprintf('(%s): Data session %d - Selected bad channels are: %s\n', mfilename, whichSession, sprintf('%d ', find(badChannels)));
         
         % Remove bad channels and bad epochs from data and conditions
         sensorData = sensorData(:,~badEpochs, ~badChannels);
-
+        
         % Permute sensorData to match dimensions of denoised data
         sensorData = permute(sensorData, [3 1 2]);
-
+        
         sl_ts = sensorData;
         bb_ts = denoisedts_bb{1};
         
         % Remove bad channel 98 also for denoised broadband data
-        if intersect(whichSession, [1:7,10,12]) 
-            bb_ts(98,:,:) = []; 
+        if intersect(whichSession, [1:7,10,12])
+            bb_ts(98,:,:) = [];
         end
         
         % there is a difference between the datasets in terms of scaling units
@@ -144,22 +144,22 @@ switch type
         design(conditions == 1,1) = 1; % Full
         design(conditions == 5,2) = 1; % Right
         design(conditions == 7,3) = 1; % Left
-
+        
         % Define full field condition (first column (2nd and 3rd are right and
         % left, zeros are blanks)
         condEpochsFull = logical(design(:,1));
-
+        
         % Define blank epochs following fullfield epochs
         condEpochsBlank = logical([zeros(6,1); design(1:end-6,1)]);
-
+        
         % Remove bad epochs
         condEpochsFull  = condEpochsFull(~badEpochs,:);
         condEpochsBlank = condEpochsBlank(~badEpochs,:);
-
+        
         % Select timeseries in epochs of interest
         sl.full  = sl_ts(:,:,condEpochsFull);
         sl.blank = sl_ts(:,:,condEpochsBlank);
-
+        
         bb.full  = bb_ts(:,:,condEpochsFull);
         bb.blank = bb_ts(:,:,condEpochsBlank);
         
@@ -176,7 +176,7 @@ switch type
         
         if strcmp(type, 'amplitudesHigherHarmonics')
             % Stimulus locked using incoherent spectrum across all 12 Hz
-            % harmonics (except line noise at 60 and 120 Hz) 
+            % harmonics (except line noise at 60 and 120 Hz)
             % Note: we use the getbroadband function to compute the geomean
             % across multiple frequencies
             sl.amps_full  = to157chan(getbroadband(sl.full, slFreqIdx,fs),~badChannels,'nans');
@@ -209,11 +209,11 @@ switch type
             sl.amps_blank = bb.amps_blank.^2;
         end
         
-        % Bootstrap diff Full and Blank epochs for SL and BB 
+        % Bootstrap diff Full and Blank epochs for SL and BB
         % (data are in units of amplitude as well)
         meanDiffFullBlank_fun = @(epochDataFull,epochDataBlank) ...
-                mean(epochDataFull,1, 'omitnan') - mean(epochDataBlank,1, 'omitnan'); 
-        meanCondition_fun = @(epochData) mean(epochData,1, 'omitnan'); 
+            mean(epochDataFull,1, 'omitnan') - mean(epochDataBlank,1, 'omitnan');
+        meanCondition_fun = @(epochData) mean(epochData,1, 'omitnan');
         sl.boot_amps_full_mn  = bootstrp(nBoot,meanCondition_fun,sl.amps_full);
         sl.boot_amps_blank_mn = bootstrp(nBoot,meanCondition_fun,sl.amps_blank);
         sl.boot_amps_diff_mn  = sl.boot_amps_full_mn - sl.boot_amps_blank_mn;
@@ -228,12 +228,12 @@ switch type
         
         % Define signal as amps_diff_mn
         sl.signal = sl.amps_diff_mn;
-        bb.signal = bb.amps_diff_mn; 
+        bb.signal = bb.amps_diff_mn;
         
         % Get noise from bootstraps (standard error)
         sl.noise = std(sl.boot_amps_diff_mn, 1);
         bb.noise = std(bb.boot_amps_diff_mn, 1);
-            
+        
         % Get SNR
         sl.snr = sl.signal ./ sl.noise;
         bb.snr = bb.signal ./ bb.noise;
@@ -242,67 +242,67 @@ switch type
         data.sl = sl;
         data.bb = bb;
         
-     case 'timeseries'
-         
-         % Define parameters to get SL and BB data
-         fs           = 1000;         % Sample rate
-         f            = 0:150;        % Limit frequencies to [0 150] Hz
-         slFreq       = 12;           % Stimulus-locked frequency
-         tol          = 1.5;          % Exclude frequencies within +/- tol of sl_freq
-         slDrop       = f(mod(f, slFreq) <= tol | mod(f, slFreq) > slFreq - tol);
-         
-         % Exclude all frequencies below 60 Hz when computing broadband power
-         lfDrop       = f(f<60);
-         
-         % Define the frequenies and indices into the frequencies used to compute
-         % broadband power
-         [~, abIndex] = setdiff(f, [slDrop lfDrop]);
-         
-         % Create function handles for the frequencies that we use
-         bbFreqIdx    = @(x) x(abIndex);
-         
-         % Load data
-         load(sprintf(fullfile(dataDir, 's%02d_conditions.mat'),whichSession));
-         load(sprintf(fullfile(dataDir, 's%02d_sensorData.mat'),whichSession));
-
-         % preprocessing parameters (see nppPreprocessData)
-         varThreshold        = [0.05 20];
-         badChannelThreshold = 0.2;
-         badEpochThreshold   = 0.2;
-         dataChannels        = 1:157;
-         
-         % Preprocess raw sensordata
-         [sensorData, badChannels, badEpochs] = nppPreprocessData(sensorData(:,:,dataChannels), ...
-             varThreshold, badChannelThreshold, badEpochThreshold, false);
-         
-         % ---- Define first epochs in order to remove later ------------------
-         badEpochs(1:6:end) = 1;
-         
-         % For some reason the preprocessing steps didn't take out bad
-         % channel 98 in several sessions, so we do it manually here.
-         if intersect(whichSession, [1:7,10,12]) 
-            badChannels(98) = true; 
-         end
-         
-         % Remove bad channels and bad epochs from data and conditions
-         sensorData = sensorData(:,~badEpochs, ~badChannels);
-         
-         % Permute sensorData for denoising
-         sensorData = permute(sensorData, [3 1 2]);
-         
+    case 'timeseries'
+        
+        % Define parameters to get SL and BB data
+        fs           = 1000;         % Sample rate
+        f            = 0:150;        % Limit frequencies to [0 150] Hz
+        slFreq       = 12;           % Stimulus-locked frequency
+        tol          = 1.5;          % Exclude frequencies within +/- tol of sl_freq
+        slDrop       = f(mod(f, slFreq) <= tol | mod(f, slFreq) > slFreq - tol);
+        
+        % Exclude all frequencies below 60 Hz when computing broadband power
+        lfDrop       = f(f<60);
+        
+        % Define the frequenies and indices into the frequencies used to compute
+        % broadband power
+        [~, abIndex] = setdiff(f, [slDrop lfDrop]);
+        
+        % Create function handles for the frequencies that we use
+        bbFreqIdx    = @(x) x(abIndex);
+        
+        % Load data
+        load(sprintf(fullfile(dataDir, 's%02d_conditions.mat'),whichSession));
+        load(sprintf(fullfile(dataDir, 's%02d_sensorData.mat'),whichSession));
+        
+        % preprocessing parameters (see nppPreprocessData)
+        varThreshold        = [0.05 20];
+        badChannelThreshold = 0.2;
+        badEpochThreshold   = 0.2;
+        dataChannels        = 1:157;
+        
+        % Preprocess raw sensordata
+        [sensorData, badChannels, badEpochs] = nppPreprocessData(sensorData(:,:,dataChannels), ...
+            varThreshold, badChannelThreshold, badEpochThreshold, false);
+        
+        % ---- Define first epochs in order to remove later ------------------
+        badEpochs(1:6:end) = 1;
+        
+        % For some reason the preprocessing steps didn't take out bad
+        % channel 98 in several sessions, so we do it manually here.
+        if intersect(whichSession, [1:7,10,12])
+            badChannels(98) = true;
+        end
+        
+        % Remove bad channels and bad epochs from data and conditions
+        sensorData = sensorData(:,~badEpochs, ~badChannels);
+        
+        % Permute sensorData for denoising
+        sensorData = permute(sensorData, [3 1 2]);
+        
         % Define design matrix
         design = false(size(conditions,1),3);
         design(conditions == 1,1) = true; % Full
         design(conditions == 5,2) = true; % Right
         design(conditions == 7,3) = true; % Left
-
+        
         % Define full field condition (first column (2nd and 2rd are right and
         % left, zeros are blanks)
         condEpochsFull = design(:,1);
-
+        
         % Define blank epochs following fullfield epochs and remove bad epochs
         condEpochsBlank = logical([zeros(6,1); design(1:end-6,1)]);
-
+        
         % Get rid of bad epochs
         condEpochsBlank = condEpochsBlank(~badEpochs,:);
         condEpochsFull  = condEpochsFull(~badEpochs,:);
@@ -319,5 +319,6 @@ switch type
         data.condEpochsFull  = condEpochsFull;
         data.condEpochsBlank = condEpochsBlank;
         data.badChannels     = badChannels;
-
+        
 end
+return
