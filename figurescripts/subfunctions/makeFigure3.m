@@ -74,9 +74,8 @@ p.addParameter('maxColormapPercentile', 97.5, @isnumeric);
 p.addParameter('signedColorbar', true, @islogical);
 p.addParameter('singleColorbarFlag', false, @islogical);
 p.addParameter('snrThresh',1, @isnumeric);
-p.addParameter('useSLPower', false, @islogical);
 p.addParameter('amplitudeType', 'amplitudes', ...
-    @(x) any(validatestring(x,{'amplitudes', 'amplitudesHigherHarmonics'})));
+    @(x) any(validatestring(x,{'amplitudes', 'amplitudesHigherHarmonics', 'amplitudesCoherentSpectrum'})));
 p.parse(varargin{:});
 
 % Rename variables
@@ -89,7 +88,6 @@ maxColormapPercentile   = p.Results.maxColormapPercentile;
 signedColorbar          = p.Results.signedColorbar;
 singleColorbarFlag      = p.Results.singleColorbarFlag;
 snrThresh               = p.Results.snrThresh;
-useSLPower              = p.Results.useSLPower;
 amplitudeType           = p.Results.amplitudeType;
 
 % Get subject names and corresponding data session number
@@ -103,10 +101,6 @@ dataDir          = fullfile(fmsRootPath, 'data');    % Where to get data?
 markerType    = '.';
 colorContours = {'y','b'};
 
-% Preallocate space for matrices
-diffFullBlankSL = NaN(length(subject),157);
-diffFullBlankBB = diffFullBlankSL;
-
 % Load all subjects when plotting the mean
 if plotMeanSubject
     subjectsToLoad = 1:length(subject);
@@ -114,65 +108,39 @@ else
     subjectsToLoad = subjectsToPlot;
 end
 
-ampl = cell(size(subjectsToLoad));
+allData = cell(size(subjectsToLoad));
 
 %% 1. Load subject's data
 for s = subjectsToLoad
     
     % Go from subject to session nr
     whichSession = dataSession(s);
-    
-    % Get SNR data
-    data = loadData(fullfile(dataDir, subject{s}),whichSession,'SNR');
-    SNR(s,1,:) = data{1}; %#ok<AGROW>
-    SNR(s,2,:) = data{2}; %#ok<AGROW>
+   
+    if (~strcmp(amplitudeType, 'amplitudesHigherHarmonics') && strcmp(subject{s},'wlsubj059'))    
+        amplitudeType = 'amplitudesCoherentSpectrum';
+    else
+        amplitudeType = p.Results.amplitudeType;
+    end
     
     % Get amplitude data
-    data = loadData(fullfile(dataDir, subject{s}), whichSession, amplitudeType);
+    data = loadData(fullfile(dataDir, subject{s}), whichSession, 'type', amplitudeType);
+    allData{s} = data;
     
-    % Update SL amplitudes for each subject, either with coherent or incoherent spectrum
-    if useSLIncohSpectrum
-        ampl{s}.sl.full  = data.sl.full;
-        ampl{s}.sl.blank = data.sl.blank;
-        if (~strcmp(amplitudeType, 'amplitudesHigherHarmonics') && strcmp(subject{s},'wlsubj059'))
-            ampl{s}.sl.full  = data.sl.full_coherent;
-            ampl{s}.sl.blank = data.sl.blank_coherent;
-        end
-    else
-        ampl{s}.sl.full  = data.sl.full_coherent;
-        ampl{s}.sl.blank = data.sl.blank_coherent;
-    end
-    
-    % Convert SL amplitudes to power (by squaring) if requested
-    if useSLPower
-        ampl{s}.sl.full = ampl{s}.sl.full.^2;
-        ampl{s}.sl.blank = ampl{s}.sl.blank.^2;
-    end
-    
-    % Rename broadband amplitude variable
-    ampl{s}.bb.full  = data.bb.full;
-    ampl{s}.bb.blank = data.bb.blank;
-    
-    clear data bb sl snr_sl snr_bb data;
+    clear data
 
-    %% 2. Get contrast between full and blank for SL and BB data
-
-    % Take difference between mean of full and blank epochs for each subject
-    % and dataset (sl or bb)
-    diffFullBlankSL(s,:) = nanmean(ampl{s}.sl.full,1) - nanmean(ampl{s}.sl.blank,1);
-    diffFullBlankBB(s,:) = nanmean(ampl{s}.bb.full,1) - nanmean(ampl{s}.bb.blank,1);
 end
 
+%% 3. Mask data by SNR, plot data per subject
 for s = subjectsToPlot
-    %% 3. Plot subject
-    snrThreshMask.sl.single = abs(squeeze(SNR(s,1,:))) > snrThresh;
-    snrThreshMask.bb.single = abs(squeeze(SNR(s,2,:))) > snrThresh;
 
-    dataToPlot   = cat(1, diffFullBlankSL(s,:) .* snrThreshMask.sl.single', ...
-        diffFullBlankBB(s,:) .* snrThreshMask.bb.single');
+    snrThreshMask.sl.single = abs(allData{s}.sl.snr) > snrThresh;
+    snrThreshMask.bb.single = abs(allData{s}.bb.snr) > snrThresh;
+
+    dataToPlot   = cat(1, allData{s}.sl.amps_diff_mn .* snrThreshMask.sl.single, ...
+        allData{s}.bb.amps_diff_mn .* snrThreshMask.bb.single);
      
-    fig_ttl       = {sprintf('Figure3_Observed_MEG_Data_incohSpectrum%d_prctile%2.1f_S%d_slPower%d_singleColorbarFlag%d', useSLIncohSpectrum, contourPercentile, s, useSLPower,singleColorbarFlag), ...
-                     sprintf('Figure3_Contour_incohSpectrum%d_prctile%2.1f_S%d_slPower%d_singleColorbarFlag%d', useSLIncohSpectrum, contourPercentile, s, useSLPower,singleColorbarFlag)};
+    fig_ttl       = {sprintf('Figure3_Observed_MEG_Data_%s_prctile%2.1f_S%d_singleColorbarFlag%d', amplitudeType, contourPercentile, s, singleColorbarFlag), ...
+                     sprintf('Figure3_Contour_%s_prctile%2.1f_S%d_singleColorbarFlag%d', amplitudeType, contourPercentile, s, singleColorbarFlag)};
     sub_ttl       = {sprintf('Stimulus locked S%d', s), ...
                      sprintf('Broadband S%d', s)};
     
@@ -186,25 +154,31 @@ for s = subjectsToPlot
     visualizeSensormaps(dataToPlot, maxColormapPercentile, contourPercentile, ...
        signedColorbar, singleColorbarFlag, colorContours, markerType, fig_ttl, sub_ttl, saveFig, figureDirSubj);
     
-%     fig_ttl2 = sprintf('Figure3_1Daverage_Observed_MEG_Data_incohSpectrum%d_S%d_slPower%d', useSLIncohSpectrum, s, useSLPower);
-%     visualizePosteriorSensors1D(dataToPlot, fig_ttl2, sub_ttl, saveFig, figureDirSubj)
+    fig_ttl2 = sprintf('Figure3_1Daverage_Observed_MEG_Data_%s_S%d', amplitudeType, s);
+    visualizePosteriorSensors1D(allData, false, fig_ttl2,sub_ttl, saveFig, figureDirSubj)
 end
 
 %% 4. Plot average across subjects if requested
 
 if plotMeanSubject
     
+    mnSNR.sl = cellfun(@(x) mean(x,'omitnan'), allData{:}.sl.snr);
+    mnSNR.bb = cellfun(@(x) mean(x,'omitnan'), allData{:}.bb.snr);
+    
+    mnAmp.sl = cellfun(@(x) mean(x,'omitnan'), allData{:}.sl.amps_diff_mn);
+    mnAmp.bb = cellfun(@(x) mean(x,'omitnan'), allData{:}.bb.amps_diff_mn);
+    
     % Get snr mask for group data
-    snrThreshMask.sl.group  = abs(squeeze(nanmean(SNR(:,1,:),1))) > snrThresh;
-    snrThreshMask.bb.group  = abs(squeeze(nanmean(SNR(:,2,:),1))) > snrThresh;
+    snrThreshMask.sl.group  = abs(mnSNR.sl) > snrThresh;
+    snrThreshMask.bb.group  = abs(mnSNR.bb) > snrThresh;
     
     % Concatenate data
-    dataToPlot      = cat(1, nanmean(diffFullBlankSL,1) .* snrThreshMask.sl.group', ...
-                             nanmean(diffFullBlankBB,1) .* snrThreshMask.bb.group');
+    dataToPlot      = cat(1, mnAmp.sl .* snrThreshMask.sl.group', ...
+                             mnAmp.bb .* snrThreshMask.bb.group');
     
     % Define figure and subfigure titles
-    fig_ttl         = {sprintf('Figure3_Observed_MEG_Data_incohSpectrum%d_prctile%2.1f_slPower%d_singleColorbarFlag%d_AVERAGE', useSLIncohSpectrum, contourPercentile, useSLPower,singleColorbarFlag), ...
-                       sprintf('Figure3_Contour_incohSpectrum%d_prctile%2.1f_slPower%d_singleColorbarFlag%d_AVERAGE', useSLIncohSpectrum, contourPercentile, useSLPower,singleColorbarFlag)};
+    fig_ttl         = {sprintf('Figure3_Observed_MEG_Data_%s_prctile%2.1f_singleColorbarFlag%d_AVERAGE', amplitudeType, contourPercentile,singleColorbarFlag), ...
+                       sprintf('Figure3_Contour_%s_prctile%2.1f_singleColorbarFlag%d_AVERAGE', amplitudeType, contourPercentile,singleColorbarFlag)};
     sub_ttl         = {sprintf('Stimulus locked Average N = %d', length(subject)), ...
                        sprintf('Broadband Average N = %d', length(subject))};
     
@@ -219,8 +193,8 @@ if plotMeanSubject
     visualizeSensormaps(dataToPlot, maxColormapPercentile, contourPercentile, ...
         signedColorbar, singleColorbarFlag, colorContours, markerType, fig_ttl, sub_ttl, saveFig, figureDirAvg);
 
-%     fig_ttl2 = sprintf('Figure3_1Daverage_Observed_MEG_Data_incohSpectrum%d_slPower%d_AVERAGE', useSLIncohSpectrum, useSLPower);
-%     visualizePosteriorSensors1D(dataToPlot, fig_ttl2, sub_ttl, saveFig, figureDirAvg)
+    fig_ttl2 = sprintf('Figure3_1Daverage_Observed_MEG_Data_incohSpectrum%d_slPower%d_AVERAGE', useSLIncohSpectrum, useSLPower);
+    visualizePosteriorSensors1D(allData, true, fig_ttl2, sub_ttl,saveFig, figureDirAvg)
 end
 
 return
