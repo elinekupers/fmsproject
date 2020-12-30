@@ -13,7 +13,7 @@ function ab = getbroadband(data,keep_frequencies,fs)
 % Define number of time points per epoch
 n_time_points = size(data,2);
 
-% Define frequencies to compute the broadband power
+% Define frequencies to compute the broadband response
 f = (0:n_time_points-1) * fs / n_time_points;
 [~, f_inds] = intersect(f, keep_frequencies(f));
 
