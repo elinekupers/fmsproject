@@ -58,7 +58,7 @@ useBBPower      = p.Results.useBBPower;
 
 switch type
     
-    case {'amplitudes', 'amplitudesHigherHarmonics'}
+    case {'amplitudes', 'amplitudesHigherHarmonics','amplitudesCoherentSpectrum'}
         
         % Number of bootstraps
         nBoot = 1000;
