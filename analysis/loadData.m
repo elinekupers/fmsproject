@@ -193,6 +193,16 @@ switch type
             % Amplitude (so not squared). Square values to get units of power
             sl.amps_full  = to157chan(getstimlocked_coherent(sl_ts, slFreqIdx, condEpochsFull),~badChannels,'nans');
             sl.amps_blank = to157chan(getstimlocked_coherent(sl_ts, slFreqIdx, condEpochsBlank),~badChannels,'nans');
+            epochsFull     = find(condEpochsFull);
+            epochsBlank    = find(condEpochsBlank);
+            epBootFullidx  = randi(length(epochsFull),nBoot,length(epochsFull));
+            epBootBlankidx = randi(length(epochsBlank),nBoot,length(epochsBlank));
+            
+            for ii = 1:nBoot
+                sl.boot_amps_full_mn(ii,:)  = to157chan(getstimlocked_coherent(sl_ts, slFreqIdx, epochsFull(epBootFullidx(nBoot,:))),~badChannels,'nans');
+                sl.boot_amps_blank_mn(ii,:) = to157chan(getstimlocked_coherent(sl_ts, slFreqIdx, epochsBlank(epBootBlankidx(nBoot,:))),~badChannels,'nans');
+            end
+            sl.boot_amps_diff_mn  = sl.boot_amps_full_mn - sl.boot_amps_blank_mn;
         end
         
         % Compute BB amplitude for each epoch (no bootstrapping)
@@ -209,20 +219,24 @@ switch type
             sl.amps_blank = bb.amps_blank.^2;
         end
         
-        % Bootstrap diff Full and Blank epochs for SL and BB
-        % (data are in units of amplitude as well)
-        meanDiffFullBlank_fun = @(epochDataFull,epochDataBlank) ...
-            mean(epochDataFull,1, 'omitnan') - mean(epochDataBlank,1, 'omitnan');
+        % Define bootstrap function for averaging across epochs
         meanCondition_fun = @(epochData) mean(epochData,1, 'omitnan');
-        sl.boot_amps_full_mn  = bootstrp(nBoot,meanCondition_fun,sl.amps_full);
-        sl.boot_amps_blank_mn = bootstrp(nBoot,meanCondition_fun,sl.amps_blank);
-        sl.boot_amps_diff_mn  = sl.boot_amps_full_mn - sl.boot_amps_blank_mn;
+        
+        if ~strcmp(type, 'amplitudesCoherentSpectrum')
+            % Bootstrap diff Full and Blank epochs for SL and BB
+            % (data are in units of amplitude as well)  
+            sl.boot_amps_full_mn  = bootstrp(nBoot,meanCondition_fun,sl.amps_full);
+            sl.boot_amps_blank_mn = bootstrp(nBoot,meanCondition_fun,sl.amps_blank);
+            sl.boot_amps_diff_mn  = sl.boot_amps_full_mn - sl.boot_amps_blank_mn;
+        end
         
         bb.boot_amps_full_mn  = bootstrp(nBoot,meanCondition_fun,bb.amps_full);
         bb.boot_amps_blank_mn = bootstrp(nBoot,meanCondition_fun,bb.amps_blank);
         bb.boot_amps_diff_mn  = bb.boot_amps_full_mn - bb.boot_amps_blank_mn;
         
         % Get difference mean full and mean blank from data without bootstrapping (sample mean)
+        meanDiffFullBlank_fun = @(epochDataFull,epochDataBlank) ...
+            mean(epochDataFull,1, 'omitnan') - mean(epochDataBlank,1, 'omitnan');
         sl.amps_diff_mn = meanDiffFullBlank_fun(sl.amps_full,sl.amps_blank);
         bb.amps_diff_mn = meanDiffFullBlank_fun(bb.amps_full,bb.amps_blank);
         
