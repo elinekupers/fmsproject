@@ -1,4 +1,51 @@
 function [] = visualizePosteriorSensors1D(data, plotAvg, fig_ttl,sub_ttl, saveFigures, figureDir)
+% Function to visualize 1D summary of posterior MEG sensors data 
+% from the manuscript:
+%   A visual encoding model links magnetoencephalography
+%   signals to neural synchrony in human cortex.
+%       by Kupers, Benson, Winawer (YEAR) JOURNAL.
+%
+% This figure shows the weighted sum of MEG sensor responses, using a 
+% Gaussian pooling window in small bins going from left to right of the head.
+% This gives us a 1D representation of the spatial pattern in the back half
+% of the subjects head.
+%
+% INPUTS:
+%   data                 : (struct or cell) sl and bb struct from
+%                                 loadData.m
+%   plotAvg              : (bool) plot average across all 12 subjets or not?
+%                                 (default: false)
+%   [fig_ttl]            : (str)  Figure title, used when saving figure.
+%   [sub_ttl]            : (cell) Two subplot titles default: {'SL','BB'}
+%   [saveFigures]        : (bool) save figures or not? (default: false)
+%   [figureDir]          : (str)  folder to save figures
+%
+% Example 1:
+% [subject, dataSession] = getSubjectIDs;
+% subj = 1;
+% data = loadData(fullfile(fmsRootPath, 'data', subject{subj}), dataSession(subj), 'type', 'amplitudes');
+% visualizePosteriorSensors1D(data, false)
+%
+%% Handle inputs
+if ~exist('plotAvg','var') || isempty(plotAvg)
+    plotAvg = false;
+end
+
+if ~exist('fig_ttl','var') || isempty(fig_ttl)
+    fig_ttl = {'1D MEG sensor data'};
+end
+
+if ~exist('sub_ttl','var') || isempty(sub_ttl)
+    sub_ttl = {'SL', 'BB'};
+end
+
+if ~exist('saveFigures','var') || isempty(saveFigures)
+    saveFigures = false;
+end
+
+if ~exist('figureDir','var') || isempty(figureDir)
+    figureDir = [];
+end
 
 % get sensor locations
 load(which('meg160_example_hdr.mat'))
@@ -15,18 +62,23 @@ sigma    = 0.05;
 % plotting params
 colors = {'r', 'b'};
 
+% Put single subject data in a cell.
+if ~iscell(data)
+    tmp = data; clear data;
+    data{1} = tmp;
+end
 % Get dimensions
-nDataTypes = 2;
-nSubjects  = length(data);
 [nBoot, ~, ~] = size(data{1}.sl.boot_amps_diff_mn);
-
-% preallocate space
+nSubjects     = length(data);
+nDataTypes    = 2;
+    
+% Preallocate space
 mnBoot     = NaN(nSubjects,nBoot,nDataTypes,size(xbins,2));
 sampleMean = NaN(nSubjects,nDataTypes,size(xbins,2));
 
 for s = 1:nSubjects
     
-    bootData = cat(3,data{s}.sl.boot_amps_diff_mn,data{s}.bb.boot_amps_diff_mn);
+    bootData = cat(3, data{s}.sl.boot_amps_diff_mn, data{s}.bb.boot_amps_diff_mn);
     
     for boot = 1:nBoot
         for dt = 1:nDataTypes
@@ -52,7 +104,7 @@ for s = 1:nSubjects
 end
 
 % Visualize data
-xlbl = xbins-(max(xbins)/2);
+xlbl = xbins;
 
 if ~plotAvg
     figure; cla; set(gcf, 'color', 'w');
@@ -61,7 +113,7 @@ if ~plotAvg
     for s = 1:nSubjects
         for ii = 1:nDataTypes
             subplot(nrows,ncols,s+(s*(ii-1)));
-            plot(xlbl,squeeze(sampleMean(s,ii,:)), 'r-','LineWidth',6); hold on;
+            plot(xlbl,squeeze(sampleMean(s,ii,:)), 'color', colors{ii},'LineWidth',6); hold on;
             errorbar(xlbl,squeeze(sampleMean(s,ii,:)), squeeze(err(s,1,ii,:)), 'k')
             if any(squeeze((sampleMean(s,ii,:)-min(err(s,1,ii,:))))<0)
                 plot(xlbl,zeros(size(xlbl)), 'k','LineWidth',1);
@@ -74,6 +126,11 @@ if ~plotAvg
             ylabel('Amplitude (fT)')
             ylim(yl);
         end
+    end
+    
+    % Save if requested
+    if saveFigures
+        figurewrite(fullfile(figureDir,[fig_ttl '_individual']),[],0,'.',1);
     end
     
 else
@@ -97,11 +154,13 @@ else
         ylabel('Amplitude (fT)')
         ylim(yl);
     end
+    
+    % Save if requested
+    if saveFigures
+        figurewrite(fullfile(figureDir,[fig_ttl '_GroupAverage']),[],0,'.',1);
+    end
 end
 
 
-% Save if requested
-if saveFigures
-    figurewrite(fullfile(figureDir,fig_ttl),[],0,'.',1);
-end
+
 end
