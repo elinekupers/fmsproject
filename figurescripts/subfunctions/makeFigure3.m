@@ -162,26 +162,26 @@ end
 
 if plotMeanSubject
     
-    for s= 1:length(allData)
-        snr(1,:,:) = allData{s}.sl.snr;
-        snr(2,:,:) = allData{s}.bb.snr;
+    for ii = subjectsToLoad
+        snr(1,ii,:) = allData{ii}.sl.snr;
+        snr(2,ii,:) = allData{ii}.bb.snr;
         
-        amps(1,:,:) = allData{s}.sl.amps_diff_mn;
-        amps(2,:,:) = allData{s}.bb.amps_diff_mn;
+        amps(1,ii,:) = allData{ii}.sl.amps_diff_mn;
+        amps(2,ii,:) = allData{ii}.bb.amps_diff_mn;
     end
-    mnSNR.sl = squeeze(mean(snr(1,:,:),2,'omitnan'));
-    mnSNR.bb = squeeze(mean(snr(2,:,:),2,'omitnan'));
+    mnSNR.sl = squeeze(mean(snr(1,:,:),2,'omitnan'))';
+    mnSNR.bb = squeeze(mean(snr(2,:,:),2,'omitnan'))';
     
-    mnAmp.sl = squeeze(mean(amps(1,:,:),2,'omitnan'));
-    mnAmp.bb = squeeze(mean(amps(2,:,:),2,'omitnan'));
+    mnAmp.sl = squeeze(mean(amps(1,:,:),2,'omitnan'))';
+    mnAmp.bb = squeeze(mean(amps(2,:,:),2,'omitnan'))';
     
     % Get snr mask for group data
     snrThreshMask.sl.group  = abs(mnSNR.sl) > snrThresh;
     snrThreshMask.bb.group  = abs(mnSNR.bb) > snrThresh;
     
     % Concatenate data
-    dataToPlot      = cat(1, mnAmp.sl .* snrThreshMask.sl.group', ...
-                             mnAmp.bb .* snrThreshMask.bb.group');
+    dataToPlot      = cat(1, mnAmp.sl .* snrThreshMask.sl.group, ...
+                             mnAmp.bb .* snrThreshMask.bb.group);
     
     % Define figure and subfigure titles
     fig_ttl         = {sprintf('Figure3_Observed_MEG_Data_%s_prctile%2.1f_singleColorbarFlag%d_AVERAGE', amplitudeType, contourPercentile,singleColorbarFlag), ...
@@ -200,7 +200,7 @@ if plotMeanSubject
     visualizeSensormaps(dataToPlot, maxColormapPercentile, contourPercentile, ...
         signedColorbar, singleColorbarFlag, colorContours, markerType, fig_ttl, sub_ttl, saveFig, figureDirAvg);
 
-    fig_ttl2 = sprintf('Figure3_1Daverage_Observed_MEG_Data_incohSpectrum%d_slPower%d_AVERAGE', useSLIncohSpectrum, useSLPower);
+    fig_ttl2 = sprintf('Figure3_1Daverage_Observed_MEG_Data_%s_AVERAGE', amplitudeType);
     visualizePosteriorSensors1D(allData, true, fig_ttl2, sub_ttl,saveFig, figureDirAvg)
 end
 
