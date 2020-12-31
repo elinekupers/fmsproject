@@ -155,18 +155,25 @@ for s = subjectsToPlot
        signedColorbar, singleColorbarFlag, colorContours, markerType, fig_ttl, sub_ttl, saveFig, figureDirSubj);
     
     fig_ttl2 = sprintf('Figure3_1Daverage_Observed_MEG_Data_%s_S%d', amplitudeType, s);
-    visualizePosteriorSensors1D(allData, false, fig_ttl2,sub_ttl, saveFig, figureDirSubj)
+    visualizePosteriorSensors1D(allData{s}, false, fig_ttl2,sub_ttl, saveFig, figureDirSubj)
 end
 
 %% 4. Plot average across subjects if requested
 
 if plotMeanSubject
     
-    mnSNR.sl = cellfun(@(x) mean(x,'omitnan'), allData{:}.sl.snr);
-    mnSNR.bb = cellfun(@(x) mean(x,'omitnan'), allData{:}.bb.snr);
+    for s= 1:length(allData)
+        snr(1,:,:) = allData{s}.sl.snr;
+        snr(2,:,:) = allData{s}.bb.snr;
+        
+        amps(1,:,:) = allData{s}.sl.amps_diff_mn;
+        amps(2,:,:) = allData{s}.bb.amps_diff_mn;
+    end
+    mnSNR.sl = squeeze(mean(snr(1,:,:),2,'omitnan'));
+    mnSNR.bb = squeeze(mean(snr(2,:,:),2,'omitnan'));
     
-    mnAmp.sl = cellfun(@(x) mean(x,'omitnan'), allData{:}.sl.amps_diff_mn);
-    mnAmp.bb = cellfun(@(x) mean(x,'omitnan'), allData{:}.bb.amps_diff_mn);
+    mnAmp.sl = squeeze(mean(amps(1,:,:),2,'omitnan'));
+    mnAmp.bb = squeeze(mean(amps(2,:,:),2,'omitnan'));
     
     % Get snr mask for group data
     snrThreshMask.sl.group  = abs(mnSNR.sl) > snrThresh;
