@@ -106,34 +106,35 @@ end
 % Visualize data
 xlbl = xbins;
 
-if ~plotAvg
-    figure; cla; set(gcf, 'color', 'w');
-    if nSubjects > 6; nrows = 4; ncols = 6; else, nrows = 2; ncols = nSubjects; end
-    
+
+
+if nSubjects > 6; nrows = 4; ncols = 6; else, nrows = 2; ncols = nSubjects; end
+figure; clf; set(gcf, 'color','w');
+for ii = 1:nDataTypes
     for s = 1:nSubjects
-        for ii = 1:nDataTypes
-            subplot(nrows,ncols,s+(s*(ii-1)));
-            plot(xlbl,squeeze(sampleMean(s,ii,:)), 'color', colors{ii},'LineWidth',6); hold on;
-            errorbar(xlbl,squeeze(sampleMean(s,ii,:)), squeeze(err(s,1,ii,:)), 'k')
-            if any(squeeze((sampleMean(s,ii,:)-min(err(s,1,ii,:))))<0)
-                plot(xlbl,zeros(size(xlbl)), 'k','LineWidth',1);
-                yl = [min(sampleMean(s,ii,:))-max(err(s,1,ii,:)), max(sampleMean(s,ii,:))+max(err(s,1,ii,:))];
-            else
-                yl = [0, max(sampleMean(s,ii,:))+max(err(s,1,ii,:))];
-            end
-            box off; title(sub_ttl{ii})
-            set(gca, 'TickDir','out','ticklength',[0.010 0.010], 'FontSize',15);
-            ylabel('Amplitude (fT)')
-            ylim(yl);
+        subplot(nrows,ncols,s+(2*ncols*(ii-1)));
+        hold on;
+        errorbar(xlbl,squeeze(sampleMean(s,ii,:)), squeeze(err(s,1,ii,:)), 'color', [0.5 0.5 0.5]);
+        plot(xlbl,squeeze(sampleMean(s,ii,:)), 'color', colors{ii},'LineWidth',4); 
+        if any(squeeze((sampleMean(s,ii,:)-min(err(s,1,ii,:))))<0)
+            plot(xlbl,zeros(size(xlbl)), 'k','LineWidth',1);
+            yl = [min(sampleMean(s,ii,:))-max(err(s,1,ii,:)), max(sampleMean(s,ii,:))+max(err(s,1,ii,:))];
+        else
+            yl = [0, max(sampleMean(s,ii,:))+max(err(s,1,ii,:))];
         end
+        box off; if nSubjects > 1; title(sprintf('S%d',s)); else, title(sub_ttl{ii}); end
+        set(gca, 'TickDir','out','ticklength',[0.010 0.010], 'FontSize',15);
+        ylabel('Amplitude (fT)')
+        ylim(yl);
     end
+end
+
+% Save if requested
+if saveFigures
+    figurewrite(fullfile(figureDir,[fig_ttl '_individual']),[],0,'.',1);
+end
     
-    % Save if requested
-    if saveFigures
-        figurewrite(fullfile(figureDir,[fig_ttl '_individual']),[],0,'.',1);
-    end
-    
-else
+if plotAvg
     
     groupMn = squeeze(mean(sampleMean,1,'omitnan'));
     groupErr = squeeze(std(sampleMean,[],1, 'omitnan')/sqrt(nSubjects));
@@ -149,7 +150,7 @@ else
         else
             yl = [0, max(groupMn(ii,:))+max(groupErr(ii,:))];
         end
-        box off; title(sprintf('S%d', s))
+        box off; title(sub_ttl{ii})
         set(gca, 'TickDir','out','ticklength',[0.010 0.010], 'FontSize',15);
         ylabel('Amplitude (fT)')
         ylim(yl);
