@@ -105,27 +105,23 @@ end
 
 % Visualize data
 xlbl = xbins;
-
-
+yl = [[0,60];[-0.1, 0.25]];
 
 if nSubjects > 6; nrows = 4; ncols = 6; else, nrows = 2; ncols = nSubjects; end
-figure; clf; set(gcf, 'color','w');
+figure; clf; set(gcf, 'color','w'); if nSubjects > 1, set(gcf, 'Position', [2,39,1520,759]); end
 for ii = 1:nDataTypes
     for s = 1:nSubjects
-        subplot(nrows,ncols,s+(2*ncols*(ii-1)));
+        if nSubjects > 1; idx = s+(2*ncols*(ii-1)); else idx = s+(s*(ii-1)); end
+        subplot(nrows,ncols,idx);
         hold on;
         errorbar(xlbl,squeeze(sampleMean(s,ii,:)), squeeze(err(s,1,ii,:)), 'color', [0.5 0.5 0.5]);
         plot(xlbl,squeeze(sampleMean(s,ii,:)), 'color', colors{ii},'LineWidth',4); 
-        if any(squeeze((sampleMean(s,ii,:)-min(err(s,1,ii,:))))<0)
-            plot(xlbl,zeros(size(xlbl)), 'k','LineWidth',1);
-            yl = [min(sampleMean(s,ii,:))-max(err(s,1,ii,:)), max(sampleMean(s,ii,:))+max(err(s,1,ii,:))];
-        else
-            yl = [0, max(sampleMean(s,ii,:))+max(err(s,1,ii,:))];
-        end
+        if ii==2, plot(xlbl,zeros(size(xlbl)), 'k','LineWidth',1); end
+     
         box off; if nSubjects > 1; title(sprintf('S%d',s)); else, title(sub_ttl{ii}); end
         set(gca, 'TickDir','out','ticklength',[0.010 0.010], 'FontSize',15);
         ylabel('Amplitude (fT)')
-        ylim(yl);
+        ylim(yl(ii,:));
     end
 end
 
@@ -142,8 +138,9 @@ if plotAvg
     figure; cla; set(gcf, 'color', 'w');
     for ii = 1:nDataTypes
         subplot(2,1,ii);
-        plot(xlbl,groupMn(ii,:), '-','color',colors{ii},'LineWidth',6); hold on;
-        errorbar(xlbl,groupMn(ii,:), groupErr(ii,:), 'k')
+        errorbar(xlbl,groupMn(ii,:), groupErr(ii,:), 'color', [0.5 0.5 0.5]);  hold on;
+        plot(xlbl,groupMn(ii,:), '-','color',colors{ii},'LineWidth',6);
+
         if any((groupMn(ii,:)-min(groupErr(ii,:)))<0)
             plot(xlbl,zeros(size(xlbl)), 'k','LineWidth',1);
             yl = [min(groupMn(ii,:))-min(groupErr(ii,:)), max(groupMn(ii,:))+max(groupErr(ii,:))];
