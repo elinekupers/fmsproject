@@ -158,7 +158,7 @@ for s = subjectsToLoad
     fs           = 1000;         % Sample rate
     f            = 0:150;        % Limit frequencies to [0 150] Hz
     slFreq       = 12;           % Stimulus-locked frequency
-    tol          = 2.5; %1.5;          % Exclude frequencies within +/- tol of sl_freq
+    tol          = 1.5; %1.5;          % Exclude frequencies within +/- tol of sl_freq
     slDrop       = f(mod(f, slFreq) <= tol | mod(f, slFreq) > slFreq - tol);
     lfDrop1       = f(f<4);      % Use frequencies from 4 Hz for bb fit 
     lfDrop2       = f(f<60);     % but from 60 Hz  for computation
@@ -172,13 +172,13 @@ for s = subjectsToLoad
     keepFrequenciesForFit    = @(x) x(fitFreqIndex);
     keepFrequenciesForSynBB  = @(x) x(bbFreqIndex);
 
-    % Take the log of the frequencies and squared amplitude to get log-log space
+    % Take the log of the frequencies to fit straight line
     X = log(keepFrequenciesForFit(f));
     pred_BB_pwr = NaN(nEpochs,nSensors);
     
     % fit ONE line to all the concatenated trials to get a single slope
     for sensor = 1:nSensors
-         Y = nanmean(log(amps.on(sensor,fitFreqIndex,:).^2),3); 
+         Y = log(nanmean(amps.on(sensor,fitFreqIndex,:),3)); 
          p = polyfit(X, Y, 1);
 
          for epoch = 1:nEpochs
@@ -188,7 +188,7 @@ for s = subjectsToLoad
     end 
     
     synthesizedSL12  = getstimlocked(tmp.on,slFreq+1);
-    synSL12_minus_bb = mean(synthesizedSL12.^2,1) - mean(exp(pred_BB_pwr)/size(tmp.on,2)*2,1);
+    synSL12_minus_bb = mean(synthesizedSL12,1) - mean(exp(pred_BB_pwr)/size(tmp.on,2)*2,1);
 
 %     synSL12pwr = squeeze(amps.on(:,slFreq+1,:)).^2;
 %     synSL12_minus_BBbase = mean(synSL12pwr,2)' - mean(exp(pred_BB_pwr),1);
@@ -201,18 +201,18 @@ for s = subjectsToLoad
 
 
     %%
-%     figure(99); clf; 
-%     plot(0:999, squeeze(mean(amps.on(1,:,:),3)),'r','lineWidth',3); hold on; 
-%     plot(0:999, squeeze(mean(amps.off(1,:,:),3)),'g','lineWidth',3);
-%     plot([12 12], [10.^[-2,1]], 'k',[24 24], [10.^[-2,1]], 'k')
-%     legend('Mean amps across ON epochs', 'Mean amps across OFF epochs')
-%     set(gca, 'XScale','log', 'YScale', 'log', 'TickDir', 'out', 'FontSize',20);
-%     ylim(10.^[-2,1])
-%     xlim([1,150])
-%     xlabel('Frequency (Hz)')
-%     ylabel('Amplitude (uV)')
-%     box off; legend boxoff;
-%     title('Single sensor (#1) FFT amplitudes')
+    figure(99); clf; 
+    plot(0:999, squeeze(mean(amps.on(1,:,:),3)),'ro-','lineWidth',3); hold on; 
+    plot(0:999, squeeze(mean(amps.off(1,:,:),3)),'go-','lineWidth',3);
+    plot([12 12], [10.^[-2,1]], 'k',[24 24], [10.^[-2,1]], 'k')
+    legend('Mean amps across ON epochs', 'Mean amps across OFF epochs')
+    set(gca, 'XScale','log', 'YScale', 'log', 'TickDir', 'out', 'FontSize',20);
+    ylim(10.^[-2,1])
+    xlim([1,150])
+    xlabel('Frequency (Hz)')
+    ylabel('Amplitude (uV)')
+    box off; legend boxoff;
+    title('Single sensor (#1) FFT amplitudes')
 end
 
 %% Visualize predictions
@@ -224,8 +224,8 @@ w.V123i_mn = mean(w.V123i,1);
 % Get max of synchronous and asyn prediction to normalize data to
 % this time we use asyn max as well, since the syn max is so much larger
 % than the asyn prediction
-maxSynAverage = max(w.V123c_mn);
-maxAsynAverage = max(w.V123i_mn);
+% maxSynAverage = max(w.V123c_mn);
+% maxAsynAverage = max(w.V123i_mn);
 
 
 % Plot average across subject if requested
@@ -244,7 +244,7 @@ if plotMeanSubject
     sub_ttl    = {sprintf('Synchronous sources - Average N = %d', length(subject)), ...
                   sprintf('Asynchronous sources - Average N = %d', length(subject))};
     
-    figureDir  = fullfile(fmsRootPath,'figuresBiologicalNoiseRate30_tol2.5_signed', 'average'); % Where to save images?    
+    figureDir  = fullfile(fmsRootPath,'figuresBiologicalNoiseRate15_tol1.5_signed', 'average'); % Where to save images?    
     if ~exist(figureDir,'dir'); mkdir(figureDir); end
     
     % Plot data and save channels that are located inside the contour lines
@@ -269,7 +269,7 @@ for s = subjectsToPlot
                         area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf, singleColorbarFlag,s)};
     
     % Make figure and data dir for subject, if non-existing
-    figureDir    = fullfile(fmsRootPath,'figuresBiologicalNoiseRate30_tol2.5_signed', subject{s}); % Where to save images?
+    figureDir    = fullfile(fmsRootPath,'figuresBiologicalNoiseRate15_tol1.5_signed', subject{s}); % Where to save images?
     if ~exist(figureDir,'dir'); mkdir(figureDir); end
     singleColorbarFlag = 0;
     visualizeSensormaps(dataToPlot, maxColormapPercentile, contourPercentile, ...
