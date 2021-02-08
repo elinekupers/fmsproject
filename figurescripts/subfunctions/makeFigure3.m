@@ -50,8 +50,11 @@ function makeFigure3(varargin)
 %                                 or mean of amplitudes at the higher
 %                                 frequencies used to define the broadband
 %                                 power: 72,84,96,108,132,144 Hz (use
-%                                 'amplitudesHigherHarmonics') (default is
-%                                 'amplitudes')
+%                                 'amplitudesHigherHarmonics').
+%                                 to use 10 Hz bins for broadband:
+%                                 see makeFigureSXX_BB10hz.m)
+%                                   (default is 'amplitudes')
+%                                 
 %
 % Example 1: Plot first subject
 %  makeFigure3('subjectsToPlot', 1, 'plotMeanSubject', false, 'saveFig', true)
