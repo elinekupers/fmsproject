@@ -50,9 +50,8 @@ stimFrequency = 12; % number of contrast reversals per second during ON phase
 trialDur      = n/1000;  % seconds
 nrVertices    = length(find(template)); % number of vertices in V1-V3
 
-
-if exist(fullfile(fmsRootPath,'data', subjectID, 'simulatedOnOffData100EpochsEvokedRate30.mat'), 'file')
-    load(fullfile(fmsRootPath,'data', subjectID, 'simulatedOnOffData100EpochsEvokedRate30.mat'),'on', 'off');
+if exist(fullfile(fmsRootPath,'data', subjectID, 'simulatedOnOffData100EpochsEvokedRate15.mat'), 'file')
+     load(fullfile(fmsRootPath,'data', subjectID, 'simulatedOnOffData100EpochsEvokedRate15.mat'),'on', 'off');
 else
     
     %% Circuit parameters
@@ -61,8 +60,8 @@ else
     alpha   = 0.100;    % time constant of neural integrator (s)
     tau     = 0.0023;   % time constant of current response function induced by PSP (s)
     
-    evokedRate      = 30;  % changed to 50 from 15 spikes per s per synapse.
-    inducedRate     = 15;  % 30-->15 spikes per s per synapse.
+    evokedRate      = 15;  % 15 spikes per s per synapse.
+    inducedRate     = 15;  % 15 spikes per s per synapse.
     spontaneousRate = 10;  % 10 spikes per s per synapse.
     
     %% Analysis parameters
@@ -212,7 +211,7 @@ else
     
     
     % Save data
-    save(fullfile(fmsRootPath,'data', subjectID, 'simulatedOnOffData100EpochsEvokedRate30.mat'),'on', 'off', '-v7.3')
+    save(fullfile(fmsRootPath,'data', subjectID, 'simulatedOnOffData100EpochsEvokedRate15.mat'),'on', 'off', '-v7.3')
     
 end
 
@@ -231,8 +230,8 @@ offSingleVertex.signal = off.signal(:,:,selectedVertex);
 [onSingleVertex, offSingleVertex] = ecogCalcOnOffSpectra(onSingleVertex, offSingleVertex, useHann, calcPower);
 
 % Plot time series and spectra
-fH = ecogPlotOnOffSpectra(onSingleVertex, offSingleVertex, t, stimFrequency, calcPower);
-
+ecogPlotOnOffSpectra(onSingleVertex, offSingleVertex, t, stimFrequency, calcPower);
+% print(1, fullfile(fmsRootPath,  'figures',subjectID, 'ecogSimulationSingleVertexTimeSeries'), '-deps')
 
 %% Synchronous signals
 
