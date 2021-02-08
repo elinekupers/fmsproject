@@ -187,10 +187,16 @@ if plotMeanSubject
     % Plot data and save channels that are located inside the contour lines
     visualizeSensormaps(dataToPlot, maxColormapPercentile, contourPercentile, signedColorbar, singleColorbarFlag, colorConds, markerType, fig_ttl, sub_ttl, saveFig, figureDir);
     
-    % Plot 1D average of posterior sensors
+    % Plot 1D average of posterior sensors 
+    for s = 1:size(w.V123c,1)
+        synData = w.V123c(s,:)./maxSynAverage;
+        asynData = w.V123i(s,:)./maxSynAverage;
+    
+       allData{s} = cat(1,synData, asynData);
+    end
+    
     fig_ttl2 = sprintf('Figure5_1Daverage_ModelPredictions_AVERAGE');
-    visualizePosteriorSensors1D(dataToPlot, fig_ttl2, sub_ttl, saveFig, figureDir)
-
+    visualizePosteriorSensors1D(allData, plotMeanSubject, fig_ttl2, sub_ttl, saveFig, figureDir)
     
 end
 
@@ -218,8 +224,7 @@ for s = subjectsToPlot
     
     % Plot 1D average of posterior sensors
     fig_ttl2 = sprintf('Figure5_1Daverage_ModelPredictions_S%d', s);
-    visualizePosteriorSensors1D(dataToPlot, fig_ttl2, sub_ttl, saveFig, figureDir)
-
+    visualizePosteriorSensors1D(dataToPlot, 0, fig_ttl2, sub_ttl, saveFig, figureDir)
                     
 end
 
