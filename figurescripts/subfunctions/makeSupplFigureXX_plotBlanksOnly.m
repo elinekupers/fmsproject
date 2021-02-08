@@ -42,8 +42,6 @@ function makeSupplFigureXX_plotBlanksOnly(varargin)
 %                                 per individual plot (default: false)
 %   [snrThresh]         : (int)   snr threshold for amplitudes
 %                                 (default: 1)
-%   [useSLPower]        : (bool)  plot SL power or amplitudes from spectrum
-%                                 (default: false)
 %   [amplitudeType]     : (str)   plot amplitude at stimulus contrast 
 %                                 reversal rate: 12 Hz (use 'amplitudes'),
 %                                 or mean of amplitudes at the higher
@@ -51,9 +49,6 @@ function makeSupplFigureXX_plotBlanksOnly(varargin)
 %                                 power: 72,84,96,108,132,144 Hz (use
 %                                 'amplitudesHigherHarmonics') (default is
 %                                 'amplitudes')
-%   [fixedRNGseed]      : (bool)  use a fixed random number generator seed,
-%                                 for computational reproducibility.
-%                                 (default: false)
 %
 % Example 1: Plot first subject
 %  makeSupplFigureXX_plotBlanksOnly('subjectsToPlot', 1, 'plotMeanSubject', false, 'saveFig', true)
@@ -61,8 +56,6 @@ function makeSupplFigureXX_plotBlanksOnly(varargin)
 %  makeSupplFigureXX_plotBlanksOnly('subjectsToPlot', 12, 'plotMeanSubject', false, 'saveFig', true)
 % Example 3: Plot all subjects and group average
 %  makeSupplFigureXX_plotBlanksOnly('subjectsToPlot', 1:12, 'plotMeanSubject', true, 'saveFig', true)
-% Example 4: Plot all subjects and group average with fixed rng seed
-%  makeSupplFigureXX_plotBlanksOnly('subjectsToPlot', 1:12, 'plotMeanSubject', true, 'saveFig', true, 'fixedRNGseed', true)
 %
 % By Eline Kupers (NYU) 2017
 
@@ -74,14 +67,11 @@ p.addParameter('plotMeanSubject', true, @islogical);
 p.addParameter('saveFig', true, @islogical); 
 p.addParameter('useSLIncohSpectrum', true, @islogical);
 p.addParameter('contourPercentile', [], @isnumeric);  
-p.addParameter('maxColormapPercentile', 97.5, @isnumeric); 
+p.addParameter('maxColormapPercentile', 100, @isnumeric); 
 p.addParameter('signedColorbar', false, @islogical);
 p.addParameter('singleColorbarFlag', false, @islogical);
-p.addParameter('snrThresh',1, @isnumeric);
-p.addParameter('useSLPower', false, @islogical);
 p.addParameter('amplitudeType', 'amplitudes', ...
-    @(x) any(validatestring(x,{'amplitudes', 'amplitudesHigherHarmonics'})));
-p.addParameter('fixedRNGseed', false, @islogical);
+    @(x) any(validatestring(x,{'amplitudes', 'amplitudesHigherHarmonics', 'amplitudesCoherentSpectrum'})));
 p.parse(varargin{:});
 
 % Rename variables
@@ -93,32 +83,18 @@ contourPercentile       = p.Results.contourPercentile;
 maxColormapPercentile   = p.Results.maxColormapPercentile;
 signedColorbar          = p.Results.signedColorbar;
 singleColorbarFlag      = p.Results.singleColorbarFlag;
-snrThresh               = p.Results.snrThresh;
-useSLPower              = p.Results.useSLPower;
 amplitudeType           = p.Results.amplitudeType;
-fixedRNGseed            = p.Results.fixedRNGseed;
-
-% if requested: set a fixed random number generator seed (for
-% computational reproducibility of selecting a random subset of epochs 
-% for some subjects in loadData.m).
-if fixedRNGseed
-    rng(1);
-end
 
 % Get subject names and corresponding data session number
 [subject, dataSession] = getSubjectIDs;
 
 % Set up paths
-figureDir        = fullfile(fmsRootPath, 'figuresBlankOnly'); % Where to save images?
+figureDir        = fullfile(fmsRootPath, 'figures_BlankOnly'); % Where to save images?
 dataDir          = fullfile(fmsRootPath, 'data');    % Where to get data?
 
 % Plotting params
 markerType    = '.';
 colorContours = {'y','b'};
-
-% Preallocate space for matrices
-fullBlankSL = NaN(length(subject),157);
-fullBlankBB = fullBlankSL;
 
 % Load all subjects when plotting the mean
 if plotMeanSubject
@@ -127,7 +103,7 @@ else
     subjectsToLoad = subjectsToPlot;
 end
 
-ampl = cell(size(subjectsToLoad));
+allData = cell(size(subjectsToLoad));
 
 %% 1. Load subject's data
 for s = subjectsToLoad
@@ -135,52 +111,26 @@ for s = subjectsToLoad
     % Go from subject to session nr
     whichSession = dataSession(s);
     
-    % Get SNR data
-    data = loadData(fullfile(dataDir, subject{s}),whichSession,'SNR');
-    SNR(s,1,:) = data{1}; %#ok<AGROW>
-    SNR(s,2,:) = data{2}; %#ok<AGROW>
+    if (~strcmp(amplitudeType, 'amplitudesHigherHarmonics') && strcmp(subject{s},'wlsubj059'))    
+        amplitudeType = 'amplitudesCoherentSpectrum';
+    else
+        amplitudeType = p.Results.amplitudeType;
+    end
     
     % Get amplitude data
-    data = loadData(fullfile(dataDir, subject{s}), whichSession, amplitudeType, fixedRNGseed);
+    data = loadData(fullfile(dataDir, subject{s}), whichSession, 'type', amplitudeType);
+    allData{s} = data;
     
-    % Update SL amplitudes for each subject, either with coherent or incoherent spectrum
-    if useSLIncohSpectrum 
-        ampl{s}.sl.blank = data.sl.blank;
-        if (~strcmp(amplitudeType, 'amplitudesHigherHarmonics') && strcmp(subject{s},'wlsubj059'))
-            ampl{s}.sl.blank = data.sl.blank_coherent;
-        end
-    else
-        ampl{s}.sl.blank = data.sl.blank_coherent;
-    end
-    
-    % Convert SL amplitudes to power (by squaring) if requested
-    if useSLPower
-        ampl{s}.sl.blank = ampl{s}.sl.blank.^2;
-    end
-    
-    % Update broadband power for each subject, always from incoherent spectrum;
-    ampl{s}.bb.blank = data.bb.blank;
-    
-    clear data bb sl snr_sl snr_bb data;
-
-    %% 2. Get contrast between full and blank for SL and BB data
-
-    % Take difference between mean of full and blank epochs for each subject
-    % and dataset (sl or bb)
-    fullBlankSL(s,:) = nanmean(ampl{s}.sl.blank,1);
-    fullBlankBB(s,:) = nanmean(ampl{s}.bb.blank,1);
+    clear data
 end
 
+%% 3. Plot subject
 for s = subjectsToPlot
-    %% 3. Plot subject
-    snrThreshMask.sl.single = abs(squeeze(SNR(s,1,:))) > snrThresh;
-    snrThreshMask.bb.single = abs(squeeze(SNR(s,2,:))) > snrThresh;
 
-    dataToPlot   = cat(1, fullBlankSL(s,:) .* snrThreshMask.sl.single', ...
-       fullBlankBB(s,:) .* snrThreshMask.bb.single');
-     
-    fig_ttl       = {sprintf('Figure3_Observed_MEG_BlankData_incohSpectrum%d_prctile%2.1f_S%d_slPower%d_singleColorbarFlag%d', useSLIncohSpectrum, contourPercentile, s, useSLPower,singleColorbarFlag), ...
-                     sprintf('Figure3_Contour_incohSpectrum%d_prctile%2.1f_S%d_slPower%d_singleColorbarFlag%d', useSLIncohSpectrum, contourPercentile, s, useSLPower,singleColorbarFlag)};
+    dataToPlot   = cat(1, mean(allData{s}.sl.amps_blank, 'omitnan'),mean(allData{s}.bb.amps_blank,'omitnan'));
+
+    fig_ttl       = {sprintf('Figure3_Observed_MEG_BlankData_%s_prctile%2.1f_S%d_singleColorbarFlag%d', amplitudeType, contourPercentile, s, singleColorbarFlag), ...
+                     sprintf('Figure3_ContourBlankData_%s_prctile%2.1f_S%d_singleColorbarFlag%d', amplitudeType, contourPercentile, s, singleColorbarFlag)};
     sub_ttl       = {sprintf('Stimulus locked S%d', s), ...
                      sprintf('Broadband S%d', s)};
     
@@ -199,17 +149,20 @@ end
 
 if plotMeanSubject
     
-    % Get snr mask for group data
-    snrThreshMask.sl.group  = abs(squeeze(nanmean(SNR(:,1,:),1))) > snrThresh;
-    snrThreshMask.bb.group  = abs(squeeze(nanmean(SNR(:,2,:),1))) > snrThresh;
+    for ii = subjectsToLoad
+        amps(1,ii,:) = mean(allData{ii}.sl.amps_blank, 'omitnan');
+        amps(2,ii,:) = mean(allData{ii}.bb.amps_blank, 'omitnan');
+    end
+    
+    mnAmp.sl = squeeze(mean(amps(1,:,:),2,'omitnan'))';
+    mnAmp.bb = squeeze(mean(amps(2,:,:),2,'omitnan'))';
     
     % Concatenate data
-    dataToPlot      = cat(1, nanmean(fullBlankSL,1) .* snrThreshMask.sl.group', ...
-                             nanmean(fullBlankBB,1) .* snrThreshMask.bb.group');
+    dataToPlot      = cat(1, mnAmp.sl, mnAmp.bb);
     
     % Define figure and subfigure titles
-    fig_ttl         = {sprintf('Figure3_Observed_MEG_BlankData_incohSpectrum%d_prctile%2.1f_slPower%d_singleColorbarFlag%d_AVERAGE', useSLIncohSpectrum, contourPercentile, useSLPower,singleColorbarFlag), ...
-                       sprintf('Figure3_Contour_incohSpectrum%d_prctile%2.1f_slPower%d_singleColorbarFlag%d_AVERAGE', useSLIncohSpectrum, contourPercentile, useSLPower,singleColorbarFlag)};
+    fig_ttl         = {sprintf('FigureSXX_Observed_MEG_BlankData_%s_prctile%2.1f_singleColorbarFlag%d_AVERAGE', amplitudeType, contourPercentile,singleColorbarFlag), ...
+                       sprintf('FigureSXX_Contour_%s_prctile%2.1f_singleColorbarFlag%d_AVERAGE', amplitudeType, contourPercentile,singleColorbarFlag)};
     sub_ttl         = {sprintf('Stimulus locked Average N = %d', length(subject)), ...
                        sprintf('Broadband Average N = %d', length(subject))};
     
@@ -223,6 +176,10 @@ if plotMeanSubject
     % Plot it!
     visualizeSensormaps(dataToPlot, maxColormapPercentile, contourPercentile, ...
         signedColorbar, singleColorbarFlag, colorContours, markerType, fig_ttl, sub_ttl, saveFig, figureDirAvg);
+
+%     fig_ttl2 = sprintf('Figure3_1Daverage_Observed_MEG_BlankData_%s_AVERAGE', amplitudeType);
+%     visualizePosteriorSensors1D(allData, true, fig_ttl2, sub_ttl,saveFig, figureDirAvg)
+    
 end
 
 return
