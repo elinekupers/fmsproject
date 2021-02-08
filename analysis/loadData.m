@@ -23,6 +23,9 @@ function data = loadData(dataDir, whichSession, varargin)
 %                                   using the coherent spectrum. i.e. first
 %                                   taking the average across epochs in
 %                                   time, then compute abs fft.
+%                               - 'amplitudesBB10hz': compute broadband
+%                                   response in 10 Hz bins from 60-150
+%                                   excluding sl harmonics.
 %  [useSLPower]      :  (bool) convert SL amplitudes to power units
 %  [useBBPower]      :  (bool) convert BB amplitudes to power units
 %
@@ -46,7 +49,8 @@ p.KeepUnmatched = true;
 p.addRequired('dataDir', @ischar);
 p.addRequired('whichSession', @isnumeric);
 p.addParameter('type','amplitudes', ...
-    @(x) any(validatestring(x,{'amplitudes', 'amplitudesHigherHarmonics', 'timeseries', 'amplitudesCoherentSpectrum'})));
+    @(x) any(validatestring(x,{'amplitudes', 'amplitudesHigherHarmonics', ...
+    'timeseries', 'amplitudesCoherentSpectrum','amplitudesBB10hz'})));
 p.addParameter('useSLPower', false, @islogical)
 p.addParameter('useBBPower', false, @islogical)
 p.parse(dataDir, whichSession, varargin{:});
@@ -58,7 +62,7 @@ useBBPower      = p.Results.useBBPower;
 
 switch type
     
-    case {'amplitudes', 'amplitudesHigherHarmonics','amplitudesCoherentSpectrum'}
+    case {'amplitudes', 'amplitudesHigherHarmonics','amplitudesCoherentSpectrum', 'amplitudesBB10hz'}
         
         % Number of bootstraps
         nBoot = 1000;
@@ -73,12 +77,26 @@ switch type
         % Exclude all frequencies below 60 Hz when computing broadband power
         lfDrop       = f(f<60);
         
-        % Define the frequenies and indices into the frequencies used to compute
-        % broadband power
-        [~, abIndex] = setdiff(f, [slDrop lfDrop]);
-        
-        % Create function handles for the frequencies that we use
-        bbFreqIdx    = @(x) x(abIndex);
+        if strcmp(type, 'amplitudesBB10hz')
+            start_range = 60:10:140;
+            for ii = 1:length(start_range)
+                lfDrop = f(f<start_range(ii));
+                hfDrop = f(f>start_range(ii)+10);
+                
+                % Define the frequenies and indices into the frequencies used to compute
+                % broadband power
+                [~, abIndex(ii).freq] = setdiff(f, [slDrop lfDrop hfDrop]);
+
+            end
+        else
+            
+            % Define the frequenies and indices into the frequencies used to compute
+            % broadband power
+            [~, abIndex] = setdiff(f, [slDrop lfDrop]);
+            
+            % Create function handles for the frequencies that we use
+            bbFreqIdx    = @(x) x(abIndex);
+        end
         
         %% Load data
         load(sprintf(fullfile(dataDir, 's%02d_conditions.mat'),whichSession));
@@ -163,30 +181,23 @@ switch type
         bb.full  = bb_ts(:,:,condEpochsFull);
         bb.blank = bb_ts(:,:,condEpochsBlank);
         
-        % Compute power (BB) or amplitudes (SL) for full and blank epochs at specified frequencies
+        %% Compute power (BB) or amplitudes (SL) for full and blank epochs at specified frequencies
         if strcmp(type, 'amplitudesHigherHarmonics')
             harmonics12Hz = [slFreq:slFreq:(4*slFreq),(6*slFreq):slFreq:(9*slFreq), (11*slFreq), (12*slFreq)]; %12,24,36,48,72,84,96,108,132,144
             slFreqIdx = @(x) x(harmonics12Hz+1);
             
-        elseif strcmp(type, 'amplitudes') || strcmp(type, 'amplitudesCoherentSpectrum')
+        else
             slFreqIdx = slFreq+1; % 12 Hz
         end
         
-        % do bootstrapping to get std across bootstraps
-        
+        % Bootstrapping to get std of mean sl for blank and full epochs
         if strcmp(type, 'amplitudesHigherHarmonics')
             % Stimulus locked using incoherent spectrum across all 12 Hz
             % harmonics (except line noise at 60 and 120 Hz)
             % Note: we use the getbroadband function to compute the geomean
             % across multiple frequencies
             sl.amps_full  = to157chan(getbroadband(sl.full, slFreqIdx,fs),~badChannels,'nans');
-            sl.amps_blank = to157chan(getbroadband(sl.blank, slFreqIdx,fs),~badChannels,'nans');
-            
-        elseif strcmp(type, 'amplitudes')
-            % Stimulus locked using incoherent spectrum.
-            % Amplitude (so not squared). Square values to get units of power
-            sl.amps_full = to157chan(getstimlocked(sl.full, slFreqIdx),~badChannels,'nans');
-            sl.amps_blank = to157chan(getstimlocked(sl.blank, slFreqIdx),~badChannels,'nans');
+            sl.amps_blank = to157chan(getbroadband(sl.blank, slFreqIdx,fs),~badChannels,'nans');  
             
         elseif strcmp(type, 'amplitudesCoherentSpectrum')
             % Stimulus locked using coherent spectrum
@@ -203,42 +214,80 @@ switch type
                 sl.boot_amps_blank_mn(ii,:) = to157chan(getstimlocked_coherent(sl_ts, slFreqIdx, epochsBlank(epBootBlankidx(nBoot,:))),~badChannels,'nans');
             end
             sl.boot_amps_diff_mn  = sl.boot_amps_full_mn - sl.boot_amps_blank_mn;
+            
+        else
+            % Stimulus locked using incoherent spectrum.
+            % Amplitude (so not squared). Square values to get units of power
+            sl.amps_full = to157chan(getstimlocked(sl.full, slFreqIdx),~badChannels,'nans');
+            sl.amps_blank = to157chan(getstimlocked(sl.blank, slFreqIdx),~badChannels,'nans');   
         end
         
-        % Compute BB amplitude for each epoch (no bootstrapping)
-        bb.amps_full  = to157chan(getbroadband(bb.full, bbFreqIdx, fs),~badChannels,'nans');
-        bb.amps_blank = to157chan(getbroadband(bb.blank, bbFreqIdx, fs),~badChannels,'nans');
+        %% Compute sample mean of broadband response
+        if strcmp(type, 'amplitudesBB10hz')
+            
+            for jj = 1:length(abIndex)
+                % Create function handles for the frequencies that we use
+                thesebbIndices = abIndex(jj).freq;
+                bbFreqIdx    = @(x) x(thesebbIndices);
+                % Compute BB amplitude for each epoch (no bootstrapping)
+                bb.amps_full(:,:,jj)  = to157chan(getbroadband(bb.full, bbFreqIdx, fs),~badChannels,'nans');
+                bb.amps_blank(:,:,jj) = to157chan(getbroadband(bb.blank, bbFreqIdx, fs),~badChannels,'nans');
+            end
+        else
+            % Compute BB amplitude for each epoch (no bootstrapping)
+            bb.amps_full  = to157chan(getbroadband(bb.full, bbFreqIdx, fs),~badChannels,'nans');
+            bb.amps_blank = to157chan(getbroadband(bb.blank, bbFreqIdx, fs),~badChannels,'nans');
+        end
         
+        % If requested, square values to get power
         if useSLPower
             sl.amps_full = sl.amps_full.^2;
             sl.amps_blank = sl.amps_blank.^2;
         end
         
         if useBBPower
-            sl.amps_full = bb.amps_full.^2;
-            sl.amps_blank = bb.amps_blank.^2;
+            bb.amps_full = bb.amps_full.^2;
+            bb.amps_blank = bb.amps_blank.^2;
         end
+
         
         % Define bootstrap function for averaging across epochs
         meanCondition_fun = @(epochData) mean(epochData,1, 'omitnan');
         
         if ~strcmp(type, 'amplitudesCoherentSpectrum')
             % Bootstrap diff Full and Blank epochs for SL and BB
-            % (data are in units of amplitude as well)  
+            % (data are in units of amplitude as well)
             sl.boot_amps_full_mn  = bootstrp(nBoot,meanCondition_fun,sl.amps_full);
             sl.boot_amps_blank_mn = bootstrp(nBoot,meanCondition_fun,sl.amps_blank);
             sl.boot_amps_diff_mn  = sl.boot_amps_full_mn - sl.boot_amps_blank_mn;
         end
         
-        bb.boot_amps_full_mn  = bootstrp(nBoot,meanCondition_fun,bb.amps_full);
-        bb.boot_amps_blank_mn = bootstrp(nBoot,meanCondition_fun,bb.amps_blank);
-        bb.boot_amps_diff_mn  = bb.boot_amps_full_mn - bb.boot_amps_blank_mn;
-        
-        % Get difference mean full and mean blank from data without bootstrapping (sample mean)
+        % Function to get difference mean full and mean blank from data without bootstrapping (sample mean)
         meanDiffFullBlank_fun = @(epochDataFull,epochDataBlank) ...
-            mean(epochDataFull,1, 'omitnan') - mean(epochDataBlank,1, 'omitnan');
-        sl.amps_diff_mn = meanDiffFullBlank_fun(sl.amps_full,sl.amps_blank);
-        bb.amps_diff_mn = meanDiffFullBlank_fun(bb.amps_full,bb.amps_blank);
+               mean(epochDataFull,1, 'omitnan') - mean(epochDataBlank,1, 'omitnan');
+           
+        if strcmp(type, 'amplitudesBB10hz')
+           sl.amps_diff_mn = meanDiffFullBlank_fun(sl.amps_full,sl.amps_blank);
+           
+           % same but for broadband 10 Hz bands 
+           for jj = 1:size(bb.amps_full,3)
+                % Bootstrap broadband data
+                bb.boot_amps_full_mn(:,:,jj)  = bootstrp(nBoot,meanCondition_fun,bb.amps_full(:,:,jj));
+                bb.boot_amps_blank_mn(:,:,jj) = bootstrp(nBoot,meanCondition_fun,bb.amps_blank(:,:,jj));
+                bb.boot_amps_diff_mn(:,:,jj)  = bb.boot_amps_full_mn(:,:,jj) - bb.boot_amps_blank_mn(:,:,jj);
+
+                bb.amps_diff_mn(:,:,jj) = meanDiffFullBlank_fun(bb.amps_full(:,:,jj),bb.amps_blank(:,:,jj));
+            end
+        else
+            % Bootstrap broadband data
+            bb.boot_amps_full_mn  = bootstrp(nBoot,meanCondition_fun,bb.amps_full);
+            bb.boot_amps_blank_mn = bootstrp(nBoot,meanCondition_fun,bb.amps_blank);
+            bb.boot_amps_diff_mn  = bb.boot_amps_full_mn - bb.boot_amps_blank_mn;
+
+            % Get sample mean
+            sl.amps_diff_mn = meanDiffFullBlank_fun(sl.amps_full,sl.amps_blank);
+            bb.amps_diff_mn = meanDiffFullBlank_fun(bb.amps_full,bb.amps_blank);
+        end
         
         % Define signal as amps_diff_mn
         sl.signal = sl.amps_diff_mn;
