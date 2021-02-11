@@ -1,10 +1,8 @@
 .DS_store
-data/*.mat
-data/*
 *.m~
 stimulus/*
 figures/*
-figures*/
+figures_*/
 toolboxVersions.mat
 
 

@@ -1,4 +1,4 @@
-function sensorsOfInterest = visualizeSensormaps(data, maxColormapPercentile, contourPercentile, signedColorbar, colorMarkers, markerType, fig_ttl, sub_ttl, saveFigures, figureDir)
+function sensorsOfInterest = visualizeSensormaps(data, maxColormapPercentile, contourPercentile, signedColorbar, singleColorbarFlag, colorMarkers, markerType, fig_ttl, sub_ttl, saveFigures, figureDir)
 
 % visualizeSensormaps(data, colormapLims, contourmapLims, colorMarkers, markerType, fig_ttl, sub_ttl, saveFigures)
 
@@ -28,6 +28,10 @@ if ~exist('colorMarkers','var') || isempty(colorMarkers)
     else
         colorMarkers =  repmat({'y','b'},1,2);
     end
+end
+
+if ~exist('singleColorbarFlag','var') || isempty(singleColorbarFlag)
+    singleColorbarFlag = false;
 end
 
 if ~exist('markerType','var') || isempty(markerType)
@@ -68,19 +72,26 @@ end
 sensorsOfInterest = NaN(size(data));
 
 %% Loop over datasets
+
 for ii = 1:size(data,1)
     
     dataToPlot = data(ii,:);
-    cmapData   = bipolar(64);
     
-    % Check limits of color map/bar 
-    if signedColorbar
-        colormapLims = [-1,1].*prctile(dataToPlot, maxColormapPercentile);
+    % Check if we use the same colorbar scale for both maps
+    if singleColorbarFlag && (ii==2) 
+       % do nothing
     else
-        colormapLims = [0 prctile(dataToPlot, maxColormapPercentile)];
-        cmapData = cmapData(ceil(length(cmapData)/2):end,:);
+        % Check limits of color map/bar 
+        if signedColorbar
+            colormapLims = [-1,1].*prctile(dataToPlot, maxColormapPercentile);
+            cmapData   = bipolar(64);
+        else 
+            colormapLims = [0 prctile(dataToPlot, maxColormapPercentile)];
+            cmapData = bipolar(64);
+            cmapData = cmapData(ceil(length(cmapData)/2):end,:);
+        end
     end
-
+    
     % Check at what point to draw contour lines
     if ~isempty(contourPercentile)
        if contourPercentile > 10 % Plot at given data percentile 
@@ -95,6 +106,7 @@ for ii = 1:size(data,1)
     figure(fH1);
     subplot(size(data,1),1,ii);
     [~,ch] = megPlotMap(dataToPlot,colormapLims,fH1,cmapData,sub_ttl{ii},[],[], ...
+        'mask', 'convex', ...
         'isolines', contourLines, ...
     ...    'chanindx', dataToPlot > max(contourmapLims), ...
         'pointsymbol', markerType, ... '*'

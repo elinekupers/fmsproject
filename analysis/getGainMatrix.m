@@ -1,7 +1,7 @@
-function G_constrained = getGainMatrix(data_dir, keep_sensors, headmodelType, highResFlag)
+function G = getGainMatrix(data_dir, keep_sensors, headmodelType, highResFlag, useConstrainedDipoles)
 
-% Function to load gain matrix and constrain it to have only one dipole 
-% vector (that is perpendicular to the surface).
+% Function to load gain matrix and if requested constrain it to have only 
+% one dipole vector (i.e. perpendicular to the surface).
 
 % This headmodel should be computed by Brainstorm and saved in the data_dir
 % that point to the data folder of the subject in the Brainstorm database.
@@ -13,7 +13,7 @@ function G_constrained = getGainMatrix(data_dir, keep_sensors, headmodelType, hi
 % highResFlag   : [bool] true/false use of FS size surface mesh
 
 % OUTPUTS:
-% G_constrained :  constrained Gain matrix from headmodel. Constrained means that the dipoles are forced to be surface normals (thus perpendicular to the surface)
+% G             :  [matrix] (un)constrained Gain matrix from headmodel. Constrained means that the dipoles are forced to be surface normals (thus perpendicular to the surface)
 
 % NB: Brainstorm GUI has to be open
 
@@ -57,8 +57,11 @@ end
 G = headmodel.Gain(keep_sensors,:); % [Nsensors x 3*Nvertices]
 
 % Contrained gain matrix
-G_constrained = bst_gain_orient(G, headmodel.GridOrient); % [Nsensors x Nsources], equivalent to size BS pial cortex [1x15002]
-
-
+if useConstrainedDipoles
+    G = bst_gain_orient(G, headmodel.GridOrient); % [Nsensors x Nsources], equivalent to size BS pial cortex [1x15002]
+else
+    %% TO DO
+%     how to summarize unconstrained gain matrix
+end
 
 return

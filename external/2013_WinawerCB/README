@@ -1,0 +1,82 @@
+README
+
+The code and data in this directory are housed by the the Stanford Digital Repository (http://lib.stanford.edu/sdr) with the following citation:
+
+Winawer, J., Kay, K.N., Foster, B.L., Rauschecker, A.M., Parvizi, J., and Wandell, B.A. (2013). Stanford Digital Repository: Code and data supplement for "Asynchronous broadband signals are the principal source of the BOLD response in human visual cortex". http://purl.stanford.edu/hj582pj3902.
+
+The original publication associated with the code and data is
+
+Winawer, J., Kay, K.N., Foster, B.L., Rauschecker, A.M., Parvizi, J., and Wandell, B.A.  Asynchronous broadband signals are the principal source of the BOLD response in human visual cortex. Current Biology, 2013, 23(13).
+
+All code in this repository is written in MATLAB (Mathworks) and, together with the included data, can be used to reproduce the plots from the publication.
+
+The code reproduces all ECoG data panels in the main text of the paper and one panel from the supplement: Figures 1c, 1d, 2c, 2d, 3b, 3c, 4a, 4b, 5 data, 5 simulation, and S5 traveling wave.
+
+Code and data are provided as part of the goal of ensuring that computational methods are reproducible by other researchers. Moreover, we encourage other researchers to explore the data and to try fitting different population receptive models to the provided data or to their own data sets, and to use the simulation code or variants of it.
+
+******************
+** DEPENDENCIES **
+******************
+Matlab toolboxes needed for plots:
+	none (default)
+Matlab toolboxes needed for solving pRF models:
+	optimization
+	statistics
+	map
+
+***************
+** EXAMPLE ****
+***************
+Reproduce plots from Figure 1 with the following call from the Matlab command window. This call will write out images to 'scratch' directory.
+	ecogPRFAddPaths;
+	figure1c_onOffTS;
+	figure1d_onOffSpectra;
+
+Reproduce all plots with the following call from the Matlab command window. This call will write out images to 'scratch' directory.
+	ecogPRFAddPaths;
+	figure_All;
+	
+***************
+** CONTENTS ***
+***************
+
+Top level:
+ - README: This is where you are now ;) 
+ - ecogPRFAddPaths: function to add paths needed for computations and plots
+ - ecogPRFrootPath: function to returns path to directory with data and functions
+
+figures: Scripts to reproduce the main data plots in the publication
+ - figureX.m: script to produce Figure X
+ - pdfs/figureX.pdf: PDFs produced though Matlab's "publish" command for Figure X
+
+data: Matlab data files ('*.mat') needed for plots. 
+ - figureXData.mat: data for figure X
+ - PRF_X_Y.mat: PRF model solutions for ECoG signals
+			* X = 'ab' (asynchronous broadband) or 'sl' (stimulus-locked)
+			* Y = exp (non-linear 'CSS' model) or noexp (linear model)
+			* _xval_ means models were solved via leave-one out cross-validation
+ - tseriesForPRFs.mat: Inputs needed solve pRF models. 
+			* Includes AB and SL measurement for each channel and each epoch in moving bar experiments.
+
+compute: Matlab functions for ECoG computations needed for plots and solving pRF models
+ - ecog*.m: functions needed for plots and simulation
+ - s_ecogSolvePRFs: script to re-solve pRF models (pre-computed solutions saved in data directory)
+
+external: Code not written by Jonathan Winawer
+ - kendrick: code written by Kendrick N. Kay (see kendrick/README ) 
+ - vista: utilities borrowed from vistasoft (https://github.com/vistalab/vistasoft)
+ - shadedplot (from Matlab file exchange, see shadedplot/license.txt)
+
+simulation: Code for simulating ECoG temporal response
+ - Matlab functions for simulating ECoG time response to visual stimuli. 
+ - See also figures/figure5_simulation.m
+ 			(script that uses these functions to produce the right panels of Figure 5)
+
+stims
+ - Binarized stimulus descriptions for solving pRF models
+
+scratch
+ - Empty directory for writing files. 
+ - Running figureX.m scripts writes output images to this directory.
+
+
