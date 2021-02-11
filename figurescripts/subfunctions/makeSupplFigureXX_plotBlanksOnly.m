@@ -126,9 +126,13 @@ end
 
 %% 3. Plot subject
 for s = subjectsToPlot
-
-    dataToPlot   = cat(1, mean(allData{s}.sl.amps_blank, 'omitnan'),mean(allData{s}.bb.amps_blank,'omitnan'));
-
+    
+    if strcmp(subject{s},'wlsubj059')
+        dataToPlot   = cat(1, allData{s}.sl.amps_blank,mean(allData{s}.bb.amps_blank, 'omitnan'));
+    else
+        dataToPlot   = cat(1, mean(allData{s}.sl.amps_blank, 'omitnan'),mean(allData{s}.bb.amps_blank,'omitnan'));
+    end
+    
     fig_ttl       = {sprintf('Figure3_Observed_MEG_BlankData_%s_prctile%2.1f_S%d_singleColorbarFlag%d', amplitudeType, contourPercentile, s, singleColorbarFlag), ...
                      sprintf('Figure3_ContourBlankData_%s_prctile%2.1f_S%d_singleColorbarFlag%d', amplitudeType, contourPercentile, s, singleColorbarFlag)};
     sub_ttl       = {sprintf('Stimulus locked S%d', s), ...
@@ -150,7 +154,11 @@ end
 if plotMeanSubject
     
     for ii = subjectsToLoad
-        amps(1,ii,:) = mean(allData{ii}.sl.amps_blank, 'omitnan');
+        if strcmp(subject{s},'wlsubj059')
+            amps(1,ii,:) = allData{ii}.sl.amps_blank;
+        else
+            amps(1,ii,:) = mean(allData{ii}.sl.amps_blank, 'omitnan');
+        end
         amps(2,ii,:) = mean(allData{ii}.bb.amps_blank, 'omitnan');
     end
     
@@ -177,8 +185,8 @@ if plotMeanSubject
     visualizeSensormaps(dataToPlot, maxColormapPercentile, contourPercentile, ...
         signedColorbar, singleColorbarFlag, colorContours, markerType, fig_ttl, sub_ttl, saveFig, figureDirAvg);
 
-%     fig_ttl2 = sprintf('Figure3_1Daverage_Observed_MEG_BlankData_%s_AVERAGE', amplitudeType);
-%     visualizePosteriorSensors1D(allData, true, fig_ttl2, sub_ttl,saveFig, figureDirAvg)
+     fig_ttl2 = sprintf('Figure3_1Daverage_Observed_MEG_BlankData_%s_AVERAGE', amplitudeType);
+     visualizePosteriorSensors1D(allData, true, fig_ttl2, sub_ttl,saveFig, figureDirAvg)
     
 end
 
