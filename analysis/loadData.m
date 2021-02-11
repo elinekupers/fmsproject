@@ -66,6 +66,8 @@ switch type
         end
 
         fprintf('(%s): Data session %d - Selected bad channels are: %s\n', mfilename, whichSession, sprintf('%d ', find(badChannels)));              
+        fprintf('(%s): Data session %d - Total bad channels: %d (%1.2f %%)\n', mfilename, whichSession, sum(badChannels),100*(sum(badChannels)/length(dataChannels)));              
+        fprintf('(%s): Data session %d - Total bad epochs: %d (%1.2f %%)\n', mfilename, whichSession, sum(badEpochs),100*(sum(badChannels)/size(sensorData,2)));              
         
         % Remove bad channels and bad epochs from data and conditions
         sensorData = sensorData(:,~badEpochs, ~badChannels);
@@ -195,8 +197,14 @@ switch type
          [sensorData, badChannels, badEpochs] = nppPreprocessData(sensorData(:,:,dataChannels), ...
              varThreshold, badChannelThreshold, badEpochThreshold, false);
          
+         fprintf('(%s): Data session %d - Bad epochs before removing 1st epoch stim period: %d (%1.2f %%)\n', mfilename, whichSession, sum(badEpochs),100*(sum(badEpochs)/size(sensorData,2)));
+         
          % ---- Define first epochs in order to remove later ------------------
          badEpochs(1:6:end) = 1;
+         
+         fprintf('(%s): Data session %d - Selected bad channels are: %s\n', mfilename, whichSession, sprintf('%d ', find(badChannels)));              
+         fprintf('(%s): Data session %d - Total bad channels: %d (%1.2f %%)\n', mfilename, whichSession, sum(badChannels),100*(sum(badChannels)/length(dataChannels)));
+         fprintf('(%s): Data session %d - Total bad epochs: %d (%1.2f %%)\n', mfilename, whichSession, sum(badEpochs),100*(sum(badEpochs)/size(sensorData,2)));
          
          % Remove bad channels and bad epochs from data and conditions
          sensorData = sensorData(:,~badEpochs, ~badChannels);
