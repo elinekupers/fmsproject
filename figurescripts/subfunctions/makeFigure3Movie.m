@@ -7,11 +7,10 @@ function makeFigure3Movie(varargin)
 %
 %
 % INPUTS:
-%   [subjectsToPlot]        :  (int)  subject nr to plot, default is 12
-%   [saveFig]               :  (bool) true/false save figures
+%   [subjectToPlot]        :  (int)  subject nr to plot, default is 12
 %
 % Example 1:
-%  makeFigure3Movie('subjectsToPlot', 1, 'saveFig', true)
+%  makeFigure3Movie('subjectToPlot', 1)
 %
 % By Eline Kupers (NYU) 2017
 
@@ -19,22 +18,28 @@ function makeFigure3Movie(varargin)
 
 p = inputParser;
 p.KeepUnmatched = true;
-p.addParameter('subjectsToPlot', 2);
-p.addParameter('saveFig', true, @islogical);
+p.addParameter('subjectsToPlot', 12);
+p.addParameter('saveMovie',false);
 p.parse(varargin{:});
 
 % Rename variables
-subjectsToPlot        = p.Results.subjectsToPlot;
-saveFig               = p.Results.saveFig;
+subjectsToPlot  = p.Results.subjectsToPlot;
+saveMovie         = p.Results.saveMovie;
 
 % Where do data live?
-dataDir = fullfile(fmsRootPath, 'data'); 
+dataDir = fullfile(fmsRootPath, 'data');
+
 
 %% 1. Define subjects and synchrony variables
 
 % Get subject names and corresponding data session number
 [subject, dataSession] = getSubjectIDs;
 whichSession = dataSession(subjectsToPlot);
+
+% Where to save movie?
+if saveMovie
+    figureDir = fullfile(fmsRootPath,'figures',subject{subjectsToPlot});
+end
 
 % Load data
 data     = loadData(fullfile(dataDir, subject{subjectsToPlot}), whichSession, 'type', 'timeseries');
@@ -66,7 +71,7 @@ fH = figure(1); clf; set(gcf, 'Position', [1 1 rows, cols], 'Color', 'w');
 
 % Set colormap, colormap limits
 cmap     = bipolar;
-clim     = [-1,1].*abs(min(tsFullBlankDiff(:)));
+clim     = [-1,1].*abs(max(tsFullBlankDiff(:)));
 fprintf('\n(%s): Creating frames.', mfilename);
 
 F(length(timePoints)) = struct('cdata',[], 'colormap', []);
@@ -85,9 +90,9 @@ end
 % Create movie
 mov = implay(F, 4);
 
-if saveFig
-    figureDir = fullfile(fmsRootPath,'figures',subject{subjectsToPlot});
-    fname = fullfile(figureDir, 'singleCycleMovieDataFigure3');
+if saveMovie
+    
+    fname = fullfile(figureDir, 'timeseriesMovieMEGDataFigure3');
     vid = VideoWriter(fname, 'MPEG-4');
     open(vid);
     
