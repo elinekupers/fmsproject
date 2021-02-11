@@ -119,10 +119,4 @@ for t = 1:n
     set(ch,'box','off','tickdir','out','ticklength',[0.010 0.010], 'FontSize',12);
 end
 
-% % Make figure and data dir for subject, if non-existing
-% figureDir    = fullfile(fmsRootPath,'figures', subject{s}); % Where to save images?
-% if ~exist(figureDir,'dir'); mkdir(figureDir); end
- 
-
-
 
