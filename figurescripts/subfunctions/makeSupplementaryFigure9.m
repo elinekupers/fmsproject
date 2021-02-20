@@ -1,7 +1,7 @@
-function makeSupplementaryFigure7(varargin)
+function makeSupplementaryFigure9(varargin)
 % This is a function to make model predictions for different mixtures of
 % synchrony levels in early visual cortical sources as shown in
-% Supplementary Figure 7 from the manuscript:
+% Supplementary Figure 9 from the manuscript:
 %
 %   A visual encoding model links magnetoencephalography
 %   signals to neural synchrony in human cortex.
@@ -44,11 +44,11 @@ function makeSupplementaryFigure7(varargin)
 %                                     positive values.
 %
 % Example 1: Plot first subject
-%  makeSupplementaryFigure7('subjectsToPlot', 1, 'plotMeanSubject', false, 'saveFig', true)
+%  makeSupplementaryFigure9('subjectsToPlot', 1, 'plotMeanSubject', false, 'saveFig', true)
 % Example 2: Plot example subject in manuscript (S12)
-%  makeSupplementaryFigure7('subjectsToPlot', 12, 'plotMeanSubject', false, 'saveFig', true)
+%  makeSupplementaryFigure9('subjectsToPlot', 12, 'plotMeanSubject', false, 'saveFig', true)
 % Example 3: Plot all subjects and group average
-%  makeSupplementaryFigure7('subjectsToPlot', 1:12, 'plotMeanSubject', true, 'saveFig', true)
+%  makeSupplementaryFigure9('subjectsToPlot', 1:12, 'plotMeanSubject', true, 'saveFig', true)
 %
 
 p = inputParser;
@@ -219,7 +219,7 @@ for s = subjectsToPlot
         % Make figure dir for subject, if non-existing
         if ~exist(figureDir,'dir'); mkdir(figureDir); end
         % save as png for memory purposes
-        figurewrite(fullfile(figureDir, sprintf('SupplFig7_mixturePredictions_%s_%d-%d_%2.1f_%s_highResFlag%d_S%d_%d', area, eccenLimitDeg(1), eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf, s, k)),0,[1 300],'.',1);
+        figurewrite(fullfile(figureDir, sprintf('SupplFig9_mixturePredictions_%s_%d-%d_%2.1f_%s_highResFlag%d_S%d_%d', area, eccenLimitDeg(1), eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf, s, k)),0,[1 300],'.',1);
     end
     
 end
@@ -295,9 +295,9 @@ if plotMeanSubject
         figureDir  = fullfile(fmsRootPath,'figures', 'average');   
         if ~exist(figureDir,'dir'); mkdir(figureDir); end
         figure(fH1); % save as .png for memory purposes
-        figurewrite(fullfile(figureDir, sprintf('SupplFig7_mixturePredictions_%s_%d-%d_%2.1f_%s_highResFlag%d_AVERAGE', area, eccenLimitDeg(1), eccenLimitDeg(2),contourPercentile, headmodelType, highResSurf)),0,[1 300],'.',1);
+        figurewrite(fullfile(figureDir, sprintf('SupplFig9_mixturePredictions_%s_%d-%d_%2.1f_%s_highResFlag%d_AVERAGE', area, eccenLimitDeg(1), eccenLimitDeg(2),contourPercentile, headmodelType, highResSurf)),0,[1 300],'.',1);
         figure(fH2);
-        figurewrite(fullfile(figureDir, sprintf('SupplFig7_Contour_mixturePredictions_%s_%d-%d_%2.1f_%s_highResFlag%d_AVERAGE', area, eccenLimitDeg(1), eccenLimitDeg(2),contourPercentile, headmodelType, highResSurf)),[],0,'.',1);
+        figurewrite(fullfile(figureDir, sprintf('SupplFig9_Contour_mixturePredictions_%s_%d-%d_%2.1f_%s_highResFlag%d_AVERAGE', area, eccenLimitDeg(1), eccenLimitDeg(2),contourPercentile, headmodelType, highResSurf)),[],0,'.',1);
     end
     
 end

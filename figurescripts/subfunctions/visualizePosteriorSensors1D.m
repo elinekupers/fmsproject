@@ -85,55 +85,59 @@ else
     nDataTypes = 2;
     dataFlag   = 0;
 end
-    
+
 for bin_nr = bbBins
     
     % Preallocate space
-    if dataFlag   
+    if dataFlag
         mnBoot     = NaN(nSubjects,nBoot,nDataTypes,size(xbins,2));
     end
     sampleMean = NaN(nSubjects,nDataTypes,size(xbins,2));
     
     for s = 1:nSubjects
-        
-        if dataFlag
-            bootData = cat(3, data{s}.sl.boot_amps_diff_mn, data{s}.bb.boot_amps_diff_mn(:,:,bin_nr));
-
-            for boot = 1:nBoot
-                for dt = 1:nDataTypes
-                    thisSubjectData = squeeze(bootData(boot,:,dt));
-                    for c = 1:nbins
-                        %                 keep = abs(xpos-centers(c)) < 0.5*windowsz & ypos < 0;
-                        wt = exp(-0.5*((xbins(c)-xpos)/sigma).^2);
-                        wt(ypos>0)=0;
-                        mnBoot(s,boot,dt,c) = sum(thisSubjectData.*wt', 'omitnan')/sum(wt);
+        if ~isempty(data{s})
+            if dataFlag
+                
+                bootData = cat(3, data{s}.sl.boot_amps_diff_mn, data{s}.bb.boot_amps_diff_mn(:,:,bin_nr));
+                
+                for boot = 1:nBoot
+                    for dt = 1:nDataTypes
+                        thisSubjectData = squeeze(bootData(boot,:,dt));
+                        for c = 1:nbins
+                            %                 keep = abs(xpos-centers(c)) < 0.5*windowsz & ypos < 0;
+                            wt = exp(-0.5*((xbins(c)-xpos)/sigma).^2);
+                            wt(ypos>0)=0;
+                            mnBoot(s,boot,dt,c) = sum(thisSubjectData.*wt', 'omitnan')/sum(wt);
+                        end
                     end
                 end
+                
+                err = std(mnBoot, [],2,'omitnan');
+                
             end
-        
-            err = std(mnBoot, [],2,'omitnan');
-        end
-        
-        for c = 1:nbins
-            %         keep = abs(xpos-centers(c)) < 0.5*windowsz & ypos < 0;
-            wt = exp(-0.5*((xbins(c)-xpos)/sigma).^2);
-            wt(ypos>0)=0;
             
-            if dataFlag
-                sl = data{s}.sl.amps_diff_mn;
-                bb = data{s}.bb.amps_diff_mn(:,:,bin_nr);
-            else
-                sl = data{s}(1,:);
-                bb = data{s}(2,:);
+            for c = 1:nbins
+                %         keep = abs(xpos-centers(c)) < 0.5*windowsz & ypos < 0;
+                wt = exp(-0.5*((xbins(c)-xpos)/sigma).^2);
+                wt(ypos>0)=0;
+                
+                if dataFlag
+                    sl = data{s}.sl.amps_diff_mn;
+                    bb = data{s}.bb.amps_diff_mn(:,:,bin_nr);
+                else
+                    sl = data{s}(1,:);
+                    bb = data{s}(2,:);
+                end
+                sampleMean(s,1,c) = sum(sl.*wt', 'omitnan')/sum(wt);
+                sampleMean(s,2,c) = sum(bb.*wt', 'omitnan')/sum(wt);
             end
-            sampleMean(s,1,c) = sum(sl.*wt', 'omitnan')/sum(wt);
-            sampleMean(s,2,c) = sum(bb.*wt', 'omitnan')/sum(wt);
         end
     end
     
     % Visualize data
     xlbl = xbins;
     
+    % Set y-axis limits
     if dataFlag
         if bbBins ==1
             yl = [[0,60];[-0.1, 0.25]];
@@ -143,6 +147,13 @@ for bin_nr = bbBins
     else
         yl = [[0,1];[0, 0.35]];
     end
+    
+    % Update yl if it's too small
+    if (max(sampleMean(:))+5) > max(yl(1,2))
+        yl(1,2) = max(sampleMean(:))+5;
+    end
+    
+    % Plot it!
     if nSubjects > 6; nrows = 4; ncols = 6; else, nrows = 2; ncols = nSubjects; end
     figure; clf; set(gcf, 'color','w'); if nSubjects > 1, set(gcf, 'Position', [2,39,1520,759]); end
     for dt = 1:nDataTypes
@@ -168,6 +179,7 @@ for bin_nr = bbBins
         figurewrite(fullfile(figureDir,[fig_ttl '_individual' num2str(bin_nr)]),[],0,'.',1);
     end
     
+    % Now for group average
     if plotAvg
         
         groupMn = squeeze(mean(sampleMean,1,'omitnan'));

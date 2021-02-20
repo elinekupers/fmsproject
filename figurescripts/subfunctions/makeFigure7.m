@@ -47,11 +47,11 @@ function makeFigure7(varargin)
 %   [singleColorbarFlag]    :  (bool) Use a single colorbar per row,
 %                                     instead of per individual plot.
 % Example 1:
-%  makeFigure6('subjectsToPlot', 1, 'plotMeanSubject', false, 'saveFig', true)
+%  makeFigure7('subjectsToPlot', 1, 'plotMeanSubject', false, 'saveFig', true)
 % Example 2:
-%  makeFigure6('subjectsToPlot', 12, 'plotMeanSubject', false, 'saveFig', true)
+%  makeFigure7('subjectsToPlot', 12, 'plotMeanSubject', false, 'saveFig', true)
 % Example 3:
-%  makeFigure6('subjectsToPlot', 1:12, 'plotMeanSubject', true, 'saveFig', true)
+%  makeFigure7('subjectsToPlot', 1:12, 'plotMeanSubject', true, 'saveFig', true)
 %
 %
 % By Eline Kupers (NYU) 2019

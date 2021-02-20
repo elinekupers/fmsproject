@@ -1,5 +1,5 @@
-function makeFigureXX_BB10hz(varargin)
-% This is a function to make Supplementary Figure SXX from the manuscript:
+function makeSupplementaryFigure2(varargin)
+% This is a function to make Supplementary Figure 2 from the manuscript:
 %   A visual encoding model links magnetoencephalography
 %   signals to neural synchrony in human cortex.
 %       by Kupers, Benson, Winawer (YEAR) JOURNAL.
@@ -54,11 +54,11 @@ function makeFigureXX_BB10hz(varargin)
 %                                 'amplitudes')
 %
 % Example 1: Plot first subject
-%  makeFigureXX_BB10hz('subjectsToPlot', 1, 'plotMeanSubject', false, 'saveFig', true)
+%  makeSupplementaryFigure2('subjectsToPlot', 1, 'plotMeanSubject', false, 'saveFig', true)
 % Example 2: Plot example subject in manuscript (S12)
-%  makeFigureXX_BB10hz('subjectsToPlot', 12, 'plotMeanSubject', false, 'saveFig', true)
+%  makeSupplementaryFigure2('subjectsToPlot', 12, 'plotMeanSubject', false, 'saveFig', true)
 % Example 3: Plot all subjects and group average
-%  makeFigureXX_BB10hz('subjectsToPlot', 1:12, 'plotMeanSubject', true, 'saveFig', true)
+%  makeSupplementaryFigure2('subjectsToPlot', 1:12, 'plotMeanSubject', true, 'saveFig', true)
 %
 % By Eline Kupers (NYU) 2017
 
@@ -68,7 +68,6 @@ p.KeepUnmatched = true;
 p.addParameter('subjectsToPlot', 12);
 p.addParameter('plotMeanSubject', true, @islogical);
 p.addParameter('saveFig', true, @islogical);
-p.addParameter('useSLIncohSpectrum', true, @islogical);
 p.addParameter('contourPercentile', 93.6, @isnumeric);
 p.addParameter('maxColormapPercentile', 97.5, @isnumeric);
 p.addParameter('signedColorbar', true, @islogical);
@@ -81,7 +80,6 @@ p.parse(varargin{:});
 subjectsToPlot          = p.Results.subjectsToPlot;
 plotMeanSubject         = p.Results.plotMeanSubject;
 saveFig                 = p.Results.saveFig;
-useSLIncohSpectrum      = p.Results.useSLIncohSpectrum;
 contourPercentile       = p.Results.contourPercentile;
 maxColormapPercentile   = p.Results.maxColormapPercentile;
 signedColorbar          = p.Results.signedColorbar;
@@ -136,8 +134,8 @@ for s = subjectsToPlot
         dataToPlot   = cat(1, allData{s}.sl.amps_diff_mn .* snrThreshMask.sl.single, ...
             allData{s}.bb.amps_diff_mn(:,:,ii) .* snrThreshMask.bb.single);
         
-        fig_ttl       = {sprintf('Figure3_Observed_MEG_Data_%s_prctile%2.1f_S%d_singleColorbarFlag%d', amplitudeType, contourPercentile, s, singleColorbarFlag), ...
-            sprintf('Figure3_Contour_%s_prctile%2.1f_S%d_singleColorbarFlag%d', amplitudeType, contourPercentile, s, singleColorbarFlag)};
+        fig_ttl       = {sprintf('SupplFig2_Observed_MEG_Data_%s_prctile%2.1f_S%d_singleColorbarFlag%d', amplitudeType, contourPercentile, s, singleColorbarFlag), ...
+            sprintf('SupplFig2_Contour_%s_prctile%2.1f_S%d_singleColorbarFlag%d', amplitudeType, contourPercentile, s, singleColorbarFlag)};
         sub_ttl       = {sprintf('Stimulus locked S%d', s), ...
             sprintf('Broadband S%d', s)};
         
@@ -190,8 +188,8 @@ if plotMeanSubject
             mnAmp.bb .* snrThreshMask.bb.group);
         
         % Define figure and subfigure titles
-        fig_ttl         = {sprintf('Figure3_Observed_MEG_Data_%s_prctile%2.1f_singleColorbarFlag%d_AVERAGE', amplitudeType, contourPercentile,singleColorbarFlag), ...
-            sprintf('Figure3_Contour_%s_prctile%2.1f_singleColorbarFlag%d_AVERAGE', amplitudeType, contourPercentile,singleColorbarFlag)};
+        fig_ttl         = {sprintf('SupplFig2_Observed_MEG_Data_%s_prctile%2.1f_singleColorbarFlag%d_AVERAGE', amplitudeType, contourPercentile,singleColorbarFlag), ...
+            sprintf('SupplFig2_Contour_%s_prctile%2.1f_singleColorbarFlag%d_AVERAGE', amplitudeType, contourPercentile,singleColorbarFlag)};
         sub_ttl         = {sprintf('Stimulus locked Average N = %d', length(subject)), ...
             sprintf('Broadband Average N = %d', length(subject))};
         
@@ -207,7 +205,7 @@ if plotMeanSubject
             signedColorbar, singleColorbarFlag, colorContours, markerType, fig_ttl, sub_ttl, saveFig, figureDirAvg);
     end
     
-    fig_ttl2 = sprintf('Figure3_1Daverage_Observed_MEG_Data_%s_AVERAGE', amplitudeType);
+    fig_ttl2 = sprintf('SupplFig2_1Daverage_Observed_MEG_Data_%s_AVERAGE', amplitudeType);
     visualizePosteriorSensors1D(allData, true, fig_ttl2, sub_ttl,saveFig, figureDirAvg)
 end
 

@@ -78,7 +78,7 @@ for ii = 1:size(data,1)
     dataToPlot = data(ii,:);
     
     % Check if we use the same colorbar scale for both maps
-    if singleColorbarFlag && (ii==2) 
+    if singleColorbarFlag && (ii>1) 
        % do nothing
     else
         % Check limits of color map/bar 

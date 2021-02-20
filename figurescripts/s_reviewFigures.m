@@ -8,29 +8,18 @@
 %
 % By Eline Kupers, NYU (2020)
 
+%% General params
+saveFig = false;
 
-%% Supplementary Figure V2/V3 
-% Visualize model predictions for different visual areas for group, and example subject 
-subjectsToPlot = 1:12;
-makeFigure5('subjectsToPlot', subjectsToPlot, 'plotMeanSubject', true, 'saveFig', true, 'area', 'V23')
+%% Make movie of observed and simulated time series
+makeFigure3Movie('subjectToPlot', 1)
+makeFigure5Movie('subjectToPlot', 1)
 
+%% Plot topomaps of 11, 12, 13 Hz amplitudes using coherent spectrum
+makeSupplementaryFigureXX_coherentSpectrum('subjectsToPlot',12, 'plotMeanSubject',true,'singleColorbarFlag', true, 'saveFig', saveFig)
 
-%% Supplementary Figure Benson18 Wang15 vs headmodel BEM/OS for review
-% Visualize model predictions for different visual areas for group, and example subject 
-subjectsToPlot = 1:12;
-headmodelType = 'BEM';
+%% Plot coherent spectrum of single and average across subject
+makeFigure3('subjectsToPlot', 12, 'plotMeanSubject', true, 'amplitudeType', 'amplitudesCoherentSpectrum', 'saveFig', saveFig)
 
-makeFigure5('subjectsToPlot', subjectsToPlot, 'plotMeanSubject', true, 'saveFig', true, 'area', 'benson18atlas', 'headmodelType', headmodelType)
-makeFigure5('subjectsToPlot', subjectsToPlot, 'plotMeanSubject', true, 'saveFig', true, 'area', 'wang15atlas', 'headmodelType', headmodelType)
+makeFigure3('subjectsToPlot', 12, 'plotMeanSubject', true, 'withoutS10', true, 'saveFig', saveFig)
 
-
-%% New Figure 3 (SL and BB POWER)
-% Visualize visually evoked steady state and broadband MEG sensor responses
-subjectsToPlot = 12;
-makeFigure3('subjectsToPlot', subjectsToPlot, 'plotMeanSubject', true, 'saveFig', true, 'useSLPower', true)
-
-
-%% New Figure 3 (SL coherent spectrum and BB POWER)
-% Visualize visually evoked steady state and broadband MEG sensor responses
-subjectsToPlot = 1:12;
-makeFigure3('subjectsToPlot', subjectsToPlot, 'plotMeanSubject', true, 'saveFig', true, 'useSLPower', true, 'useSLIncohSpectrum', false)

@@ -71,7 +71,6 @@ p.KeepUnmatched = true;
 p.addParameter('subjectsToPlot', 12);
 p.addParameter('plotMeanSubject', true, @islogical); 
 p.addParameter('saveFig', true, @islogical); 
-p.addParameter('useSLIncohSpectrum', true, @islogical);
 p.addParameter('contourPercentile', 93.6, @isnumeric);  
 p.addParameter('maxColormapPercentile', 97.5, @isnumeric); 
 p.addParameter('signedColorbar', true, @islogical);
@@ -79,19 +78,20 @@ p.addParameter('singleColorbarFlag', false, @islogical);
 p.addParameter('snrThresh',1, @isnumeric);
 p.addParameter('amplitudeType', 'amplitudes', ...
     @(x) any(validatestring(x,{'amplitudes', 'amplitudesHigherHarmonics', 'amplitudesCoherentSpectrum'})));
+p.addParameter('withoutS10', false, @islogical);
 p.parse(varargin{:});
 
 % Rename variables
 subjectsToPlot          = p.Results.subjectsToPlot;
 plotMeanSubject         = p.Results.plotMeanSubject;
 saveFig                 = p.Results.saveFig;
-useSLIncohSpectrum      = p.Results.useSLIncohSpectrum;
 contourPercentile       = p.Results.contourPercentile;
 maxColormapPercentile   = p.Results.maxColormapPercentile;
 signedColorbar          = p.Results.signedColorbar;
 singleColorbarFlag      = p.Results.singleColorbarFlag;
 snrThresh               = p.Results.snrThresh;
 amplitudeType           = p.Results.amplitudeType;
+withoutS10              = p.Results.withoutS10;
 
 % Get subject names and corresponding data session number
 [subject, dataSession] = getSubjectIDs;
@@ -107,6 +107,11 @@ colorContours = {'y','b'};
 % Load all subjects when plotting the mean
 if plotMeanSubject
     subjectsToLoad = 1:length(subject);
+    if withoutS10
+       subjectsToLoad = setdiff(1:length(subject),10);
+       figureDir = fullfile(figureDir,'_woS10');
+       if ~exist(figureDir,'dir'); mkdir(figureDir); end
+    end
 else
     subjectsToLoad = subjectsToPlot;
 end

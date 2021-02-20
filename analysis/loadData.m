@@ -53,12 +53,15 @@ p.addParameter('type','amplitudes', ...
     'timeseries', 'amplitudesCoherentSpectrum','amplitudesBB10hz'})));
 p.addParameter('useSLPower', false, @islogical)
 p.addParameter('useBBPower', false, @islogical)
+p.addParameter('plotNeighboringSLFreq', false, @islogical)
+
 p.parse(dataDir, whichSession, varargin{:});
 
 % Rename variables
 type            = p.Results.type;
 useSLPower      = p.Results.useSLPower;
 useBBPower      = p.Results.useBBPower;
+plotNeighboringSLFreq = p.Results.plotNeighboringSLFreq;
 
 switch type
     
@@ -86,7 +89,7 @@ switch type
                 % Define the frequenies and indices into the frequencies used to compute
                 % broadband power
                 [~, abIndex(ii).freq] = setdiff(f, [slDrop lfDrop hfDrop]);
-
+                
             end
         else
             
@@ -124,7 +127,7 @@ switch type
             badChannels = false(size(badChannels0));
             badChannels(badChanIdx) = true;
         end
-
+        
         % For some reason the preprocessing steps didn't take out bad
         % channel 98 in several sessions, so we do it manually here.
         % This channel is permanently broken and should not be used.
@@ -132,9 +135,9 @@ switch type
             badChannels(98) = true;
         end
         
-        fprintf('(%s): Data session %d - Selected bad channels are: %s\n', mfilename, whichSession, sprintf('%d ', find(badChannels)));              
-        fprintf('(%s): Data session %d - Total bad channels: %d (%1.2f %%)\n', mfilename, whichSession, sum(badChannels),100*(sum(badChannels)/length(dataChannels)));              
-        fprintf('(%s): Data session %d - Total bad epochs: %d (%1.2f %%)\n', mfilename, whichSession, sum(badEpochs),100*(sum(badChannels)/size(sensorData,2)));              
+        fprintf('(%s): Data session %d - Selected bad channels are: %s\n', mfilename, whichSession, sprintf('%d ', find(badChannels)));
+        fprintf('(%s): Data session %d - Total bad channels: %d (%1.2f %%)\n', mfilename, whichSession, sum(badChannels),100*(sum(badChannels)/length(dataChannels)));
+        fprintf('(%s): Data session %d - Total bad epochs: %d (%1.2f %%)\n', mfilename, whichSession, sum(badEpochs),100*(sum(badChannels)/size(sensorData,2)));
         
         % Remove bad channels and bad epochs from data and conditions
         sensorData = sensorData(:,~badEpochs, ~badChannels);
@@ -199,29 +202,46 @@ switch type
             % Note: we use the getbroadband function to compute the geomean
             % across multiple frequencies
             sl.amps_full  = to157chan(getbroadband(sl.full, slFreqIdx,fs),~badChannels,'nans');
-            sl.amps_blank = to157chan(getbroadband(sl.blank, slFreqIdx,fs),~badChannels,'nans');  
+            sl.amps_blank = to157chan(getbroadband(sl.blank, slFreqIdx,fs),~badChannels,'nans');
             
         elseif strcmp(type, 'amplitudesCoherentSpectrum')
-            % Stimulus locked using coherent spectrum
-            % Amplitude (so not squared). Square values to get units of power
-            sl.amps_full  = to157chan(getstimlocked_coherent(sl_ts, slFreqIdx, condEpochsFull),~badChannels,'nans');
-            sl.amps_blank = to157chan(getstimlocked_coherent(sl_ts, slFreqIdx, condEpochsBlank),~badChannels,'nans');
-            epochsFull     = find(condEpochsFull);
-            epochsBlank    = find(condEpochsBlank);
-            epBootFullidx  = randi(length(epochsFull),nBoot,length(epochsFull));
-            epBootBlankidx = randi(length(epochsBlank),nBoot,length(epochsBlank));
             
-            for ii = 1:nBoot
-                sl.boot_amps_full_mn(ii,:)  = to157chan(getstimlocked_coherent(sl_ts, slFreqIdx, epochsFull(epBootFullidx(nBoot,:))),~badChannels,'nans');
-                sl.boot_amps_blank_mn(ii,:) = to157chan(getstimlocked_coherent(sl_ts, slFreqIdx, epochsBlank(epBootBlankidx(nBoot,:))),~badChannels,'nans');
+            if plotNeighboringSLFreq
+                % Stimulus locked using coherent spectrum
+                % Amplitude (so not squared). Square values to get units of power
+                tmp  = getstimlocked_coherent(sl_ts, slFreqIdx, condEpochsFull, plotNeighboringSLFreq);
+                sl.amps_full11 = to157chan(tmp.sl11,~badChannels,'nans');
+                sl.amps_full12 = to157chan(tmp.sl12,~badChannels,'nans');
+                sl.amps_full13 = to157chan(tmp.sl13,~badChannels,'nans');
+                
+                tmp = getstimlocked_coherent(sl_ts, slFreqIdx, condEpochsBlank, plotNeighboringSLFreq);
+                sl.amps_blank11 = to157chan(tmp.sl11,~badChannels,'nans');
+                sl.amps_blank12 = to157chan(tmp.sl12,~badChannels,'nans');
+                sl.amps_blank13 = to157chan(tmp.sl13,~badChannels,'nans');
+                
+            else
+                % Stimulus locked using coherent spectrum
+                % Amplitude (so not squared). Square values to get units of power
+                sl.amps_full  = to157chan(getstimlocked_coherent(sl_ts, slFreqIdx, condEpochsFull),~badChannels,'nans');
+                sl.amps_blank = to157chan(getstimlocked_coherent(sl_ts, slFreqIdx, condEpochsBlank),~badChannels,'nans');
+                epochsFull     = find(condEpochsFull);
+                epochsBlank    = find(condEpochsBlank);
+                epBootFullidx  = randi(length(epochsFull),nBoot,length(epochsFull));
+                epBootBlankidx = randi(length(epochsBlank),nBoot,length(epochsBlank));
+                
+                for ii = 1:nBoot
+                    sl.boot_amps_full_mn(ii,:)  = to157chan(getstimlocked_coherent(sl_ts, slFreqIdx, epochsFull(epBootFullidx(nBoot,:))),~badChannels,'nans');
+                    sl.boot_amps_blank_mn(ii,:) = to157chan(getstimlocked_coherent(sl_ts, slFreqIdx, epochsBlank(epBootBlankidx(nBoot,:))),~badChannels,'nans');
+                end
+                sl.boot_amps_diff_mn  = sl.boot_amps_full_mn - sl.boot_amps_blank_mn;
             end
-            sl.boot_amps_diff_mn  = sl.boot_amps_full_mn - sl.boot_amps_blank_mn;
+            
             
         else
             % Stimulus locked using incoherent spectrum.
             % Amplitude (so not squared). Square values to get units of power
             sl.amps_full = to157chan(getstimlocked(sl.full, slFreqIdx),~badChannels,'nans');
-            sl.amps_blank = to157chan(getstimlocked(sl.blank, slFreqIdx),~badChannels,'nans');   
+            sl.amps_blank = to157chan(getstimlocked(sl.blank, slFreqIdx),~badChannels,'nans');
         end
         
         %% Compute sample mean of broadband response
@@ -251,7 +271,7 @@ switch type
             bb.amps_full = bb.amps_full.^2;
             bb.amps_blank = bb.amps_blank.^2;
         end
-
+        
         
         % Define bootstrap function for averaging across epochs
         meanCondition_fun = @(epochData) mean(epochData,1, 'omitnan');
@@ -266,46 +286,69 @@ switch type
         
         % Function to get difference mean full and mean blank from data without bootstrapping (sample mean)
         meanDiffFullBlank_fun = @(epochDataFull,epochDataBlank) ...
-               mean(epochDataFull,1, 'omitnan') - mean(epochDataBlank,1, 'omitnan');
-           
+            mean(epochDataFull,1, 'omitnan') - mean(epochDataBlank,1, 'omitnan');
+        
         if strcmp(type, 'amplitudesBB10hz')
-           sl.amps_diff_mn = meanDiffFullBlank_fun(sl.amps_full,sl.amps_blank);
-           
-           % same but for broadband 10 Hz bands 
-           for jj = 1:size(bb.amps_full,3)
+            sl.amps_diff_mn = meanDiffFullBlank_fun(sl.amps_full,sl.amps_blank);
+            
+            % same but for broadband 10 Hz bands
+            for jj = 1:size(bb.amps_full,3)
                 % Bootstrap broadband data
                 bb.boot_amps_full_mn(:,:,jj)  = bootstrp(nBoot,meanCondition_fun,bb.amps_full(:,:,jj));
                 bb.boot_amps_blank_mn(:,:,jj) = bootstrp(nBoot,meanCondition_fun,bb.amps_blank(:,:,jj));
                 bb.boot_amps_diff_mn(:,:,jj)  = bb.boot_amps_full_mn(:,:,jj) - bb.boot_amps_blank_mn(:,:,jj);
-
+                
                 bb.amps_diff_mn(:,:,jj) = meanDiffFullBlank_fun(bb.amps_full(:,:,jj),bb.amps_blank(:,:,jj));
             end
+            
         else
             % Bootstrap broadband data
             bb.boot_amps_full_mn  = bootstrp(nBoot,meanCondition_fun,bb.amps_full);
             bb.boot_amps_blank_mn = bootstrp(nBoot,meanCondition_fun,bb.amps_blank);
             bb.boot_amps_diff_mn  = bb.boot_amps_full_mn - bb.boot_amps_blank_mn;
-
-            % Get sample mean
-            sl.amps_diff_mn = meanDiffFullBlank_fun(sl.amps_full,sl.amps_blank);
+            
+            % Get broadband sample mean
             bb.amps_diff_mn = meanDiffFullBlank_fun(bb.amps_full,bb.amps_blank);
+            
+            if plotNeighboringSLFreq
+                % Get sample mean for 11, 12 and 13 Hz
+                sl.amps_diff_mn11 = meanDiffFullBlank_fun(sl.amps_full11,sl.amps_blank11);
+                sl.amps_diff_mn12 = meanDiffFullBlank_fun(sl.amps_full12,sl.amps_blank12);
+                sl.amps_diff_mn13 = meanDiffFullBlank_fun(sl.amps_full13,sl.amps_blank13);
+            else
+                % Get sample mean for 12 Hz
+                sl.amps_diff_mn = meanDiffFullBlank_fun(sl.amps_full,sl.amps_blank);
+            end
+            
         end
         
-        % Define signal as amps_diff_mn
-        sl.signal = sl.amps_diff_mn;
+        %% GET SIGNAL, NOISE AND SNR
+        if plotNeighboringSLFreq
+            % Define signal as amps_diff_mn
+            sl.signal11 = sl.amps_diff_mn11;
+            sl.signal12 = sl.amps_diff_mn12;
+            sl.signal13 = sl.amps_diff_mn13;
+    
+        else
+            % Define signal as amps_diff_mn
+            sl.signal = sl.amps_diff_mn;
+            
+            % Get noise from bootstraps (standard error)
+            sl.noise = std(sl.boot_amps_diff_mn, 1);
+                  
+            % Get SNR
+            sl.snr = sl.signal ./ sl.noise;
+        end
+        
+        % same for broadband
         bb.signal = bb.amps_diff_mn;
-        
-        % Get noise from bootstraps (standard error)
-        sl.noise = std(sl.boot_amps_diff_mn, 1);
         bb.noise = std(bb.boot_amps_diff_mn, 1);
-        
-        % Get SNR
-        sl.snr = sl.signal ./ sl.noise;
         bb.snr = bb.signal ./ bb.noise;
         
         % Put in data struct
         data.sl = sl;
         data.bb = bb;
+        
         
     case 'timeseries'
         
@@ -342,14 +385,14 @@ switch type
         
         % ---- Define first epochs in order to remove later ------------------
         fprintf('(%s): Data session %d - Bad epochs before removing 1st epoch stim period: %d (%1.2f %%)\n', mfilename, whichSession, sum(badEpochs),100*(sum(badEpochs)/size(sensorData,2)));
-         
-         % ---- Define first epochs in order to remove later ------------------
-         badEpochs(1:6:end) = 1;
-         
-         fprintf('(%s): Data session %d - Selected bad channels are: %s\n', mfilename, whichSession, sprintf('%d ', find(badChannels)));              
-         fprintf('(%s): Data session %d - Total bad channels: %d (%1.2f %%)\n', mfilename, whichSession, sum(badChannels),100*(sum(badChannels)/length(dataChannels)));
-         fprintf('(%s): Data session %d - Total bad epochs: %d (%1.2f %%)\n', mfilename, whichSession, sum(badEpochs),100*(sum(badEpochs)/size(sensorData,2)));
-       
+        
+        % ---- Define first epochs in order to remove later ------------------
+        badEpochs(1:6:end) = 1;
+        
+        fprintf('(%s): Data session %d - Selected bad channels are: %s\n', mfilename, whichSession, sprintf('%d ', find(badChannels)));
+        fprintf('(%s): Data session %d - Total bad channels: %d (%1.2f %%)\n', mfilename, whichSession, sum(badChannels),100*(sum(badChannels)/length(dataChannels)));
+        fprintf('(%s): Data session %d - Total bad epochs: %d (%1.2f %%)\n', mfilename, whichSession, sum(badEpochs),100*(sum(badEpochs)/size(sensorData,2)));
+        
         
         % For some reason the preprocessing steps didn't take out bad
         % channel 98 in several sessions, so we do it manually here.
