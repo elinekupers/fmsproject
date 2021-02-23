@@ -1,5 +1,5 @@
-function makeFigure7(varargin)
-% This is a function to make Figure 7 from the manuscript:
+function makeFigure8(varargin)
+% This is a function to make Figure 8 from the manuscript:
 %   A visual encoding model links magnetoencephalography
 %   signals to neural synchrony in human cortex.
 %       by Kupers, Benson, Winawer (YEAR) JOURNAL.
@@ -47,11 +47,11 @@ function makeFigure7(varargin)
 %   [singleColorbarFlag]    :  (bool) Use a single colorbar per row,
 %                                     instead of per individual plot.
 % Example 1:
-%  makeFigure7('subjectsToPlot', 1, 'plotMeanSubject', false, 'saveFig', true)
+%  makeFigure8('subjectsToPlot', 1, 'plotMeanSubject', false, 'saveFig', true)
 % Example 2:
-%  makeFigure7('subjectsToPlot', 12, 'plotMeanSubject', false, 'saveFig', true)
+%  makeFigure8('subjectsToPlot', 12, 'plotMeanSubject', false, 'saveFig', true)
 % Example 3:
-%  makeFigure7('subjectsToPlot', 1:12, 'plotMeanSubject', true, 'saveFig', true)
+%  makeFigure8('subjectsToPlot', 1:12, 'plotMeanSubject', true, 'saveFig', true)
 %
 %
 % By Eline Kupers (NYU) 2019
@@ -191,8 +191,8 @@ if plotMeanSubject
     % Define plotting data and figure titles
     dataToPlot   = cat(1, w.woC.V123c_mn_norm, w.woC.V123i_mn_norm);
     
-    fig_ttl      = {sprintf('Figure7_ModelPredictions-No_cancellation_%s_%1.2f-%d_prctle%2.1f_%s_highResFlag%d_singleColorbarFlag%d_AVERAGE', area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf,singleColorbarFlag), ...
-                    sprintf('Figure7_Contours-No_cancellation_%s_%1.2f-%d_prctle%2.1f_%s_highResFlag%d_singleColorbarFlag%d_AVERAGE', area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf,singleColorbarFlag)};
+    fig_ttl      = {sprintf('Figure8_ModelPredictions-No_cancellation_%s_%1.2f-%d_prctle%2.1f_%s_highResFlag%d_singleColorbarFlag%d_AVERAGE', area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf,singleColorbarFlag), ...
+                    sprintf('Figure8_Contours-No_cancellation_%s_%1.2f-%d_prctle%2.1f_%s_highResFlag%d_singleColorbarFlag%d_AVERAGE', area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf,singleColorbarFlag)};
     sub_ttl      = {sprintf('No cancellation: Synchronous sources Average N=%d', length(subject)), ...
                     sprintf('No cancellation: Asynchronous sources Average N=%d', length(subject))};
     
@@ -202,7 +202,7 @@ if plotMeanSubject
     
     % Plot log of ratio of with vs without cancellation
     dataToPlot = cat(1, ratioCoh_norm, ratioInCoh_norm);
-    fig_ttl      = {sprintf('Figure7_ratioWithVsWithoutCancellation_%s_%1.2f-%d_prctile%2.1f_%s_highResFlag%d_singleColorbarFlag%d_AVERAGE', area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf,singleColorbarFlag)};
+    fig_ttl      = {sprintf('Figure8_ratioWithVsWithoutCancellation_%s_%1.2f-%d_prctile%2.1f_%s_highResFlag%d_singleColorbarFlag%d_AVERAGE', area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf,singleColorbarFlag)};
     sub_ttl      = {'Syn: ratio with / without', ...
                     'Asyn: ratio with / without'};
   
@@ -216,9 +216,9 @@ for exampleSubject = subjectsToPlot
     dataToPlot   = cat(1, (w.woC.V123c(exampleSubject,:)./maxSynAverage), ...
                           (w.woC.V123i(exampleSubject,:)./maxSynAverage));
     
-    fig_ttl      = {sprintf('Figure7_ModelPredictions-No_cancellation_%s_%1.2f-%d_prctle%d_%s_highResFlag%d_singleColorbarFlag%d_S%d', ...
+    fig_ttl      = {sprintf('Figure8_ModelPredictions-No_cancellation_%s_%1.2f-%d_prctle%d_%s_highResFlag%d_singleColorbarFlag%d_S%d', ...
                       area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile,headmodelType, highResSurf, singleColorbarFlag, exampleSubject), ...
-                    sprintf('Figure7_Contours-No_cancellation_%s_%1.2f-%d_prctle%d_%s_highResFlag%d_singleColorbarFlag%d_S%d', ...
+                    sprintf('Figure8_Contours-No_cancellation_%s_%1.2f-%d_prctle%d_%s_highResFlag%d_singleColorbarFlag%d_S%d', ...
                       area, eccenLimitDeg(1),eccenLimitDeg(2), contourPercentile, headmodelType, highResSurf, singleColorbarFlag,exampleSubject)};
     sub_ttl      = {sprintf('No cancellation: Synchronous sources S%d', exampleSubject), ...
                     sprintf('No cancellation: Asynchronous sources S%d', exampleSubject)};
