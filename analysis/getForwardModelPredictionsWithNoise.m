@@ -1,4 +1,4 @@
-function w = getForwardModelPredictionsWithNoise(G, template, f, n, nrEpochs, theta, kappa, subjectID)
+function w = getForwardModelPredictionsWithNoise(G, template, f, n, nrEpochs, theta, kappa, subjectID, saveFig)
 
 % Function to compute forward model predictions from gain matrix and templates.
 % Templates will contain coherent and incoherent simulated signals.
@@ -38,7 +38,9 @@ if ~exist('kappa', 'var') || isempty(kappa)
     kappa.mix  = pi;
 end
 
-
+if ~exist('saveFig','var') || isempty(saveFig);
+    saveFig = false;
+end
 %% Set the random seed so that the simulation is reproducible
 s = RandStream('mt19937ar','Seed',1);
 RandStream.setGlobalStream(s);
@@ -230,9 +232,12 @@ offSingleVertex.signal = off.signal(:,:,selectedVertex);
 [onSingleVertex, offSingleVertex] = ecogCalcOnOffSpectra(onSingleVertex, offSingleVertex, useHann, calcPower);
 
 % Plot time series and spectra
-ecogPlotOnOffSpectra(onSingleVertex, offSingleVertex, t, stimFrequency, calcPower);
-% print(1, fullfile(fmsRootPath,  'figures',subjectID, 'ecogSimulationSingleVertexTimeSeries'), '-deps')
+fH = ecogPlotOnOffSpectra(onSingleVertex, offSingleVertex, t, stimFrequency, calcPower);
 
+if saveFig
+    print(fH(1), fullfile(fmsRootPath,  'figures',subjectID, 'ecogSimulationSingleVertexSpectrum'), '-deps')
+    print(fH(2), fullfile(fmsRootPath,  'figures',subjectID, 'ecogSimulationSingleVertexTimeSeries'), '-deps')
+end
 %% Synchronous signals
 
 % Preallocate space

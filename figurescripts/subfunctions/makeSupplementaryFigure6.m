@@ -145,7 +145,7 @@ for s = subjectsToLoad
     
     % Simulate coherent, in between or mixture, adn incoherent source time
     % series and compute predictions from forward model (w)
-    tmp = getForwardModelPredictionsWithNoise(G, template.([area '_StimEccen']), [], n, nrEpochs, theta, kappa, subject{s});
+    tmp = getForwardModelPredictionsWithNoise(G, template.([area '_StimEccen']), [], n, nrEpochs, theta, kappa, subject{s}, saveFig);
     
     % Compute amplitude across time
     amps.on = abs(fft(tmp.on,[],2));
@@ -200,19 +200,25 @@ for s = subjectsToLoad
     w.V123i(s,:) = bb.on-bb.off;
 
 
-    %%
-    figure(99); clf; 
-    plot(0:999, squeeze(mean(amps.on(1,:,:),3)),'ro-','lineWidth',3); hold on; 
-    plot(0:999, squeeze(mean(amps.off(1,:,:),3)),'go-','lineWidth',3);
-    plot([12 12], [10.^[-2,1]], 'k',[24 24], [10.^[-2,1]], 'k')
-    legend('Mean amps across ON epochs', 'Mean amps across OFF epochs')
+    %% Plot MEG sensor spectrum
+    [~,sensor] = max(synSL12_minus_bb);
+    figure(99); clf; set(gcf,'color','w')
+    plot(0:999, squeeze(mean(amps.on(sensor,:,:),3)),'color', [0 0 0],'lineWidth',3); hold on; 
+    plot(0:999, squeeze(mean(amps.off(sensor,:,:),3)),'color', [126 126 126]./255,'lineWidth',3);
+    legend('Mean amps across ON epochs', 'Mean amps across OFF epochs','Location', 'SouthWest')
     set(gca, 'XScale','log', 'YScale', 'log', 'TickDir', 'out', 'FontSize',20);
     ylim(10.^[-2,1])
     xlim([1,150])
+    set(gca, 'XTick',[12:12:150], 'XGrid', 'on', 'XMinorGrid','off');
+    axis square;
     xlabel('Frequency (Hz)')
-    ylabel('Amplitude (uV)')
+    ylabel('Amplitude (AU)')
     box off; legend boxoff;
-    title('Single sensor (#1) FFT amplitudes')
+    title(sprintf('Single sensor (#%d) FFT amplitudes',sensor))
+    
+    if saveFig
+        print(99, fullfile(fmsRootPath,  'figures',subject{s}, sprintf('ecogSimulationMEGSensor%dTimeSeries',sensor)), '-deps')
+    end
 end
 
 %% Visualize predictions

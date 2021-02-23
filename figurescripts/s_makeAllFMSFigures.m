@@ -28,7 +28,7 @@ makeFigure5('subjectsToPlot', subjectsToPlot, 'plotMeanSubject', true, 'saveFig'
 %% FIGURE 8
 % Visualize model predictions that simulating the MEG sensor responses 
 % that CANNOT CANCEL for coherent and incoherent neural sources.
-makeFigure7('subjectsToPlot', subjectsToPlot, 'plotMeanSubject', true, 'saveFig', saveFig)
+makeFigure8('subjectsToPlot', subjectsToPlot, 'plotMeanSubject', true, 'saveFig', saveFig)
 
 
 %% Supplementary Figure 1

@@ -36,7 +36,7 @@ fH(1) = figure;
 
 set(gcf, 'Color', 'w')
 
-cols.plot = [1 0 0; 0 1 0; .5 0 0; 0 .5 0; ];
+cols.plot = [0 0 0; 126 126 126]./255;
 
 xticks = stimF:stimF:150;
 xtickLabels = cellstr(num2str(ceil(xticks')))';
@@ -55,18 +55,18 @@ hold all
 
 fs = 1:length(f);
 plot(...
-    f, on.meanFFT(fs), '-', f, off.meanFFT(fs), '-',...
-    f, on.fftMean(fs), '-', f, off.fftMean(fs), '-', ...
-    'LineWidth', 2)
+    f, on.meanFFT(fs), '-', f, off.meanFFT(fs), '-', 'LineWidth',2)...
+%     f, on.fftMean(fs), '-', f, off.fftMean(fs), '-', ...
+%     'LineWidth', 2)
 
-set(gca, 'XGrid', 'on', 'GridLineStyle', ':', 'XMinorGrid', 'off');
-legend({'Mean spectrum ON' 'Mean spectrum OFF'...
-    'Spectrum of mean time series ON' 'Spectrum of mean time series OFF'},...
+set(gca, 'XGrid', 'on', 'GridLineStyle', '-', 'XMinorGrid', 'off');
+legend({'Mean spectrum ON' 'Mean spectrum OFF'}, ...
     'Location', 'Southwest',  'Box', 'off', 'EdgeColor', 'w', 'Color', 'none')
+%     'Spectrum of mean time series ON' 'Spectrum of mean time series OFF'},...
+    
 
 xlabel('Frequency (Hz)')
 if calcPower, ylabel('Power (µV^2)'); else ylabel('Amplitude (µV)'); end
-
 
 
 %% PLOT TIME SERIES
@@ -78,7 +78,7 @@ xtLabels = cellstr(num2str(round(xt'*100)/100))';
 xtLabels(1:2:end) = {' '};
 
 
-set(gca, 'ColorOrder', cols.plot(3:4,:), 'XTick', xt, ...
+set(gca, 'ColorOrder', cols.plot, 'XTick', xt, ...
     'XTickLabel', xtLabels, ...
     'XLim', [0 max(t)],  'XGrid', 'on', ...
     'FontSize', 16, 'YLim', [-100 100], 'YTick', -100:50:100);
