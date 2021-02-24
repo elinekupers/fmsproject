@@ -217,7 +217,7 @@ for s = subjectsToLoad
     title(sprintf('Single sensor (#%d) FFT amplitudes',sensor))
     
     if saveFig
-        print(99, fullfile(fmsRootPath,  'figures',subject{s}, sprintf('ecogSimulationMEGSensor%dTimeSeries',sensor)), '-deps')
+        print(99, fullfile(fmsRootPath,  'figures',subject{s}, sprintf('ecogSimulationMEGSensor%dTimeSeries',sensor)), '-depsc')
     end
 end
 

@@ -235,8 +235,8 @@ offSingleVertex.signal = off.signal(:,:,selectedVertex);
 fH = ecogPlotOnOffSpectra(onSingleVertex, offSingleVertex, t, stimFrequency, calcPower);
 
 if saveFig
-    print(fH(1), fullfile(fmsRootPath,  'figures',subjectID, 'ecogSimulationSingleVertexSpectrum'), '-deps')
-    print(fH(2), fullfile(fmsRootPath,  'figures',subjectID, 'ecogSimulationSingleVertexTimeSeries'), '-deps')
+    print(fH(1), fullfile(fmsRootPath,  'figures',subjectID, 'ecogSimulationSingleVertexSpectrum'), '-depsc')
+    print(fH(2), fullfile(fmsRootPath,  'figures',subjectID, 'ecogSimulationSingleVertexTimeSeries'), '-depsc')
 end
 %% Synchronous signals
 
