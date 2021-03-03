@@ -37,7 +37,7 @@ dataDir                = fullfile(fmsRootPath, 'data');    % Where to get data?
 whichSession = dataSession(subjectsToPlot);
     
 % Get amplitude data
-data = loadData(fullfile(dataDir, subject{subjectsToPlot}), whichSession,'timeseries');
+data = loadData(fullfile(dataDir, subject{subjectsToPlot}), whichSession,'type','timeseries');
 
 % Define MEG sensor to plot
 sensorIdx = 1;
@@ -55,12 +55,12 @@ xt = [12:12:72, 96,144];
 % compute spectrum
 spec = abs(fft(squeeze(data.ts(sensorIdx, :,:))))/size(data.ts,2)*2;
 
-% compute power for epochs corresponding to a condition and
+% compute amplitude for epochs corresponding to a condition and
 % trim data to specific frequencies
-dataFull = spec(:,data.condEpochsFull).^2;
+dataFull = spec(:,data.condEpochsFull); %.^2;
 dataFull = dataFull(fok+1,:);
 
-dataBlank = spec(:,data.condEpochsBlank).^2;
+dataBlank = spec(:,data.condEpochsBlank); %.^2;
 dataBlank = dataBlank(fok+1,:);
 
 % Get the median
@@ -69,8 +69,8 @@ mn.blank = prctile(dataBlank,[16,50,84],2);
 
 % Multiply with 10^15 to get values in units of fT
 if any(intersect(whichSession, 9:14))
-    mn.full = mn.full.*10^-15.*10^-15;
-    mn.blank = mn.blank.*10^-15.*10^-15;
+    mn.full = mn.full.*10^-15; % multiply with 10.^-30 for power
+    mn.blank = mn.blank.*10^-15; % multiply with 10.^-30 for power
 end
 
 %% Spectrum of example channel
@@ -81,14 +81,14 @@ plot(fok, mn.full(:,2),  '-',  'Color', colors(1,:), 'LineWidth', 2); hold on;
 plot(fok, mn.blank(:,2),  '-',  'Color', colors(2,:), 'LineWidth', 2);
 
 % format x and y axes
-yt = [1:5];
-yl=[yt(1),yt(end)];
+yl = [0.5,2.3];
+yt = [1,2];
 set(gca, 'XLim', xl, 'XTick', xt, 'XScale', 'log', 'YScale','log');
 set(gca,'ytick',10.^yt, 'ylim',10.^yl, 'TickDir', 'out', 'FontSize', 12);
 box off;
 
 % label figure, add stimulus harmonic lines, and make it look nice
-xlabel('Frequency (Hz)'); ylabel('Power (fT^2)');
+xlabel('Frequency (Hz)'); ylabel('Amplitudes (fT)');
 title(sprintf('Channel %d', sensorIdx));
 yl2 = get(gca, 'YLim');
 for ii =12:12:180, plot([ii ii], yl2, '-', 'Color', [100 100 100]./255); end
@@ -100,14 +100,20 @@ end
 %% Plot zoom into broadband frequencies
 fH2 = figure('position',[567, 655, 300, 281]); clf(fH2); set(fH2, 'Name', 'Spectrum of one MEG sensor' , 'NumberTitle', 'off');
 
+% mask harmonics
+[~,ia] = intersect(fok,12:12:180);
+mn.full(ia,2) = NaN;
+mn.blank(ia,2) = NaN;
+
 % plot median
 plot(fok, mn.full(:,2),  '-',  'Color', colors(1,:), 'LineWidth', 2); hold on;
 plot(fok, mn.blank(:,2),  '-',  'Color', colors(2,:), 'LineWidth', 2);
 
+
 % Reset x scale and y tickmarks
 xl = [60 150];
-yl = [1 2.1];
-yt = [1 2];
+yl = [0.5 1.2];
+yt = [1];
 
 % format x and y axes
 set(gca, 'XLim', xl, 'XTick', xt, 'XScale', 'log', 'YScale','log');
@@ -115,14 +121,15 @@ set(gca,'ytick',10.^yt, 'ylim',10.^yl, 'TickDir', 'out', 'FontSize', 12);
 box off;
 
 % label figure, add stimulus harmonic lines, and make it look nice
-xlabel('Frequency (Hz)'); ylabel('Power (T^2)');
+xlabel('Frequency (Hz)'); ylabel('Amplitudes (fT)');
 title(sprintf('Channel %d', sensorIdx));
 yl2 = get(gca, 'YLim');
 for ii =12:12:180, plot([ii ii], yl2, '-', 'Color', [100 100 100]./255); end
 
 if saveFig
-    figurewrite(fullfile(figureDir, 'Figure2A_SpectrumZoomBroadband'), [],0,'.',1);
+    figurewrite(fullfile(figureDir, 'Figure2A_SpectrumZoomBroadband_HarmonicsMasked'), [],0,'.',1);
 end
+
 
 
 %% Visualize where channel is on mesh
@@ -165,8 +172,8 @@ for iter = 1:1000
     bbFull  = log10(getbroadband(dataIn(1,:,:),keepFrequencies,fs)); % Broadband function gives data in units of power
     bbBlank = log10(getbroadband(dataIn(2,:,:),keepFrequencies,fs)); % Broadband function gives data in units of power
         
-    slFull  = log10(getstimlocked(dataIn(1,:,:), 13).^2);  % Square to get units of power
-    slBlank = log10(getstimlocked(dataIn(2,:,:), 13).^2); % Square to get units of power
+    slFull  = log10(getstimlocked(dataIn(1,:,:), 13));  % in amplitudes, square data to get units of power
+    slBlank = log10(getstimlocked(dataIn(2,:,:), 13));  % in amplitudes, square data to get units of power
               
     % Full field minus blank, averaged across top 5 channels
     diffBB = mean(bbFull - bbBlank);
@@ -179,7 +186,7 @@ for iter = 1:1000
     percentdiff.sl(iter,:) = 100*((10.^diffSL)-1);
 end
 
-fprintf('Mean change in broadband power: %4.1f%%, with sd %1.1f%%\n', mean(percentdiff.bb),std(percentdiff.bb));
-fprintf('Mean change in stimulus locked power: %4.1f%%, with sd %1.1f%%\n', mean(percentdiff.sl),std(percentdiff.sl));
+fprintf('Mean change in broadband amplitudes: %4.1f%%, with sd %1.1f%%\n', mean(percentdiff.bb),std(percentdiff.bb));
+fprintf('Mean change in stimulus locked amplitudes: %4.1f%%, with sd %1.1f%%\n', mean(percentdiff.sl),std(percentdiff.sl));
 
 return
