@@ -43,7 +43,6 @@ p.parse(varargin{:});
 % Rename variables
 subjectsToPlot          = p.Results.subjectsToPlot;
 plotMeanSubject         = p.Results.plotMeanSubject;
-saveFig                 = p.Results.saveFig;
 
 % Get subject names and corresponding data session number
 [subject, dataSession] = getSubjectIDs;
@@ -133,11 +132,16 @@ end
 if plotMeanSubject
     
     for ii = subjectsToLoad
-        phase(ii,:) = allData{ii}.slAmpsFull;
-        amps(ii,:) = allData{ii}.slPhaseFull;
+        phase(ii,:) = allData{ii}.slPhaseFull;
+        amps(ii,:) = allData{ii}.slAmpsFull;
     end
     
-    mnPhase = mean(phase,1,'omitnan');
+    mnPhase = NaN(1,size(phase,2));
+    for sensor = 1:size(phase,2)
+        nanIdx = isnan(phase(:,sensor));
+        mnPhase(1,sensor) = circ_mean(phase(~nanIdx,sensor),[],1);
+    end
+    
     mnAmps = mean(amps,1,'omitnan');
     
     unreliableSensors = mnAmps > prctile(mnAmps,80);
@@ -145,12 +149,11 @@ if plotMeanSubject
     mnPhase(~unreliableSensors) = NaN;
     dataToPlot  = cat(1, mnAmps,mnPhase);
 
-    figure(3); hold on;
-    subplot(211)
-    megPlotMap(dataToPlot(1,:), [],[],'bipolar',[],[],[],'interpmethod','nearest'); colorbar;
+    figure(3); clf
+    megPlotMap(dataToPlot(1,:), [],[],[],[],[],[],'interpmethod','nearest'); colorbar;
     title('12 Hz Amplitude Group Average (N=12)') 
     
-    subplot(212)
+    figure(4); clf
     megPlotMap(dataToPlot(2,:), [-pi pi],[],'hsv',[],[],[],'interpmethod','nearest'); colorbar;
     title('12 Hz Phase Group Average (N=12)') 
 
