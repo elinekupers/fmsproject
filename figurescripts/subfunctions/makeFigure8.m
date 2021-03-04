@@ -67,6 +67,7 @@ p.addParameter('headmodelType', 'OS', @(x) any(validatestring(x,{'OS', 'BEM'})))
 p.addParameter('highResSurf', false, @islogical);
 p.addParameter('area', 'V123', @(x) any(validatestring(x,{'V1', 'V2', 'V3','V123', 'benson18atlas', 'wang15atlas'})));
 p.addParameter('eccenLimitDeg', [0.18 11], @isnumeric);
+p.addParameter('useConstrainedDipoles', true, @islogical);
 p.addParameter('contourPercentile', 93.6, @isnumeric);
 p.addParameter('maxColormapPercentile', 100, @isnumeric);
 p.addParameter('signedColorbar', false, @islogical);
@@ -81,6 +82,7 @@ headmodelType         = p.Results.headmodelType;
 highResSurf           = p.Results.highResSurf;
 area                  = p.Results.area;
 eccenLimitDeg         = p.Results.eccenLimitDeg;
+useConstrainedDipoles = p.Results.useConstrainedDipoles;
 contourPercentile     = p.Results.contourPercentile;
 maxColormapPercentile = p.Results.maxColormapPercentile;
 signedColorbar        = p.Results.signedColorbar;
@@ -133,7 +135,7 @@ for s = subjectsToLoad
     
     % Simulate coherent and incoherent source time series and compute
     % predictions from forward model (w)
-    G_constrained = getGainMatrix(bsData, keep_sensors, headmodelType, highResSurf);
+    G_constrained = getGainMatrix(bsData, keep_sensors, headmodelType, highResSurf, useConstrainedDipoles);
     
     % Get V1 template limited to 11 degrees eccentricity
     template = getTemplate(bsAnat, area, eccenLimitDeg);
@@ -208,6 +210,29 @@ if plotMeanSubject
   
     visualizeSensormaps(dataToPlot, 100, [], signedColorbar, singleColorbarFlag, colorMarkers, ...
             markerType, fig_ttl, sub_ttl, saveFig, figureDir);
+        
+    % Plot 1D average of posterior sensors 
+    for s = 1:size(w.woC.V123c,1)
+        synDataWoC = w.woC.V123c(s,:)./maxSynAverage;
+        asynDataWoC = w.woC.V123i(s,:)./maxSynAverage;
+        synDataWC = w.wC.V123c(s,:)./maxSynAverage;
+        asynDataWC = w.wC.V123i(s,:)./maxSynAverage;
+        
+        allDataWoC{s} = cat(1,synDataWoC, asynDataWoC);
+        allDataWC{s} = cat(1,synDataWC, asynDataWC);
+
+    end
+        
+    fig_ttl2 = sprintf('Figure8_1Daverage_ModelPredictionsWithoutCancellation_AVERAGE');
+    sub_ttl      = {'Syn: without cancellation', ...
+                    'Asyn: without cancellation'};
+    visualizePosteriorSensors1D(allDataWoC, plotMeanSubject, fig_ttl2, sub_ttl, saveFig, figureDir)
+
+    fig_ttl3 = sprintf('Figure8_1Daverage_ModelPredictionsWithCancellation_AVERAGE');
+    sub_ttl      = {'Syn: with cancellation', ...
+                    'Asyn: with cancellation'};
+    visualizePosteriorSensors1D(allDataWC, plotMeanSubject, fig_ttl3, sub_ttl, saveFig, figureDir) 
+    
 end
 
 %% 3. Plot for requested individual subject
